@@ -1,0 +1,85 @@
+.navbar {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(250, 248, 243, 0.95);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.navbar-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 60px;
+}
+
+.navbar-logo {
+  font-size: 28px;
+  font-weight: 400;
+  color: #1a1a1a;
+  text-decoration: none;
+  font-family: 'Kalam', cursive;
+  padding: 8px 16px;
+}
+
+.navbar-logo-small {
+  font-size: 16px;
+  font-weight: 400;
+  margin-left: 4px;
+  opacity: 0.85;
+}
+
+.navbar-menu {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.navbar-link {
+  color: #000;
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.2s;
+}
+
+.navbar-link:hover {
+  color: #757575;
+}
+
+.navbar-button {
+  background: transparent;
+  border: 1px solid #000;
+  color: #000;
+  padding: 8px 16px;
+  border-radius: 99px;
+  cursor: pointer;
+  font-size: 14px;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.navbar-button:hover {
+  background: #000;
+  color: #fff;
+}
+
+.navbar-button-primary {
+  background: #000;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 99px;
+  cursor: pointer;
+  font-size: 14px;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.navbar-button-primary:hover {
+  background: #333;
+}
+

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <script>
+      // Fix for React Router process.env error - must be first
+      window.process = window.process || {};
+      window.process.env = window.process.env || {};
+      window.process.env.NODE_ENV = window.process.env.NODE_ENV || 'development';
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#000000" />
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="कहानी घर घर की - अपनी कहानियां हिंदी और अंग्रेजी में आवाज़ के माध्यम से लिखें और साझा करें। Voice-enabled Hindi storytelling platform.">
+    <meta name="keywords" content="hindi stories, kahani, voice blogging, hindi blog, storytelling, कहानी, हिंदी कहानियां, voice writing">
+    <meta name="author" content="Meri Kahani">
+    <meta name="robots" content="index, follow">
+    <meta name="googlebot" content="index, follow">
+    <link rel="canonical" href="https://merikahani.com">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://merikahani.com">
+    <meta property="og:title" content="कहानी घर घर की - Meri Kahani">
+    <meta property="og:description" content="अपनी कहानियां आवाज़ के माध्यम से लिखें और साझा करें। Voice-enabled Hindi storytelling platform.">
+    <meta property="og:image" content="https://merikahani.com/og-image.jpg">
+    <meta property="og:locale" content="hi_IN">
+    <meta property="og:locale:alternate" content="en_US">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://merikahani.com">
+    <meta name="twitter:title" content="कहानी घर घर की - Meri Kahani">
+    <meta name="twitter:description" content="अपनी कहानियां आवाज़ के माध्यम से लिखें और साझा करें। Voice-enabled Hindi storytelling platform.">
+    <meta name="twitter:image" content="https://merikahani.com/twitter-image.jpg">
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Meri Kahani",
+      "alternateName": "कहानी घर घर की",
+      "url": "https://merikahani.com",
+      "description": "Voice-enabled Hindi and English storytelling platform",
+      "inLanguage": ["hi", "en"],
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://merikahani.com/search?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kalam&display=swap" rel="stylesheet">
+    <title>कहानी घर घर की - Meri Kahani | Voice-Enabled Hindi Storytelling</title>
+</head>
+<body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+</body>
+</html>
