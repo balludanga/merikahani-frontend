@@ -1,0 +1,32 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "build",
+  "devCommand": "npm start",
+  "installCommand": "npm install",
+  "framework": "create-react-app",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://merikahani-backend.onrender.com/api/:path*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ]
+}
