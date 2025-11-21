@@ -784,7 +784,7 @@ const Editor = () => {
                   className="editor-title-input"
                   value={formData.title}
                   onChange={e => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="Enter your post title..."
+                  placeholder="Enter your post title....."
                   style={{ width: '100%', fontSize: '1.2em', margin: '8px 0' }}
                 />
               </div>
