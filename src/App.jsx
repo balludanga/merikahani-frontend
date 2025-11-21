@@ -4,7 +4,6 @@ import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Login from './pages/Login';
-import Register from './pages/Register';
 import Editor from './pages/Editor';
 import PostView from './pages/PostView';
 import UserProfile from './pages/UserProfile';
@@ -19,7 +18,7 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+            <Route path="/register" element={<Login />} />
             <Route path="/new-story" element={<Editor />} />
             <Route path="/edit/:id" element={<Editor />} />
             <Route path="/post/:slug" element={<PostView />} />
