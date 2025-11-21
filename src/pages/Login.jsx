@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './Auth.css';
 
 const Login = () => {
-  const [error, setError] = useState('');
-  const { googleLogin, isAuthenticated } = useAuth();
+  const { isAuthenticated, handleGoogleCallback } = useAuth();
   const navigate = useNavigate();
 
   // Redirect if already logged in
@@ -28,64 +27,24 @@ const Login = () => {
 
   // Initialize Google Sign-In
   useEffect(() => {
-    // Check for Google OAuth response in URL hash
-    const hash = window.location.hash;
-    if (hash.includes('credential=')) {
-      const params = new URLSearchParams(hash.substring(1));
-      const credential = params.get('credential');
-      if (credential) {
-        handleGoogleResponse({ credential });
-        // Clean up the URL
-        window.history.replaceState(null, null, window.location.pathname);
-      }
-    }
-
     if (window.google && window.google.accounts) {
       window.google.accounts.id.initialize({
         client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
-        ux_mode: 'redirect',
-        login_uri: window.location.origin + window.location.pathname,
+        callback: handleGoogleCallback,
       });
       window.google.accounts.id.renderButton(
         document.getElementById('google-signin-button'),
         { theme: 'outline', size: 'large', text: 'continue_with' }
       );
     }
-  }, []);
-
-  const handleGoogleResponse = async (response) => {
-    setError('');
-    try {
-      const res = await fetch('http://localhost:8001/api/auth/google-login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token: response.credential }),
-      });
-      const data = await res.json();
-      if (res.ok && data.access_token) {
-        localStorage.setItem('token', data.access_token);
-        // Update auth context
-        await googleLogin(data.access_token);
-        navigate('/');
-      } else {
-        setError(data.detail || 'Google login failed');
-      }
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('Google login error:', err);
-      setError('Google login failed');
-    }
-  };
+  }, [handleGoogleCallback]);
 
   return (
     <div className="auth-page">
       <div className="auth-container">
-        <h1 className="auth-title">Sign in or Sign up</h1>
+        <h1 className="auth-title">Sign in</h1>
         <p className="auth-subtitle">Continue with Google to access your account.</p>
         <div id="google-signin-button"></div>
-        {error && <div className="auth-error">{error}</div>}
       </div>
     </div>
   );
