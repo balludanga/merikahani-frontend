@@ -779,7 +779,14 @@ const Editor = () => {
                     </button>
                   </div>
                 </div>
-                <div className="preview-title">{formData.title || <em>Click Record to dictate your title...</em>}</div>
+                <input
+                  type="text"
+                  className="editor-title-input"
+                  value={formData.title}
+                  onChange={e => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="Enter your post title..."
+                  style={{ width: '100%', fontSize: '1.2em', margin: '8px 0' }}
+                />
               </div>
               
               <div className="preview-section">
@@ -829,15 +836,14 @@ const Editor = () => {
                     </button>
                   </div>
                 </div>
-                <div className="preview-content">
-                  {formData.content ? (
-                    formData.content.split('\n\n').map((para, idx) => (
-                      <p key={idx}>{para}</p>
-                    ))
-                  ) : (
-                    <em>Click Record to dictate your story...</em>
-                  )}
-                </div>
+                <textarea
+                  className="editor-content-input"
+                  value={formData.content}
+                  onChange={e => setFormData({ ...formData, content: e.target.value })}
+                  placeholder="Write your story here..."
+                  rows={12}
+                  style={{ width: '100%', fontSize: '1em', margin: '8px 0' }}
+                />
               </div>
             </div>
           </div>
