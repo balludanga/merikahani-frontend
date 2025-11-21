@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { postsAPI } from '../services/api';
 import { getGrammarSuggestions } from '../services/aiService';
+import ssmlTTS from '../utils/ssmlTTS';
 import './Editor.css';
 
 const Editor = () => {
@@ -400,76 +401,33 @@ const Editor = () => {
     // Don't speak to avoid loop - just show status
   };
 
-  const speak = (text) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel(); // Cancel any ongoing speech
-      isSpeakingRef.current = true;
-      
-      const speakWithVoice = () => {
-        // Get available voices
-        const voices = window.speechSynthesis.getVoices();
-        
-        if (voices.length === 0) {
-          // Voices not loaded yet, try again
-          setTimeout(speakWithVoice, 100);
-          return;
-        }
-        
-        const utterance = new SpeechSynthesisUtterance(text);
-        
-        // Try to find Indian English female voice (priority order - Lekha first)
-        const indianVoice = voices.find(voice => 
-          voice.name.toLowerCase().includes('lekha')
-        ) || voices.find(voice => 
-          voice.lang === 'en-IN' && voice.name.toLowerCase().includes('female')
-        ) || voices.find(voice => 
-          voice.lang === 'hi-IN' && voice.name.toLowerCase().includes('female')
-        ) || voices.find(voice => 
-          voice.lang === 'en-IN'
-        ) || voices.find(voice => 
-          voice.name.toLowerCase().includes('heera')
-        ) || voices.find(voice => 
-          voice.name.toLowerCase().includes('veena')
-        ) || voices.find(voice => 
-          voice.name.toLowerCase().includes('rishi')
-        ) || voices.find(voice => 
-          voice.name.toLowerCase().includes('neer')
-        ) || voices.find(voice => 
-          voice.name.toLowerCase().includes('indian')
-        ) || voices.find(voice => 
-          voice.name.toLowerCase().includes('female') && 
-          voice.lang.startsWith('en')
-        );
-        
-        if (indianVoice) {
-          utterance.voice = indianVoice;
-          // eslint-disable-next-line no-console
-          console.log('Using voice:', indianVoice.name, indianVoice.lang);
-        }
-        
-        // Set gentle, warm voice characteristics
-        utterance.rate = 0.9;  // Slightly slower for clarity and gentleness
-        utterance.pitch = 1.1;  // Slightly higher for feminine tone
-        utterance.volume = 0.9;  // Gentle volume
-        
-        // Resume recognition after speech ends
-        utterance.onend = () => {
-          isSpeakingRef.current = false;
-          // Small delay before resuming to ensure speech is fully done
-          setTimeout(() => {
-            setInterimTranscript('');
-          }, 300);
-        };
-        
-        utterance.onerror = () => {
-          isSpeakingRef.current = false;
-        };
-        
-        window.speechSynthesis.speak(utterance);
-      };
-      
-      speakWithVoice();
+  const speak = (text, useSSML = false) => {
+    if (!ssmlTTS.isSupported()) {
+      console.warn('Speech synthesis not supported');
+      return;
     }
+
+    // Cancel any ongoing speech
+    ssmlTTS.cancel();
+    isSpeakingRef.current = true;
+
+    ssmlTTS.speak(text, {
+      lang: selectedLanguage,
+      voicePreferences: ['lekha', 'heera', 'veena', 'rishi'],
+      rate: 0.9,
+      pitch: 1.1,
+      volume: 0.9,
+      useSSML: useSSML,
+      onEnd: () => {
+        isSpeakingRef.current = false;
+        setTimeout(() => {
+          setInterimTranscript('');
+        }, 300);
+      },
+      onError: () => {
+        isSpeakingRef.current = false;
+      }
+    });
   };
 
   // Load voices when they become available
@@ -538,8 +496,8 @@ const Editor = () => {
 
   const startTitleVoice = async () => {
     // Stop any ongoing speech immediately
-    if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.cancel();
+    if (ssmlTTS.speaking) {
+      ssmlTTS.cancel();
       isSpeakingRef.current = false;
     }
     
@@ -550,8 +508,8 @@ const Editor = () => {
 
   const startContentVoice = async () => {
     // Stop any ongoing speech immediately
-    if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.cancel();
+    if (ssmlTTS.speaking) {
+      ssmlTTS.cancel();
       isSpeakingRef.current = false;
     }
     
