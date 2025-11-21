@@ -28,14 +28,27 @@ const Login = () => {
 
   // Initialize Google Sign-In
   useEffect(() => {
+    // Check for Google OAuth response in URL hash
+    const hash = window.location.hash;
+    if (hash.includes('credential=')) {
+      const params = new URLSearchParams(hash.substring(1));
+      const credential = params.get('credential');
+      if (credential) {
+        handleGoogleResponse({ credential });
+        // Clean up the URL
+        window.history.replaceState(null, null, window.location.pathname);
+      }
+    }
+
     if (window.google && window.google.accounts) {
       window.google.accounts.id.initialize({
         client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
-        callback: handleGoogleResponse,
+        ux_mode: 'redirect',
+        login_uri: window.location.origin + window.location.pathname,
       });
       window.google.accounts.id.renderButton(
         document.getElementById('google-signin-button'),
-        { theme: 'outline', size: 'large', text: 'signin_with' }
+        { theme: 'outline', size: 'large', text: 'continue_with' }
       );
     }
   }, []);
@@ -43,7 +56,7 @@ const Login = () => {
   const handleGoogleResponse = async (response) => {
     setError('');
     try {
-      const res = await fetch('http://localhost:8000/api/auth/google-login', {
+      const res = await fetch('http://localhost:8001/api/auth/google-login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
