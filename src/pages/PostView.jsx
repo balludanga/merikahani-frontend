@@ -164,6 +164,7 @@ const PostView = () => {
         utteranceRef.current = null;
       },
       onError: (event) => {
+        // eslint-disable-next-line no-console
         console.error('Speech synthesis error:', event);
         setIsReading(false);
         setIsPaused(false);

@@ -403,6 +403,7 @@ const Editor = () => {
 
   const speak = (text, useSSML = false) => {
     if (!ssmlTTS.isSupported()) {
+      // eslint-disable-next-line no-console
       console.warn('Speech synthesis not supported');
       return;
     }

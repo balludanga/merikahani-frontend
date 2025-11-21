@@ -75,6 +75,7 @@ const Register = () => {
               value={formData.fullName}
               onChange={handleChange}
               placeholder="Enter your full name"
+              autoComplete="name"
             />
           </div>
           <div className="form-group">
@@ -87,6 +88,7 @@ const Register = () => {
               onChange={handleChange}
               required
               placeholder="Choose a username"
+              autoComplete="username"
             />
           </div>
           <div className="form-group">
@@ -99,6 +101,7 @@ const Register = () => {
               onChange={handleChange}
               required
               placeholder="Enter your email"
+              autoComplete="email"
             />
           </div>
           <div className="form-group">
@@ -112,6 +115,7 @@ const Register = () => {
               required
               placeholder="Create a password"
               minLength={6}
+              autoComplete="new-password"
             />
           </div>
           <button type="submit" className="auth-button" disabled={loading}>
