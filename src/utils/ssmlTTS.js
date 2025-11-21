@@ -270,6 +270,7 @@ class SSMLTTSEngine {
    */
   speak(text, options = {}) {
     if (!this.isSupported()) {
+      // eslint-disable-next-line no-console
       console.warn('Speech synthesis not supported');
       return;
     }
@@ -342,6 +343,7 @@ class SSMLTTSEngine {
     };
 
     utterance.onerror = (event) => {
+      // eslint-disable-next-line no-console
       console.error('Speech synthesis error:', event);
       this.isSpeaking = false;
       this.currentUtterance = null;
