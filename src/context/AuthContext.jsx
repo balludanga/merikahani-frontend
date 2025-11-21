@@ -61,6 +61,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const googleLogin = async (accessToken) => {
+    localStorage.setItem('token', accessToken);
+    setToken(accessToken);
+    return { success: true };
+  };
+
   const register = async (email, password, username, fullName) => {
     try {
       await authAPI.register({
@@ -91,6 +97,7 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     login,
+    googleLogin,
     register,
     logout,
     isAuthenticated: !!user,
