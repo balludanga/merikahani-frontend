@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { postsAPI, commentsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { updateMetaTags, generateStructuredData, resetMetaTags } from '../utils/seo';
+import ssmlTTS from '../utils/ssmlTTS';
 import './PostView.css';
 
 const PostView = () => {
@@ -15,7 +16,6 @@ const PostView = () => {
   const [isReading, setIsReading] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const utteranceRef = useRef(null);
-  const speechSynthesisRef = useRef(null);
   
   // Comment states
   const [comments, setComments] = useState([]);
@@ -130,84 +130,61 @@ const PostView = () => {
   };
 
   const startReading = () => {
-    if (!post || !('speechSynthesis' in window)) {
+    if (!post || !ssmlTTS.isSupported()) {
       alert('Text-to-speech is not supported in your browser.');
       return;
     }
 
     // If paused, resume
     if (isPaused) {
-      window.speechSynthesis.resume();
+      ssmlTTS.resume();
       setIsPaused(false);
       setIsReading(true);
       return;
     }
 
-    // Stop any ongoing speech
-    window.speechSynthesis.cancel();
+    // Combine title and content with SSML markup for better speech
+    const textToRead = `<prosody rate="medium" pitch="medium">
+      <emphasis level="strong">${post.title}</emphasis>
+      <break time="800ms"/>
+      ${post.subtitle ? `<prosody rate="slow">${post.subtitle}</prosody><break time="500ms"/>` : ''}
+      ${post.content}
+    </prosody>`;
 
-    // Combine title and content
-    const textToRead = `${post.title}. ${post.subtitle ? post.subtitle + '. ' : ''}${post.content}`;
+    ssmlTTS.speak(textToRead, {
+      lang: 'en-IN',
+      voicePreferences: ['lekha', 'heera', 'veena'],
+      rate: 0.9,
+      pitch: 1.1,
+      volume: 1.0,
+      useSSML: true,
+      onEnd: () => {
+        setIsReading(false);
+        setIsPaused(false);
+        utteranceRef.current = null;
+      },
+      onError: (event) => {
+        console.error('Speech synthesis error:', event);
+        setIsReading(false);
+        setIsPaused(false);
+        utteranceRef.current = null;
+      }
+    });
 
-    const utterance = new SpeechSynthesisUtterance(textToRead);
-    
-    // Find Lekha or other Indian English voice
-    const voices = window.speechSynthesis.getVoices();
-    const indianVoice = voices.find(voice => 
-      voice.name.toLowerCase().includes('lekha')
-    ) || voices.find(voice => 
-      voice.lang === 'en-IN' && voice.name.toLowerCase().includes('female')
-    ) || voices.find(voice => 
-      voice.lang === 'en-IN'
-    ) || voices.find(voice => 
-      voice.name.toLowerCase().includes('indian')
-    );
-
-    if (indianVoice) {
-      utterance.voice = indianVoice;
-      // eslint-disable-next-line no-console
-      console.log('Using voice:', indianVoice.name);
-    }
-
-    // Voice characteristics - gentle, warm tone
-    utterance.rate = 0.9;  // Slightly slower for clarity
-    utterance.pitch = 1.1;  // Slightly higher for feminine tone
-    utterance.volume = 1.0;  // Full volume
-
-    utterance.onstart = () => {
-      setIsReading(true);
-      setIsPaused(false);
-    };
-
-    utterance.onend = () => {
-      setIsReading(false);
-      setIsPaused(false);
-      utteranceRef.current = null;
-    };
-
-    utterance.onerror = (event) => {
-      // eslint-disable-next-line no-console
-      console.error('Speech synthesis error:', event);
-      setIsReading(false);
-      setIsPaused(false);
-      utteranceRef.current = null;
-    };
-
-    utteranceRef.current = utterance;
-    speechSynthesisRef.current = window.speechSynthesis;
-    window.speechSynthesis.speak(utterance);
+    setIsReading(true);
+    setIsPaused(false);
   };
 
   const pauseReading = () => {
-    if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
-      window.speechSynthesis.pause();
+    if (ssmlTTS.speaking) {
+      ssmlTTS.pause();
       setIsPaused(true);
       setIsReading(false);
     }
   };
 
   const stopReading = () => {
-    window.speechSynthesis.cancel();
+    ssmlTTS.cancel();
     setIsReading(false);
     setIsPaused(false);
     utteranceRef.current = null;
@@ -216,20 +193,19 @@ const PostView = () => {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (window.speechSynthesis) {
-        window.speechSynthesis.cancel();
+      if (ssmlTTS.isSupported()) {
+        ssmlTTS.cancel();
       }
     };
   }, []);
 
   // Load voices
   useEffect(() => {
-    if ('speechSynthesis' in window) {
+    if (ssmlTTS.isSupported()) {
       const loadVoices = () => {
-        window.speechSynthesis.getVoices();
+        ssmlTTS.getVoices();
       };
       loadVoices();
-      window.speechSynthesis.onvoiceschanged = loadVoices;
     }
   }, []);
 
