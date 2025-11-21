@@ -43,6 +43,11 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token, fetchUser]);
 
+  // Handle Google OAuth response from popup
+  const handleGoogleCallback = async (response) => {
+    await handleGoogleCredential(response.credential);
+  };
+
   const login = async (email, password) => {
     try {
       const response = await authAPI.login({ email, password });
@@ -65,6 +70,31 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', accessToken);
     setToken(accessToken);
     return { success: true };
+  };
+
+  const handleGoogleCredential = async (credential) => {
+    try {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8001';
+      const res = await fetch(`${apiUrl}/auth/google-login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token: credential }),
+      });
+      const data = await res.json();
+      if (res.ok && data.access_token) {
+        localStorage.setItem('token', data.access_token);
+        setToken(data.access_token);
+        return { success: true };
+      } else {
+        return { success: false, error: data.detail || 'Google login failed' };
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Google login error:', err);
+      return { success: false, error: 'Google login failed' };
+    }
   };
 
   const register = async (email, password, username, fullName) => {
@@ -98,6 +128,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     googleLogin,
+    handleGoogleCredential,
+    handleGoogleCallback,
     register,
     logout,
     isAuthenticated: !!user,
