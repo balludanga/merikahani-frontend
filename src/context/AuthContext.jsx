@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { authAPI } from '../services/api';
+import { trackEvent } from '../utils/analytics';
 
 const AuthContext = createContext();
 
@@ -17,6 +18,9 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'));
 
   const logout = useCallback(() => {
+    // Track logout event
+    trackEvent('logout');
+    
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
@@ -57,6 +61,13 @@ export const AuthProvider = ({ children }) => {
       // Set user directly from login response, don't fetch again
       setUser(userData);
       setLoading(false);
+      
+      // Track login event
+      trackEvent('login', {
+        method: 'email',
+        user_id: userData.id
+      });
+      
       return { success: true };
     } catch (error) {
       return {
@@ -86,6 +97,12 @@ export const AuthProvider = ({ children }) => {
       if (res.ok && data.access_token) {
         localStorage.setItem('token', data.access_token);
         setToken(data.access_token);
+        
+        // Track Google login event
+        trackEvent('login', {
+          method: 'google'
+        });
+        
         return { success: true };
       } else {
         return { success: false, error: data.detail || 'Google login failed' };
@@ -113,6 +130,13 @@ export const AuthProvider = ({ children }) => {
       // Set user directly from login response, don't fetch again
       setUser(userData);
       setLoading(false);
+      
+      // Track registration event
+      trackEvent('sign_up', {
+        method: 'email',
+        user_id: userData.id
+      });
+      
       return { success: true };
     } catch (error) {
       return {
