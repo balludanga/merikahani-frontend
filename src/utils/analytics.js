@@ -4,6 +4,7 @@ export const GA_TRACKING_ID = process.env.REACT_APP_GA_TRACKING_ID;
 // Initialize Google Analytics
 export const initGA = () => {
   if (!GA_TRACKING_ID) {
+    // eslint-disable-next-line no-console
     console.warn('Google Analytics tracking ID not found');
     return;
   }
