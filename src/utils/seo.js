@@ -1,6 +1,6 @@
 // SEO Utility Functions
 
-export const updateMetaTags = ({ title, description, keywords, image, url, type = 'article' }) => {
+export const updateMetaTags = ({ title, description, keywords, image, url, type = 'article', author, publishedTime, modifiedTime }) => {
   // Update title
   if (title) {
     document.title = `${title} - Meri Kahani`;
@@ -19,6 +19,18 @@ export const updateMetaTags = ({ title, description, keywords, image, url, type 
     { name: 'twitter:description', content: description },
     { name: 'twitter:image', content: image },
   ];
+
+  // Add article-specific meta tags
+  if (type === 'article' && author) {
+    metaTags.push(
+      { property: 'article:author', content: author },
+      { property: 'article:published_time', content: publishedTime },
+      { property: 'article:modified_time', content: modifiedTime },
+      { property: 'article:section', content: 'Stories' },
+      { property: 'article:tag', content: 'Hindi Stories' },
+      { property: 'article:tag', content: 'Voice Blogging' }
+    );
+  }
 
   metaTags.forEach(({ name, property, content }) => {
     if (!content) return;
@@ -54,18 +66,18 @@ export const generateStructuredData = (post, author) => {
     '@type': 'BlogPosting',
     headline: post.title,
     alternativeHeadline: post.subtitle,
-    image: post.cover_image || 'https://merikahani.com/default-image.jpg',
+    image: post.cover_image || 'https://kahanighargharki.vercel.app/default-image.jpg',
     author: {
       '@type': 'Person',
       name: author.full_name || author.username,
-      url: `https://merikahani.com/profile/${author.username}`,
+      url: `https://kahanighargharki.vercel.app/profile/${author.username}`,
     },
     publisher: {
       '@type': 'Organization',
       name: 'Meri Kahani',
       logo: {
         '@type': 'ImageObject',
-        url: 'https://merikahani.com/logo.png',
+        url: 'https://kahanighargharki.vercel.app/logo.png',
       },
     },
     datePublished: post.created_at,
@@ -73,7 +85,7 @@ export const generateStructuredData = (post, author) => {
     description: post.subtitle || post.content.substring(0, 160),
     articleBody: post.content,
     inLanguage: 'hi',
-    url: `https://merikahani.com/post/${post.slug}`,
+    url: `https://kahanighargharki.vercel.app/post/${post.slug}`,
   };
 
   // Remove existing structured data
@@ -90,6 +102,58 @@ export const generateStructuredData = (post, author) => {
   document.head.appendChild(script);
 };
 
+export const generateHomepageStructuredData = (posts) => {
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Meri Kahani',
+    alternateName: 'कहानी घर घर की',
+    url: 'https://kahanighargharki.vercel.app',
+    description: 'Voice-enabled Hindi and English storytelling platform',
+    inLanguage: ['hi', 'en'],
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: 'https://kahanighargharki.vercel.app/search?q={search_term_string}',
+      'query-input': 'required name=search_term_string'
+    }
+  };
+
+  // Add blog posts collection if posts exist
+  if (posts && posts.length > 0) {
+    structuredData.mainEntity = {
+      '@type': 'ItemList',
+      name: 'Latest Stories',
+      itemListElement: posts.slice(0, 10).map((post, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        item: {
+          '@type': 'BlogPosting',
+          headline: post.title,
+          url: `https://kahanighargharki.vercel.app/post/${post.slug}`,
+          datePublished: post.created_at,
+          author: {
+            '@type': 'Person',
+            name: post.author.full_name || post.author.username
+          }
+        }
+      }))
+    };
+  }
+
+  // Remove existing homepage structured data
+  const existingScript = document.querySelector('script[type="application/ld+json"][data-homepage]');
+  if (existingScript) {
+    existingScript.remove();
+  }
+
+  // Add new structured data
+  const script = document.createElement('script');
+  script.type = 'application/ld+json';
+  script.setAttribute('data-homepage', 'true');
+  script.textContent = JSON.stringify(structuredData);
+  document.head.appendChild(script);
+};
+
 export const resetMetaTags = () => {
   document.title = 'कहानी घर घर की - Meri Kahani | Voice-Enabled Hindi Storytelling';
   
@@ -99,7 +163,7 @@ export const resetMetaTags = () => {
     title: 'कहानी घर घर की',
     description: defaultDescription,
     keywords: 'hindi stories, kahani, voice blogging, hindi blog, storytelling, कहानी, हिंदी कहानियां',
-    url: 'https://merikahani.com',
+    url: 'https://kahanighargharki.vercel.app',
     type: 'website',
   });
 };

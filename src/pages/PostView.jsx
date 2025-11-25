@@ -73,9 +73,12 @@ const PostView = () => {
         title: response.data.title,
         description: response.data.subtitle || response.data.content.substring(0, 160),
         keywords: `${response.data.title}, कहानी, hindi story, ${response.data.author.username}`,
-        image: response.data.cover_image || 'https://merikahani.com/default-image.jpg',
-        url: `https://merikahani.com/post/${response.data.slug}`,
+        image: response.data.cover_image || 'https://kahanighargharki.vercel.app/default-image.jpg',
+        url: `https://kahanighargharki.vercel.app/post/${response.data.slug}`,
         type: 'article',
+        author: response.data.author.full_name || response.data.author.username,
+        publishedTime: response.data.created_at,
+        modifiedTime: response.data.updated_at,
       });
       
       // Generate structured data

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { postsAPI } from '../services/api';
+import { updateMetaTags, generateHomepageStructuredData } from '../utils/seo';
 import './Home.css';
 
 const Home = () => {
@@ -15,6 +16,25 @@ const Home = () => {
     try {
       const response = await postsAPI.getAll({ limit: 20 });
       setPosts(response.data);
+      
+      // Update SEO meta tags with dynamic content
+      if (response.data.length > 0) {
+        const latestPost = response.data[0];
+        const description = `Read the latest Hindi stories including "${latestPost.title}" by ${latestPost.author.full_name || latestPost.author.username}. Voice-enabled storytelling platform.`;
+        const keywords = `hindi stories, kahani, voice blogging, hindi blog, storytelling, कहानी, हिंदी कहानियां, ${latestPost.title}, ${latestPost.author.username}`;
+        
+        updateMetaTags({
+          title: 'कहानी घर घर की - Latest Hindi Stories',
+          description: description,
+          keywords: keywords,
+          image: latestPost.cover_image || 'https://kahanighargharki.vercel.app/og-image.jpg',
+          url: 'https://kahanighargharki.vercel.app',
+          type: 'website',
+        });
+        
+        // Generate enhanced homepage structured data
+        generateHomepageStructuredData(response.data);
+      }
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to fetch posts:', error);

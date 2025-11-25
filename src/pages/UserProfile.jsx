@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { postsAPI } from '../services/api';
+import { updateMetaTags } from '../utils/seo';
 import './UserProfile.css';
 
 const UserProfile = () => {
@@ -16,6 +17,26 @@ const UserProfile = () => {
     try {
       const response = await postsAPI.getByUser(userId);
       setPosts(response.data);
+      
+      // Update SEO meta tags with author information
+      if (response.data.length > 0) {
+        const author = response.data[0].author;
+        const authorName = author.full_name || author.username;
+        const postCount = response.data.length;
+        const latestPost = response.data[0];
+        
+        const description = `${authorName} has written ${postCount} ${postCount === 1 ? 'story' : 'stories'} on Meri Kahani. Read their latest: "${latestPost.title}". Voice-enabled Hindi storytelling platform.`;
+        const keywords = `${authorName}, hindi stories, kahani, voice blogging, author profile, ${author.username}, ${latestPost.title}`;
+        
+        updateMetaTags({
+          title: `${authorName} - Author Profile | Meri Kahani`,
+          description: description,
+          keywords: keywords,
+          image: author.profile_image || 'https://kahanighargharki.vercel.app/default-author.jpg',
+          url: `https://kahanighargharki.vercel.app/profile/${author.username}`,
+          type: 'profile',
+        });
+      }
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to fetch user posts:', error);
