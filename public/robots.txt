@@ -21,4 +21,4 @@ User-agent: ClaudeBot
 Allow: /
 
 # Sitemap
-Sitemap: https://merikahani.com/sitemap.xml
+Sitemap: https://kahanighargharki.vercel.app/sitemap.xml
