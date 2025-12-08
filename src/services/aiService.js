@@ -1,7 +1,8 @@
 // AI Service for Google Gemini API integration
 // Using fetch API for compatibility
 
-const GEMINI_API_KEY = process.env.REACT_APP_GEMINI_API_KEY;
+import { getEnv } from '../utils/env';
+const GEMINI_API_KEY = getEnv('REACT_APP_GEMINI_API_KEY');
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 // Rate limiting: Track API calls to avoid exceeding limits
