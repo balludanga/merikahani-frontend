@@ -29,7 +29,7 @@ const Login = () => {
   useEffect(() => {
     if (window.google && window.google.accounts) {
       window.google.accounts.id.initialize({
-        client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
+        client_id: (typeof process !== 'undefined' ? process.env.REACT_APP_GOOGLE_CLIENT_ID : window?.__env?.REACT_APP_GOOGLE_CLIENT_ID),
         callback: handleGoogleCallback,
       });
       window.google.accounts.id.renderButton(

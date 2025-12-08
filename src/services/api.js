@@ -1,8 +1,9 @@
 import axios from 'axios';
+import { getEnv } from '../utils/env';
 
-// In React, process.env is available at build time via webpack
-// Default to development API URL
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+// Default to development API URL. Use getEnv to avoid runtime errors when
+// `process` is not defined in the execution environment.
+const API_BASE_URL = getEnv('REACT_APP_API_URL', 'http://localhost:8000/api');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
