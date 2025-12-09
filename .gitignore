@@ -40,3 +40,12 @@ Thumbs.db
 
 # Debug logs
 *.log
+
+# Playwright artifacts and captures
+# directory created by Playwright test runner
+/playwright-report/
+# Playwright browser cache created when installing browsers
+/.playwright/
+# HAR files and temporary Playwright captures
+*.har
+playwright_capture*.json
