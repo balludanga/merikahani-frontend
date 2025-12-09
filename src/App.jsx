@@ -7,7 +7,7 @@ import Login from './pages/Login';
 import Editor from './pages/Editor';
 import PostView from './pages/PostView';
 import UserProfile from './pages/UserProfile';
-import { initGA, pageview } from './utils/analytics';
+import { pageview } from './utils/analytics';
 import './App.css';
 
 // Component to handle page tracking
@@ -37,8 +37,7 @@ const AppContent = () => {
 
 const App = () => {
   useEffect(() => {
-    // Initialize Google Analytics
-    initGA();
+    // Analytics has been removed (no-op)
   }, []);
 
   return (

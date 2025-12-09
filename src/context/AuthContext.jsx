@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { authAPI } from '../services/api';
 import { trackEvent } from '../utils/analytics';
+import { getEnv } from '../utils/env';
 
 const AuthContext = createContext();
 
@@ -85,8 +86,8 @@ export const AuthProvider = ({ children }) => {
 
   const handleGoogleCredential = async (credential) => {
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8001';
-      const res = await fetch(`${apiUrl}/auth/google-login`, {
+      const apiUrl = getEnv('REACT_APP_API_URL', 'http://localhost:8000/api');
+      const res = await fetch(`${apiUrl.replace(/\/?$/, '')}/auth/google-login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

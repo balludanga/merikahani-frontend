@@ -1,55 +1,20 @@
-// Google Analytics utility functions
-import { getEnv } from './env';
-export const GA_TRACKING_ID = getEnv('REACT_APP_GA_TRACKING_ID');
+// Google Analytics removed — provide safe no-op API
+// Keep exports so imports across the app do not break.
 
-// Initialize Google Analytics
+export const GA_TRACKING_ID = undefined;
+
 export const initGA = () => {
-  if (!GA_TRACKING_ID) {
-    // eslint-disable-next-line no-console
-    console.warn('Google Analytics tracking ID not found');
-    return;
-  }
-
-  // Load gtag script
-  const script = document.createElement('script');
-  script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`;
-  document.head.appendChild(script);
-
-  // Initialize gtag
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){window.dataLayer.push(arguments);}
-  window.gtag = gtag;
-  gtag('js', new Date());
-  gtag('config', GA_TRACKING_ID, {
-    page_title: document.title,
-    page_location: window.location.href
-  });
+  // intentionally no-op: analytics removed
 };
 
-// Track page views
-export const pageview = (url) => {
-  if (window.gtag && GA_TRACKING_ID) {
-    window.gtag('config', GA_TRACKING_ID, {
-      page_path: url,
-    });
-  }
+export const pageview = () => {
+  // no-op
 };
 
-// Track custom events
-export const event = ({ action, category, label, value }) => {
-  if (window.gtag && GA_TRACKING_ID) {
-    window.gtag('event', action, {
-      event_category: category,
-      event_label: label,
-      value: value,
-    });
-  }
+export const event = () => {
+  // no-op
 };
 
-// Track user interactions
-export const trackEvent = (eventName, parameters = {}) => {
-  if (window.gtag && GA_TRACKING_ID) {
-    window.gtag('event', eventName, parameters);
-  }
+export const trackEvent = () => {
+  // no-op
 };
