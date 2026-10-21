@@ -1,8 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="लेखनी">
-  <!-- Lekhani brand mark: ले on brand teal, with a folded-page corner -->
+  <!-- Lekhani brand mark: a geometric pen nib letting fall one drop of ink -->
   <rect width="512" height="512" rx="112" fill="#0F766E"/>
-  <path d="M512 0H400C373.5 0 352 21.5 352 48v56c0 26.5 21.5 48 48 48h112Z" fill="#F2ECDC"/>
-  <text x="248" y="332" text-anchor="middle"
-        font-family="'Kohinoor Devanagari', 'Devanagari Sangam MN', 'Noto Serif Devanagari', 'Nirmala UI', serif"
-        font-size="264" font-weight="600" fill="#FFFDF7">ले</text>
+  <path d="M256 108 L340 212 L256 396 L172 212 Z"
+        fill="#FFFDF7" stroke="#FFFDF7" stroke-width="20" stroke-linejoin="round"/>
+  <g stroke="#0F766E" stroke-width="10" stroke-linecap="round" fill="none">
+    <line x1="256" y1="124" x2="256" y2="264"/>
+    <line x1="256" y1="316" x2="256" y2="366"/>
+  </g>
+  <circle cx="256" cy="290" r="15" fill="#0F766E"/>
+  <path d="M256 414
+           C 247 426 240 435 240 444
+           A 16 16 0 0 0 272 444
+           C 272 435 265 426 256 414
+           Z" fill="#FFFDF7"/>
 </svg>
