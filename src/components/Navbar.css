@@ -1,85 +1,180 @@
 .navbar {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  background: rgba(250, 248, 243, 0.95);
-  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
   position: sticky;
   top: 0;
-  z-index: 100;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  z-index: 40;
+  transition: background-color 0.45s ease, border-color 0.45s ease;
+}
+
+.navbar-landing {
+  background: var(--accent-soft);
+  border-bottom-color: transparent;
 }
 
 .navbar-container {
-  max-width: 1200px;
+  max-width: 1192px;
   margin: 0 auto;
   padding: 0 24px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  height: 60px;
+  gap: 24px;
+  height: var(--nav-h);
 }
 
 .navbar-logo {
-  font-size: 28px;
-  font-weight: 400;
-  color: #1a1a1a;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--text);
   text-decoration: none;
-  font-family: 'Kalam', cursive;
-  padding: 8px 16px;
+  letter-spacing: -0.5px;
+  transition: color 0.45s ease;
 }
 
-.navbar-logo-small {
-  font-size: 16px;
-  font-weight: 400;
-  margin-left: 4px;
-  opacity: 0.85;
+.navbar-search {
+  flex: 1;
+  max-width: 240px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-soft);
+  border-radius: 99px;
+  padding: 8px 14px;
+  color: var(--text-3);
+  transition: background-color 0.45s ease;
+}
+
+.navbar-search input {
+  border: 0;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text);
 }
 
 .navbar-menu {
+  margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 18px;
 }
 
-.navbar-link {
-  color: #000;
-  text-decoration: none;
-  font-size: 14px;
-  transition: color 0.2s;
-}
-
-.navbar-link:hover {
-  color: #757575;
-}
-
-.navbar-button {
+.navbar-theme {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
   background: transparent;
-  border: 1px solid #000;
-  color: #000;
+  color: var(--text-2);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.45s ease;
+}
+
+.navbar-theme:hover {
+  background: var(--bg-soft);
+  color: var(--text);
+}
+
+.navbar-link,
+.navbar-write {
+  color: var(--text);
+  text-decoration: none;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.navbar-cta {
+  background: var(--accent);
+  color: var(--on-accent);
+  text-decoration: none;
   padding: 8px 16px;
   border-radius: 99px;
-  cursor: pointer;
   font-size: 14px;
-  text-decoration: none;
-  transition: all 0.2s;
+  transition: background-color 0.45s ease, color 0.45s ease;
 }
 
-.navbar-button:hover {
-  background: #000;
-  color: #fff;
+.navbar-landing .navbar-cta {
+  background: var(--text);
+  color: var(--bg);
 }
 
-.navbar-button-primary {
-  background: #000;
-  color: #fff;
-  padding: 8px 16px;
-  border-radius: 99px;
+.navbar-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--accent);
+  color: var(--on-accent);
   cursor: pointer;
+}
+
+.navbar-avatar img,
+.navbar-avatar span {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  object-fit: cover;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.navbar-avatar-wrap {
+  position: relative;
+}
+
+.navbar-dropdown {
+  position: absolute;
+  right: 0;
+  top: 40px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  min-width: 180px;
+  box-shadow: var(--shadow);
+  padding: 8px 0;
+  overflow: hidden;
+  animation: nav-drop 0.16s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@keyframes nav-drop {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.navbar-dropdown a,
+.navbar-dropdown button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 10px 16px;
   font-size: 14px;
+  color: var(--text);
   text-decoration: none;
-  transition: background 0.2s;
+  cursor: pointer;
+  font-family: inherit;
 }
 
-.navbar-button-primary:hover {
-  background: #333;
+.navbar-dropdown a:hover,
+.navbar-dropdown button:hover {
+  background: var(--bg-soft);
 }
 
+@media (max-width: 700px) {
+  .navbar-search {
+    display: none;
+  }
+}

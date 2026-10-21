@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        error: error.response?.data?.detail || 'Login failed',
+        error: error.response?.data?.detail || 'साइन इन नहीं हो सका',
       };
     }
   };
@@ -106,12 +106,12 @@ export const AuthProvider = ({ children }) => {
         
         return { success: true };
       } else {
-        return { success: false, error: data.detail || 'Google login failed' };
+        return { success: false, error: data.detail || 'गूगल (Google) से साइन इन नहीं हो सका' };
       }
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('Google login error:', err);
-      return { success: false, error: 'Google login failed' };
+      return { success: false, error: 'गूगल (Google) से साइन इन नहीं हो सका' };
     }
   };
 

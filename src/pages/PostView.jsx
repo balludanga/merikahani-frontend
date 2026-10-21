@@ -1,91 +1,77 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { postsAPI, commentsAPI } from '../services/api';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { commentsAPI, followsAPI, postsAPI, usersAPI, bookmarksAPI, highlightsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { updateMetaTags, generateStructuredData, resetMetaTags } from '../utils/seo';
+import { formatDate, readingMinutes, initials } from '../utils/format';
+import { topicLabel } from '../brand';
 import ssmlTTS from '../utils/ssmlTTS';
+import useFocusScroll from '../utils/useFocusScroll';
+import useTextSelection from '../utils/useTextSelection';
+import FocusHeader from '../components/FocusHeader';
+import Lightbox from '../components/Lightbox';
 import './PostView.css';
 
 const PostView = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  // Signed-out readers hit the gate; after sign-in they come back to this story.
+  const storyPath = `/post/${slug}`;
+  const loginLink = `/login?redirect=${encodeURIComponent(storyPath)}`;
+  const registerLink = `/register?redirect=${encodeURIComponent(storyPath)}`;
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
-  const [isReading, setIsReading] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const utteranceRef = useRef(null);
-  
-  // Comment states
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
-  const [isListeningComment, setIsListeningComment] = useState(false);
-  const [commentLanguage, setCommentLanguage] = useState('hi-IN');
-  const [interimTranscript, setInterimTranscript] = useState('');
-  const [deletingCommentId, setDeletingCommentId] = useState(null);
-  const recognitionRef = useRef(null);
-  const isListeningRef = useRef(false);
+  const [clapping, setClapping] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [speaking, setSpeaking] = useState(false);
+  const [zoomImage, setZoomImage] = useState(null);
+  const bodyRef = useRef(null);
+  const { progress, hidden } = useFocusScroll();
+  const [selectionMenu, setSelectionMenu] = useTextSelection(bodyRef);
 
   useEffect(() => {
     fetchPost();
-    
-    // Cleanup: Reset meta tags when component unmounts
     return () => {
       resetMetaTags();
+      ssmlTTS.cancel();
     };
   }, [slug]);
-
-  // Handle redirect back to comment section after login
-  useEffect(() => {
-    if (!loading && post) {
-      const redirectPath = sessionStorage.getItem('redirectAfterLogin');
-      if (redirectPath && redirectPath.includes('#comments')) {
-        // eslint-disable-next-line no-console
-        console.log('Redirecting to comments section');
-        sessionStorage.removeItem('redirectAfterLogin');
-        // Scroll to comment section after a brief delay to ensure DOM is ready
-        setTimeout(() => {
-          const commentSection = document.querySelector('.comment-section');
-          // eslint-disable-next-line no-console
-          console.log('Comment section found:', commentSection);
-          if (commentSection) {
-            commentSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            // Auto-focus on the record button
-            const recordButton = document.querySelector('.voice-button-comment');
-            if (recordButton) {
-              recordButton.focus();
-            }
-          }
-        }, 500);
-      }
-    }
-  }, [loading, post]);
 
   const fetchPost = async () => {
     try {
       const response = await postsAPI.getBySlug(slug);
       setPost(response.data);
-      
-      // Update SEO meta tags
       updateMetaTags({
         title: response.data.title,
         description: response.data.subtitle || response.data.content.substring(0, 160),
-        keywords: `${response.data.title}, कहानी, hindi story, ${response.data.author.username}`,
-        image: response.data.cover_image || 'https://kahanighargharki.vercel.app/default-image.jpg',
-        url: `https://kahanighargharki.vercel.app/post/${response.data.slug}`,
+        keywords: `${response.data.title}, हिंदी, लेखनी, ${(response.data.tags || []).join(', ')}, ${response.data.author.username}`,
+        image: response.data.cover_image,
         type: 'article',
         author: response.data.author.full_name || response.data.author.username,
         publishedTime: response.data.created_at,
         modifiedTime: response.data.updated_at,
       });
-      
-      // Generate structured data
       generateStructuredData(response.data, response.data.author);
-      
-      // Fetch comments for this post
-      await fetchComments(response.data.id);
+      const commentsRes = await commentsAPI.getByPost(response.data.id);
+      setComments(commentsRes.data);
+
+      // Follow state for the author (only meaningful for signed-in readers)
+      if (!user || user.id !== response.data.author_id) {
+        try {
+          const profileRes = await usersAPI.getById(response.data.author_id);
+          setIsFollowing(profileRes.data.is_following);
+          setFollowerCount(profileRes.data.follower_count);
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error('Failed to fetch author profile:', error);
+        }
+      }
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to fetch post:', error);
@@ -95,458 +81,452 @@ const PostView = () => {
     }
   };
 
-  const fetchComments = async (postId) => {
-    try {
-      const response = await commentsAPI.getByPost(postId);
-      setComments(response.data);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to fetch comments:', error);
-    }
-  };
-
   const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this post?')) {
-      return;
-    }
-
+    if (!window.confirm('क्या आप इस रचना को हटाना चाहते हैं?')) return;
     setDeleting(true);
     try {
       await postsAPI.delete(post.id);
-      navigate('/');
+      navigate('/stories');
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to delete post:', error);
-      alert('Failed to delete post. Please try again.');
+      alert('हटाने में समस्या हुई।');
     } finally {
       setDeleting(false);
     }
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
-  const startReading = () => {
-    if (!post || !ssmlTTS.isSupported()) {
-      alert('Text-to-speech is not supported in your browser.');
+  const handleClap = async () => {
+    if (!isAuthenticated) {
+      navigate(loginLink);
       return;
     }
-
-    // If paused, resume
-    if (isPaused) {
-      ssmlTTS.resume();
-      setIsPaused(false);
-      setIsReading(true);
-      return;
-    }
-
-    // Combine title and content with SSML markup for better speech
-    const textToRead = `<prosody rate="medium" pitch="medium">
-      <emphasis level="strong">${post.title}</emphasis>
-      <break time="800ms"/>
-      ${post.subtitle ? `<prosody rate="slow">${post.subtitle}</prosody><break time="500ms"/>` : ''}
-      ${post.content}
-    </prosody>`;
-
-    ssmlTTS.speak(textToRead, {
-      lang: 'en-IN',
-      voicePreferences: ['lekha', 'heera', 'veena'],
-      rate: 0.9,
-      pitch: 1.1,
-      volume: 1.0,
-      useSSML: true,
-      onEnd: () => {
-        setIsReading(false);
-        setIsPaused(false);
-        utteranceRef.current = null;
-      },
-      onError: (event) => {
-        // eslint-disable-next-line no-console
-        console.error('Speech synthesis error:', event);
-        setIsReading(false);
-        setIsPaused(false);
-        utteranceRef.current = null;
-      }
-    });
-
-    setIsReading(true);
-    setIsPaused(false);
-  };
-
-  const pauseReading = () => {
-    if (ssmlTTS.speaking) {
-      ssmlTTS.pause();
-      setIsPaused(true);
-      setIsReading(false);
-    }
-  };
-
-  const stopReading = () => {
-    ssmlTTS.cancel();
-    setIsReading(false);
-    setIsPaused(false);
-    utteranceRef.current = null;
-  };
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (ssmlTTS.isSupported()) {
-        ssmlTTS.cancel();
-      }
-    };
-  }, []);
-
-  // Load voices
-  useEffect(() => {
-    if (ssmlTTS.isSupported()) {
-      const loadVoices = () => {
-        ssmlTTS.getVoices();
-      };
-      loadVoices();
-    }
-  }, []);
-
-  // Initialize comment voice recognition
-  useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = commentLanguage;
-      recognition.maxAlternatives = 1;
-
-      recognition.onresult = (event) => {
-        let interimText = '';
-        let finalText = '';
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcriptPart = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalText += transcriptPart + ' ';
-          } else {
-            interimText += transcriptPart;
-          }
-        }
-
-        setInterimTranscript(interimText);
-
-        if (finalText) {
-          setCommentText(prev => prev + (prev ? ' ' : '') + finalText.trim());
-        }
-      };
-
-      recognition.onerror = (event) => {
-        // eslint-disable-next-line no-console
-        console.error('Speech recognition error:', event.error);
-        if (event.error === 'not-allowed') {
-          alert('Microphone access denied. Please allow microphone access.');
-        }
-        setIsListeningComment(false);
-        isListeningRef.current = false;
-      };
-
-      recognition.onend = () => {
-        if (isListeningRef.current) {
-          try {
-            recognition.start();
-          } catch (e) {
-            setIsListeningComment(false);
-            isListeningRef.current = false;
-          }
-        } else {
-          setInterimTranscript('');
-        }
-      };
-
-      recognitionRef.current = recognition;
-    }
-
-    return () => {
-      if (recognitionRef.current) {
-        isListeningRef.current = false;
-        try {
-          recognitionRef.current.abort();
-        } catch (e) {
-          // Already stopped
-        }
-      }
-    };
-  }, [commentLanguage]);
-
-  const startCommentVoice = async () => {
-    // Check if user is logged in
-    if (!user) {
-      // Save current location to redirect back after login
-      const currentPath = window.location.pathname;
-      sessionStorage.setItem('redirectAfterLogin', currentPath + '#comments');
-      navigate('/login');
-      return;
-    }
-
-    if (!recognitionRef.current) return;
-
+    if (clapping || (post.my_claps || 0) >= 50) return;
+    setClapping(true);
     try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch (err) {
-      alert('Please allow microphone access to use voice input.');
-      return;
-    }
-
-    try {
-      recognitionRef.current.start();
-      setIsListeningComment(true);
-      isListeningRef.current = true;
-    } catch (e) {
+      const response = await postsAPI.clap(post.id);
+      setPost((prev) => ({
+        ...prev,
+        clap_count: response.data.clap_count,
+        my_claps: response.data.my_claps,
+      }));
+    } catch (error) {
       // eslint-disable-next-line no-console
-      console.error('Error starting recognition:', e);
+      console.error('Clap failed:', error);
+    } finally {
+      setClapping(false);
     }
   };
 
-  const stopCommentVoice = () => {
-    if (recognitionRef.current && isListeningComment) {
-      isListeningRef.current = false;
-      try {
-        recognitionRef.current.abort();
-      } catch (e) {
-        // Already stopped
-      }
-      setIsListeningComment(false);
-      setInterimTranscript('');
+  const handleBookmark = async () => {
+    if (!isAuthenticated) {
+      navigate(loginLink);
+      return;
     }
+    try {
+      if (post.bookmarked) {
+        await bookmarksAPI.remove(post.id);
+        setPost((prev) => ({ ...prev, bookmarked: false }));
+      } else {
+        await bookmarksAPI.add(post.id);
+        setPost((prev) => ({ ...prev, bookmarked: true }));
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Bookmark failed:', error);
+    }
+  };
+
+  const handleFollow = async () => {
+    if (!isAuthenticated) {
+      navigate(loginLink);
+      return;
+    }
+    try {
+      const response = isFollowing
+        ? await followsAPI.unfollow(post.author_id)
+        : await followsAPI.follow(post.author_id);
+      setIsFollowing(response.data.following);
+      setFollowerCount(response.data.follower_count);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Follow failed:', error);
+    }
+  };
+
+  const toggleListen = () => {
+    if (speaking) {
+      ssmlTTS.cancel();
+      setSpeaking(false);
+      return;
+    }
+    setSpeaking(true);
+    ssmlTTS.speak(post.content, {
+      lang: 'hi-IN',
+      onEnd: () => setSpeaking(false),
+      onError: () => setSpeaking(false),
+    });
   };
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
-    if (!commentText.trim() || !user || !post) return;
-
+    if (!isAuthenticated) {
+      navigate(loginLink);
+      return;
+    }
+    if (!commentText.trim()) return;
     setSubmittingComment(true);
     try {
-      // Stop voice input if active
-      if (isListeningComment) {
-        stopCommentVoice();
-      }
-
-      // Save comment to backend
-      const response = await commentsAPI.create({
-        content: commentText,
-        post_id: post.id
-      });
-      
-      // Add the new comment to the list
-      setComments(prev => [...prev, response.data]);
+      const response = await commentsAPI.create({ content: commentText, post_id: post.id });
+      setComments((prev) => [...prev, response.data]);
       setCommentText('');
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to submit comment:', error);
-      alert('Failed to submit comment. Please try again.');
+      alert('प्रतिक्रिया सहेज नहीं सके।');
     } finally {
       setSubmittingComment(false);
     }
   };
 
   const handleDeleteComment = async (commentId) => {
-    if (!window.confirm(commentLanguage === 'hi-IN' ? 'क्या आप यह टिप्पणी हटाना चाहते हैं?' : 'Are you sure you want to delete this comment?')) {
-      return;
-    }
-
-    setDeletingCommentId(commentId);
+    if (!window.confirm('यह प्रतिक्रिया हटाएँ?')) return;
     try {
       await commentsAPI.delete(commentId);
-      // Remove comment from local state
-      setComments(prev => prev.filter(c => c.id !== commentId));
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to delete comment:', error);
-      alert(commentLanguage === 'hi-IN' ? 'टिप्पणी हटाने में विफल। कृपया पुनः प्रयास करें।' : 'Failed to delete comment. Please try again.');
-    } finally {
-      setDeletingCommentId(null);
+      alert('हटाने में समस्या हुई।');
     }
   };
 
-  if (loading) {
-    return <div className="post-view-loading">Loading...</div>;
-  }
+  // Wrap the current selection inside a <mark> and sync it to the account.
+  const handleHighlightSelection = async () => {
+    if (!isAuthenticated) {
+      navigate(loginLink);
+      return;
+    }
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || sel.rangeCount === 0 || !bodyRef.current) return;
+    const text = sel.toString().replace(/\s+/g, ' ').trim();
+    if (!text) return;
 
-  if (!post) {
-    return null;
-  }
+    try {
+      await highlightsAPI.create({ post_id: post.id, text });
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Highlight failed:', error);
+      alert('हाइलाइट सहेज नहीं सके।');
+      return;
+    }
 
+    const range = sel.getRangeAt(0);
+    const mark = document.createElement('mark');
+    mark.className = 'text-highlight';
+    mark.appendChild(range.extractContents());
+    range.insertNode(mark);
+    sel.removeAllRanges();
+    setSelectionMenu(null);
+  };
+
+  // Send the quoted passage into the responses composer.
+  const handleCommentSelection = () => {
+    const quoted = selectionMenu ? selectionMenu.text : '';
+    setSelectionMenu(null);
+    const sel = window.getSelection();
+    if (sel) sel.removeAllRanges();
+    setCommentText((prev) => `${prev}${quoted ? `❝ ${quoted} ❞\n\n` : ''}`);
+    const responses = document.getElementById('responses');
+    if (responses) responses.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.setTimeout(() => {
+      const textarea = document.querySelector('.response-form textarea');
+      if (textarea) textarea.focus();
+    }, 450);
+  };
+
+  // Restore this reader's saved highlights once the body is on screen.
+  // Client-era localStorage highlights are imported into the account once.
+  useEffect(() => {
+    if (!post || !isAuthenticated || !bodyRef.current) return undefined;
+    let cancelled = false;
+
+    const applySnippets = (snippets) => {
+      const walker = document.createTreeWalker(bodyRef.current, NodeFilter.SHOW_TEXT);
+      const nodes = [];
+      while (walker.nextNode()) nodes.push(walker.currentNode);
+      for (const snippet of snippets) {
+        const node = nodes.find(
+          (n) => n.parentElement && !n.parentElement.closest('mark') && n.textContent.includes(snippet)
+        );
+        if (!node) continue;
+        const start = node.textContent.indexOf(snippet);
+        const range = document.createRange();
+        range.setStart(node, start);
+        range.setEnd(node, start + snippet.length);
+        const mark = document.createElement('mark');
+        mark.className = 'text-highlight';
+        try {
+          range.surroundContents(mark);
+        } catch (err) {
+          // Snippet spans several nodes — skip rather than mangle the DOM.
+        }
+      }
+    };
+
+    const restore = async () => {
+      try {
+        const localKey = `lekhani_hl_${post.id}`;
+        const local = JSON.parse(localStorage.getItem(localKey) || '[]');
+        if (Array.isArray(local) && local.length) {
+          for (const text of local) {
+            await highlightsAPI.create({ post_id: post.id, text }).catch(() => {});
+          }
+          localStorage.removeItem(localKey);
+        }
+      } catch (err) {
+        // localStorage unavailable — nothing to migrate.
+      }
+      try {
+        const response = await highlightsAPI.list({ post_id: post.id });
+        if (!cancelled) applySnippets(response.data.map((item) => item.text));
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to load highlights:', error);
+      }
+    };
+
+    restore();
+    return () => {
+      cancelled = true;
+    };
+  }, [post, isAuthenticated]);
+
+  if (loading) return <div className="page-loading">लोड हो रहा है…</div>;
+  if (!post) return null;
+
+  const authorName = post.author.full_name || post.author.username;
   const isAuthor = user && user.id === post.author_id;
+  const paragraphs = post.content.split(/\n+/).filter((p) => p.trim());
+  const tagLinks = (post.tags || []).map((name, index) => ({
+    name,
+    slug: (post.tag_slugs || [])[index] || encodeURIComponent(name),
+  }));
 
   return (
-    <div className="post-view">
-      <article className="post-view-container">
-        <header className="post-view-header">
-          <h1 className="post-view-title">{post.title}</h1>
-          {post.subtitle && (
-            <p className="post-view-subtitle">{post.subtitle}</p>
-          )}
-          <div className="post-view-meta">
-            <div className="post-view-author">
-              <Link to={`/user/${post.author.id}`} className="author-link">
-                {post.author.full_name || post.author.username}
-              </Link>
-              <span className="post-view-date">{formatDate(post.created_at)}</span>
-            </div>
-            <div className="post-view-controls">
-              <div className="voice-controls">
-                {!isReading && !isPaused && (
-                  <button onClick={startReading} className="voice-control-button play">
-                    <span className="voice-icon">🔊</span>
-                    Listen to Article
-                  </button>
-                )}
-                {isReading && (
-                  <button onClick={pauseReading} className="voice-control-button pause">
-                    <span className="voice-icon">⏸️</span>
-                    Pause
-                  </button>
-                )}
-                {isPaused && (
-                  <button onClick={startReading} className="voice-control-button resume">
-                    <span className="voice-icon">▶️</span>
-                    Resume
-                  </button>
-                )}
-                {(isReading || isPaused) && (
-                  <button onClick={stopReading} className="voice-control-button stop">
-                    <span className="voice-icon">⏹️</span>
-                    Stop
-                  </button>
-                )}
+    <div className="story-page">
+      <div
+        className="reading-progress"
+        style={{ transform: `scaleX(${progress})` }}
+        aria-hidden="true"
+      />
+      <FocusHeader post={post} hidden={hidden} saved={!!post.bookmarked} onBookmark={handleBookmark} />
+
+      <article className="story-article">
+        <h1>{post.title}</h1>
+        {post.subtitle && <p className="story-dek">{post.subtitle}</p>}
+
+        <div className="story-byline">
+          <Link to={`/user/${post.author.id}`} className="story-author">
+            {post.author.avatar_url ? (
+              <img src={post.author.avatar_url} alt="" />
+            ) : (
+              <span className="avatar-lg">{initials(authorName)}</span>
+            )}
+            <div>
+              <strong>{authorName}</strong>
+              <div className="story-byline-meta">
+                {formatDate(post.created_at)} · {readingMinutes(post.content)} मिनट पढ़ें
+                {post.topic && <> · {topicLabel(post.topic)}</>}
+                {followerCount > 0 && <> · {followerCount} फ़ॉलोअर्स</>}
               </div>
-              {isAuthor && (
-                <div className="post-view-actions">
-                  <Link to={`/edit/${post.id}`} className="post-action-button">
-                    Edit
-                  </Link>
-                  <button
-                    onClick={handleDelete}
-                    className="post-action-button delete"
-                    disabled={deleting}
-                  >
-                    {deleting ? 'Deleting...' : 'Delete'}
-                  </button>
-                </div>
-              )}
+            </div>
+          </Link>
+          {isAuthor ? (
+            <div className="story-owner">
+              <Link to={`/edit/${post.id}`}>संपादित करें</Link>
+              <button type="button" onClick={handleDelete} disabled={deleting}>
+                {deleting ? 'हटा रहे हैं…' : 'हटाएँ'}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className={`follow-btn ${isFollowing ? 'following' : ''}`}
+              onClick={handleFollow}
+            >
+              {isFollowing ? 'फ़ॉलो हो रहे हैं ✓' : 'फ़ॉलो करें'}
+            </button>
+          )}
+        </div>
+
+        {post.cover_image && (
+          <img
+            className="story-cover zoomable"
+            src={post.cover_image}
+            alt=""
+            onClick={() => setZoomImage({ src: post.cover_image, alt: post.title })}
+          />
+        )}
+
+        <div
+          className="story-body"
+          ref={bodyRef}
+          onClick={(e) => {
+            if (e.target.tagName === 'IMG') {
+              setZoomImage({ src: e.target.src, alt: post.title });
+            }
+          }}
+        >
+          {paragraphs.map((paragraph, index) => (
+            <p key={index}>{paragraph}</p>
+          ))}
+        </div>
+
+        {post.is_preview && (
+          <div className="story-gate">
+            <div className="story-gate-card">
+              <h2>पढ़ना जारी रखें</h2>
+              <p>
+                इस रचना को शुरू से अंत तक पढ़ने के लिए लेखनी से जुड़ें —
+                पढ़ना और लिखना बिल्कुल मुफ़्त है।
+              </p>
+              <div className="story-gate-actions">
+                <Link className="gate-cta primary" to={registerLink}>
+                  मुफ़्त खाता बनाएँ
+                </Link>
+                <Link className="gate-cta" to={loginLink}>
+                  साइन इन करें
+                </Link>
+              </div>
             </div>
           </div>
-        </header>
-        <div className="post-view-content">
-          {post.content.split('\n').map((paragraph, index) => (
-            <p key={index} className="post-paragraph">
-              {paragraph}
-            </p>
-          ))}
+        )}
+
+        {tagLinks.length > 0 && (
+          <div className="story-tags">
+            {tagLinks.map((tag) => (
+              <Link key={tag.slug} to={`/tag/${encodeURIComponent(tag.slug)}`} className="tag-chip">
+                #{tag.name}
+              </Link>
+            ))}
+          </div>
+        )}
+
+        <div className="story-actions">
+          <button type="button" className="clap-button" onClick={handleClap} disabled={clapping}>
+            👏
+            <span>{post.clap_count || 0}</span>
+          </button>
+          <button
+            type="button"
+            className={`bookmark-button ${post.bookmarked ? 'saved' : ''}`}
+            onClick={handleBookmark}
+            title={post.bookmarked ? 'पढ़ने की सूची से हटाएँ' : 'पढ़ने की सूची में सहेजें'}
+          >
+            {post.bookmarked ? 'सहेजा गया ✓' : 'सहेजें'}
+          </button>
+          {!post.is_preview && (
+            <button
+              type="button"
+              className={`listen-button ${speaking ? 'speaking' : ''}`}
+              onClick={toggleListen}
+            >
+              {speaking ? '⏹ रोकें' : '▶ सुनें'}
+            </button>
+          )}
+          {(post.my_claps || 0) > 0 && (
+            <span className="my-claps">आपकी तालियाँ: {post.my_claps}/50</span>
+          )}
         </div>
       </article>
 
-      {/* Comment Section */}
-      <section className="comment-section">
-        <h2 className="comment-section-title">Comments</h2>
-        
-        {/* Add Comment Form */}
-        <div className="comment-form">
-          <h3 className="comment-form-title">Add a Comment</h3>
-          
-          {/* Language Selector */}
-          <div className="language-selector">
-            <button
-              onClick={() => setCommentLanguage('hi-IN')}
-              className={`language-button ${commentLanguage === 'hi-IN' ? 'active' : ''}`}
-            >
-              हिंदी
-            </button>
-            <button
-              onClick={() => setCommentLanguage('en-IN')}
-              className={`language-button ${commentLanguage === 'en-IN' ? 'active' : ''}`}
-            >
-              English
-            </button>
-          </div>
-
-          {/* Voice Recording Button */}
-          <div className="comment-voice-controls">
-            <button
-              onClick={isListeningComment ? stopCommentVoice : startCommentVoice}
-              className={`voice-button-comment ${isListeningComment ? 'recording' : ''}`}
-            >
-              {isListeningComment ? '⏹️ Stop Recording' : '🎤 Record Comment'}
-            </button>
-          </div>
-
-          {/* Comment Text Display */}
-          <div className="comment-input-container">
-            <textarea
-              className="comment-textarea"
-              value={commentText + interimTranscript}
-              readOnly
-              placeholder={`${commentLanguage === 'hi-IN' ? 'अपनी टिप्पणी बोलें...' : 'Speak your comment...'}`}
-              rows="4"
-            />
-          </div>
-
-          {/* Submit Button */}
+      {selectionMenu && (
+        <div
+          className="selection-menu"
+          style={{ left: selectionMenu.x, top: selectionMenu.y }}
+          onMouseDown={(e) => e.preventDefault()}
+        >
           <button
-            onClick={handleCommentSubmit}
-            className="comment-submit-button"
-            disabled={submittingComment || !commentText.trim()}
+            type="button"
+            onClick={handleHighlightSelection}
+            title="हाइलाइट करें"
+            aria-label="हाइलाइट करें"
           >
-            {submittingComment ? 'Submitting...' : (commentLanguage === 'hi-IN' ? 'टिप्पणी जोड़ें' : 'Add Comment')}
+            <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+          <span className="selection-menu-sep" aria-hidden="true" />
+          <button
+            type="button"
+            onClick={handleCommentSelection}
+            title="इस अंश पर प्रतिक्रिया लिखें"
+            aria-label="इस अंश पर प्रतिक्रिया लिखें"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </button>
         </div>
+      )}
 
-        {/* Comments List */}
-        <div className="comments-list">
-          <h3 className="comments-list-title">
-            {comments.length} {comments.length === 1 ? 'Comment' : 'Comments'}
-          </h3>
-          
-          {comments.length === 0 ? (
-            <p className="no-comments">
-              {commentLanguage === 'hi-IN' ? 'अभी तक कोई टिप्पणी नहीं है। पहले टिप्पणी करें!' : 'No comments yet. Be the first to comment!'}
-            </p>
-          ) : (
-            comments.map((comment) => (
-              <div key={comment.id} className="comment-item">
-                <div className="comment-header">
-                  <div className="comment-author-info">
-                    <span className="comment-author">
-                      {comment.author?.username || comment.author?.full_name || 'Anonymous'}
-                    </span>
-                    <span className="comment-date">
-                      {formatDate(comment.created_at)}
-                    </span>
-                  </div>
-                  {user && (comment.author_id === user.id || post?.author_id === user.id) && (
-                    <button
-                      onClick={() => handleDeleteComment(comment.id)}
-                      className="comment-delete-button"
-                      disabled={deletingCommentId === comment.id}
-                      title={commentLanguage === 'hi-IN' ? 'टिप्पणी हटाएं' : 'Delete comment'}
-                    >
-                      {deletingCommentId === comment.id ? '⏳' : '🗑️'}
-                    </button>
-                  )}
-                </div>
-                <p className="comment-content">{comment.content}</p>
+      <section className="responses" id="responses">
+        <h2>प्रतिक्रियाएँ</h2>
+        {isAuthenticated ? (
+          <form onSubmit={handleCommentSubmit} className="response-form">
+            <textarea
+              lang="hi"
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="अपनी प्रतिक्रिया लिखें…"
+              rows={3}
+            />
+            <button type="submit" disabled={submittingComment || !commentText.trim()}>
+              {submittingComment ? 'भेज रहे हैं…' : 'प्रकाशित करें'}
+            </button>
+          </form>
+        ) : (
+          <p className="response-login">
+            प्रतिक्रिया लिखने के लिए <Link to={loginLink}>साइन इन</Link> करें।
+          </p>
+        )}
+
+        {comments.length === 0 ? (
+          <p className="empty-state">अभी कोई प्रतिक्रिया नहीं।</p>
+        ) : (
+          comments.map((comment) => (
+            <div key={comment.id} className="response-item">
+              <div className="response-head">
+                <strong>{comment.author?.full_name || comment.author?.username || 'पाठक'}</strong>
+                <span>{formatDate(comment.created_at)}</span>
+                {user && comment.author_id === user.id && (
+                  <button type="button" onClick={() => handleDeleteComment(comment.id)}>हटाएँ</button>
+                )}
               </div>
-            ))
-          )}
-        </div>
+              <p>{comment.content}</p>
+            </div>
+          ))
+        )}
       </section>
+
+      {zoomImage && (
+        <Lightbox
+          src={zoomImage.src}
+          alt={zoomImage.alt}
+          onClose={() => setZoomImage(null)}
+        />
+      )}
     </div>
   );
 };
 
 export default PostView;
-

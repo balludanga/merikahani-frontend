@@ -3,7 +3,7 @@
 export const updateMetaTags = ({ title, description, keywords, image, url, type = 'article', author, publishedTime, modifiedTime }) => {
   // Update title
   if (title) {
-    document.title = `${title} - Meri Kahani`;
+    document.title = `${title} - लेखनी`;
   }
 
   // Update or create meta tags
@@ -25,10 +25,7 @@ export const updateMetaTags = ({ title, description, keywords, image, url, type 
     metaTags.push(
       { property: 'article:author', content: author },
       { property: 'article:published_time', content: publishedTime },
-      { property: 'article:modified_time', content: modifiedTime },
-      { property: 'article:section', content: 'Stories' },
-      { property: 'article:tag', content: 'Hindi Stories' },
-      { property: 'article:tag', content: 'Voice Blogging' }
+      { property: 'article:modified_time', content: modifiedTime }
     );
   }
 
@@ -66,26 +63,21 @@ export const generateStructuredData = (post, author) => {
     '@type': 'BlogPosting',
     headline: post.title,
     alternativeHeadline: post.subtitle,
-    image: post.cover_image || 'https://kahanighargharki.vercel.app/default-image.jpg',
+    image: post.cover_image,
     author: {
       '@type': 'Person',
       name: author.full_name || author.username,
-      url: `https://kahanighargharki.vercel.app/profile/${author.username}`,
     },
     publisher: {
       '@type': 'Organization',
-      name: 'Meri Kahani',
-      logo: {
-        '@type': 'ImageObject',
-        url: 'https://kahanighargharki.vercel.app/logo.png',
-      },
+      name: 'लेखनी',
     },
     datePublished: post.created_at,
     dateModified: post.updated_at,
     description: post.subtitle || post.content.substring(0, 160),
     articleBody: post.content,
     inLanguage: 'hi',
-    url: `https://kahanighargharki.vercel.app/post/${post.slug}`,
+    keywords: (post.tags || []).join(', '),
   };
 
   // Remove existing structured data
@@ -106,14 +98,13 @@ export const generateHomepageStructuredData = (posts) => {
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'Meri Kahani',
-    alternateName: 'कहानी घर घर की',
-    url: 'https://kahanighargharki.vercel.app',
-    description: 'Voice-enabled Hindi and English storytelling platform',
-    inLanguage: ['hi', 'en'],
+    name: 'लेखनी',
+    alternateName: 'Lekhani',
+    description: 'हिंदी लेखकों का अपना मंच — कहानी, कविता, निबंध और संस्मरण',
+    inLanguage: 'hi',
     potentialAction: {
       '@type': 'SearchAction',
-      target: 'https://kahanighargharki.vercel.app/search?q={search_term_string}',
+      target: 'https://lekhanii.vercel.app/search?q={search_term_string}',
       'query-input': 'required name=search_term_string'
     }
   };
@@ -122,14 +113,13 @@ export const generateHomepageStructuredData = (posts) => {
   if (posts && posts.length > 0) {
     structuredData.mainEntity = {
       '@type': 'ItemList',
-      name: 'Latest Stories',
+      name: 'ताज़ा रचनाएँ',
       itemListElement: posts.slice(0, 10).map((post, index) => ({
         '@type': 'ListItem',
         position: index + 1,
         item: {
           '@type': 'BlogPosting',
           headline: post.title,
-          url: `https://kahanighargharki.vercel.app/post/${post.slug}`,
           datePublished: post.created_at,
           author: {
             '@type': 'Person',
@@ -155,15 +145,12 @@ export const generateHomepageStructuredData = (posts) => {
 };
 
 export const resetMetaTags = () => {
-  document.title = 'कहानी घर घर की - Meri Kahani | Voice-Enabled Hindi Storytelling';
-  
-  const defaultDescription = 'अपनी कहानियां हिंदी और अंग्रेजी में आवाज़ के माध्यम से लिखें और साझा करें। Voice-enabled Hindi storytelling platform.';
-  
+  document.title = 'लेखनी — हिंदी लेखकों का अपना मंच (Lekhani)';
+
   updateMetaTags({
-    title: 'कहानी घर घर की',
-    description: defaultDescription,
-    keywords: 'hindi stories, kahani, voice blogging, hindi blog, storytelling, कहानी, हिंदी कहानियां',
-    url: 'https://kahanighargharki.vercel.app',
+    title: 'लेखनी',
+    description: 'हिंदी लेखकों का अपना घर — कहानी, कविता, निबंध और संस्मरण लिखें, पढ़ें और ताली बजाएँ। बिना कृत्रिम लेखन के।',
+    keywords: 'लेखनी, Lekhani, हिंदी लेखन, हिंदी कहानी, हिंदी कविता, निबंध, संस्मरण',
     type: 'website',
   });
 };

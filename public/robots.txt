@@ -4,21 +4,40 @@ Allow: /
 Disallow: /admin
 Disallow: /api/
 
-# AI Crawlers
+# Block AI training crawlers — लेखनी का सारा लेख मानवीय है, इसे AI प्रशिक्षण के लिए इस्तेमाल न करें
 User-agent: GPTBot
-Allow: /
+Disallow: /
 
 User-agent: ChatGPT-User
-Allow: /
+Disallow: /
+
+User-agent: OAI-SearchBot
+Disallow: /
 
 User-agent: Google-Extended
-Allow: /
+Disallow: /
 
 User-agent: anthropic-ai
-Allow: /
+Disallow: /
 
 User-agent: ClaudeBot
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+# Search engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
 Allow: /
 
 # Sitemap
-Sitemap: https://kahanighargharki.vercel.app/sitemap.xml
+Sitemap: https://lekhanii.vercel.app/api/sitemap.xml
