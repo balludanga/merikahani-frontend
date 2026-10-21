@@ -49,3 +49,4 @@ Thumbs.db
 # HAR files and temporary Playwright captures
 *.har
 playwright_capture*.json
+AGENTS.md
