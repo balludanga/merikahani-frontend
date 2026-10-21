@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="लेखनी">
+  <!-- Lekhani brand mark: ले on brand teal, with a folded-page corner -->
+  <rect width="512" height="512" rx="112" fill="#0F766E"/>
+  <path d="M512 0H400C373.5 0 352 21.5 352 48v56c0 26.5 21.5 48 48 48h112Z" fill="#F2ECDC"/>
+  <text x="248" y="332" text-anchor="middle"
+        font-family="'Kohinoor Devanagari', 'Devanagari Sangam MN', 'Noto Serif Devanagari', 'Nirmala UI', serif"
+        font-size="264" font-weight="600" fill="#FFFDF7">ले</text>
+</svg>
