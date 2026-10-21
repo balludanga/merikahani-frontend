@@ -1,66 +1,70 @@
-# Frontend README.md
+# लेखनी (Lekhani) — Frontend
 
-# My Fullstack Project - Frontend
+Frontend for **Lekhani (लेखनी)** — a home for Hindi writers. कहानी, कविता, निबंध और संस्मरण — सब मानवीय लेखन, बिना किसी कृत्रिम लेखन सहायता के।
 
-This is the frontend part of the My Fullstack Project, built using React.js. This document provides setup instructions and an overview of the components and pages included in the project.
+Built with React (Create React App) + React Router.
+
+## Features
+
+- Feed tabs: आपके लिए / फ़ॉलोइंग / विषय
+- Long-form editor with Devanagari-first typography (title, subtitle, cover image, up to 5 tags)
+- Claps (👏 up to 50 per reader)
+- Responses (comments)
+- Follow writers + followers/following counts on profiles
+- Bookmarks → पढ़ने की सूची (reading list)
+- Tags: browse by tag, popular tags
+- Search across title, subtitle and content
+- SEO: meta tags, Open Graph, JSON-LD, sitemap + RSS from the backend
+- Listen (सुनें): browser text-to-speech for posts
 
 ## Getting Started
 
-To get started with the frontend, follow these steps:
-
 1. **Clone the repository:**
-   ```
+
+   ```bash
    git clone <repository-url>
-   cd my-fullstack-project/frontend
+   cd lekhani-frontend
    ```
 
 2. **Install dependencies:**
-   ```
+
+   ```bash
    npm install
    ```
 
-3. **Run the application:**
+3. **Configure the API URL** (optional — defaults to `http://localhost:8000/api`):
+
+   ```bash
+   cp .env.example .env.local
    ```
+
+4. **Run the application:**
+
+   ```bash
    npm start
    ```
 
-   This will start the development server and open the application in your default web browser.
+   Run the backend (`merikahani-backend` repo) in parallel — the frontend talks to it at `/api`.
 
 ## Project Structure
 
-The frontend project is organized as follows:
-
-- `public/`: Contains static files, including the main HTML file.
-  - `index.html`: The entry point for the React application.
-
-- `src/`: Contains the source code for the React application.
-  - `components/`: Contains reusable components.
-    - `ExampleComponent.jsx`: An example functional component.
-  - `pages/`: Contains page components.
-    - `ExamplePage.jsx`: An example page component.
-  - `App.jsx`: The main application component that sets up routing.
-  - `index.js`: The entry point for the React application.
-
-## Example Component
-
-The `ExampleComponent` is a simple functional component that can be used throughout the application. You can import and use it in other components or pages as needed.
-
-## Example Page
-
-The `ExamplePage` component represents a specific page in the application. It can include routing logic and layout to display various content.
+- `public/index.html` — entry HTML with SEO meta + fonts
+- `src/components/` — Navbar, StoryCard
+- `src/pages/` — Home (landing + feed), Login, Editor, PostView, UserProfile, Stories (my posts), Search, Bookmarks
+- `src/services/api.js` — axios API client (auth, posts, comments, users, follows, bookmarks, tags)
+- `src/context/AuthContext.jsx` — auth state (email + Google sign-in)
+- `src/utils/` — seo, format, ssmlTTS (Listen), analytics
 
 ## Scripts
 
-The following scripts are available in the `package.json`:
+- `npm start` — development server
+- `npm run build` — production build
+- `npm test` — test runner
 
-- `npm start`: Starts the development server.
-- `npm run build`: Builds the application for production.
-- `npm test`: Runs the test suite.
+## Deployment
+
+Deployed on Vercel (`vercel.json` proxies `/api/*` to the Render backend). See `vercel.json` for the backend URL used in production.
 
 ## Contributing
 
 If you would like to contribute to this project, please fork the repository and submit a pull request with your changes.
-
-## License
-
-This project is licensed under the MIT License. See the LICENSE file for more details.
