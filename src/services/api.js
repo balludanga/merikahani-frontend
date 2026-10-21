@@ -70,4 +70,10 @@ export const tagsAPI = {
   posts: (slug, params) => api.get(`/tags/${encodeURIComponent(slug)}/posts`, { params }),
 };
 
+export const uploadsAPI = {
+  // base64 bodies are bigger than typical API payloads; give them room.
+  uploadImage: (data, contentType) =>
+    api.post('/uploads/image', { data, content_type: contentType }, { timeout: 60000 }),
+};
+
 export default api;

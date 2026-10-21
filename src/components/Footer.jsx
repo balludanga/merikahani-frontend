@@ -13,7 +13,7 @@ const LINKS = [
   { to: '/help#audio', label: 'पाठ से वाणी' },
 ];
 
-/** Thin Medium-style footer strip with the platform's info links. */
+/** Thin publication-style footer strip with the platform's info links. */
 const Footer = () => (
   <footer className="site-footer">
     <span className="site-footer-brand">© 2026 लेखनी</span>

@@ -196,3 +196,27 @@ export function transliterateLastWord(text, caret, force = false) {
     caret: start + converted.length + (text.length - end),
   };
 }
+
+// Devanagari danda / purna viram — the Hindi sentence terminator ("।"),
+// informally the "closing line". It replaces an English full stop in Hindi
+// prose.
+export const DANDA = '।';
+
+/**
+ * Typing aid: pressing space twice ends the sentence with "।" instead of
+ * leaving a stray double space. Given the full `text` and the `caret` offset
+ * (just after the second space), returns { value, caret } when a
+ * word→"  " pattern is present, else null. Only fires after real content
+ * (never after another space, the start, or an existing danda).
+ */
+export function dandaOnDoubleSpace(text, caret) {
+  if (typeof text !== 'string' || caret < 2) return null;
+  if (text.slice(caret - 2, caret) !== '  ') return null;
+  const before = caret >= 3 ? text[caret - 3] : '';
+  if (!before || /\s/.test(before) || before === DANDA) return null;
+  const replaceWith = `${DANDA} `;
+  return {
+    value: text.slice(0, caret - 2) + replaceWith + text.slice(caret),
+    caret: caret - 2 + replaceWith.length,
+  };
+}

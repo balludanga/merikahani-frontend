@@ -71,7 +71,7 @@ const Login = () => {
           गूगल (Google) से जारी रखें
         </button>
         <div className="auth-or">या</div>
-        {error && <div className="auth-error">{error}</div>}
+        {error && <div className="auth-error" role="alert">{error}</div>}
         <form className="auth-form" onSubmit={onSubmit}>
           {isRegister && (
             <>
@@ -80,6 +80,7 @@ const Login = () => {
                 <input
                   value={form.full_name}
                   onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                  autoComplete="name"
                   required
                 />
               </label>
@@ -88,6 +89,7 @@ const Login = () => {
                 <input
                   value={form.username}
                   onChange={(e) => setForm({ ...form, username: e.target.value })}
+                  autoComplete="username"
                   required
                 />
               </label>
@@ -99,6 +101,7 @@ const Login = () => {
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
+              autoComplete="email"
               required
             />
           </label>
@@ -108,6 +111,7 @@ const Login = () => {
               type="password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
+              autoComplete={isRegister ? 'new-password' : 'current-password'}
               required
             />
           </label>
