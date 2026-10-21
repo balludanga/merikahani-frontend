@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { postsAPI } from '../services/api';
@@ -13,6 +13,11 @@ const Editor = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
+  const [draftId, setDraftId] = useState(null);
+  const [autoStatus, setAutoStatus] = useState('idle'); // idle | saving | saved | error
+  const [savedAt, setSavedAt] = useState('');
+  const autoTimer = useRef(null);
+  const autosaveInFlight = useRef(false);
   const [showPublish, setShowPublish] = useState(false);
   const [hinglishOn, setHinglishOn] = useState(
     () => localStorage.getItem('lekhani_hinglish') !== 'off'
@@ -95,6 +100,68 @@ const Editor = () => {
     });
   };
 
+  const buildPayload = (published) => ({
+    ...formData,
+    tags: formData.tags
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+      .slice(0, 5),
+    published,
+  });
+
+  // Auto-draft: two seconds after typing pauses, the piece saves itself —
+  // created once as a draft, then silently updated as writing continues.
+  // Live (published) posts are never touched automatically; those stay manual.
+  const autoSave = async () => {
+    if (autosaveInFlight.current) return;
+    autosaveInFlight.current = true;
+    setAutoStatus('saving');
+    try {
+      const targetId = isEdit ? id : draftId;
+      const payload = buildPayload(0);
+      if (targetId) {
+        await postsAPI.update(targetId, payload);
+      } else {
+        const response = await postsAPI.create(payload);
+        setDraftId(response.data.id);
+      }
+      setAutoStatus('saved');
+      setSavedAt(
+        new Date().toLocaleTimeString('hi-IN', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: false,
+        })
+      );
+    } catch (error) {
+      if (error.response?.status === 401) {
+        navigate('/login');
+        return;
+      }
+      setAutoStatus('error');
+    } finally {
+      autosaveInFlight.current = false;
+    }
+  };
+
+  useEffect(() => {
+    const isLivePost = isEdit && formData.published === 1;
+    const hasContent = (formData.title.trim() + formData.content.trim()).length >= 3;
+    if (isLivePost || !hasContent) return undefined;
+    clearTimeout(autoTimer.current);
+    autoTimer.current = setTimeout(autoSave, 2000);
+    return () => clearTimeout(autoTimer.current);
+  }, [
+    formData.title,
+    formData.subtitle,
+    formData.content,
+    formData.cover_image,
+    formData.published,
+    id,
+    isEdit,
+  ]);
+
   const save = async (published) => {
     if (!formData.title.trim() || !formData.content.trim()) {
       alert('शीर्षक और लेख दोनों लिखें।');
@@ -102,18 +169,11 @@ const Editor = () => {
     }
 
     setSaving(true);
-    const payload = {
-      ...formData,
-      tags: formData.tags
-        .split(',')
-        .map((tag) => tag.trim())
-        .filter(Boolean)
-        .slice(0, 5),
-      published,
-    };
+    const payload = buildPayload(published);
     try {
-      if (isEdit) {
-        const response = await postsAPI.update(id, payload);
+      const targetId = isEdit ? id : draftId;
+      if (targetId) {
+        const response = await postsAPI.update(targetId, payload);
         if (published) {
           navigate(`/post/${response.data.slug}`);
         } else {
@@ -157,9 +217,19 @@ const Editor = () => {
           >
             अ
           </button>
-          <button type="button" className="editor-draft" onClick={() => save(0)} disabled={saving}>
-            {saving ? 'सहेज रहे हैं…' : 'ड्राफ्ट सहेजें'}
-          </button>
+          {isEdit && formData.published === 1 ? (
+            <button type="button" className="editor-draft" onClick={() => save(0)} disabled={saving}>
+              {saving ? 'सहेज रहे हैं…' : 'ड्राफ्ट सहेजें'}
+            </button>
+          ) : (
+            autoStatus !== 'idle' && (
+              <span className={`editor-autostatus ${autoStatus}`} aria-live="polite">
+                {autoStatus === 'saving' && 'सहेजा जा रहा है…'}
+                {autoStatus === 'saved' && `सहेजा गया ${savedAt}`}
+                {autoStatus === 'error' && 'अभी सहेजा नहीं — लिखते रहें, दोबारा कोशिश होगी'}
+              </span>
+            )
+          )}
           <button type="button" className="editor-publish" onClick={() => setShowPublish(true)}>
             प्रकाशित करें
           </button>
