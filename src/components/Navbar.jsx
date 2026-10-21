@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getTheme, toggleTheme } from '../utils/theme';
@@ -12,6 +12,24 @@ const Navbar = ({ landing }) => {
   const [query, setQuery] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [theme, setThemeState] = useState(getTheme());
+  const menuRef = useRef(null);
+
+  // The avatar menu must dismiss like any real menu: click-away or Escape.
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onDocClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
 
   const switchTheme = () => {
     toggleTheme();
@@ -75,12 +93,14 @@ const Navbar = ({ landing }) => {
               <Link to="/new-story" className="navbar-write">
                 <span aria-hidden="true">✎</span> लिखें
               </Link>
-              <div className="navbar-avatar-wrap">
+              <div className="navbar-avatar-wrap" ref={menuRef}>
                 <button
                   type="button"
                   className="navbar-avatar"
                   onClick={() => setMenuOpen((v) => !v)}
                   aria-label="खाता मेनू"
+                  aria-haspopup="true"
+                  aria-expanded={menuOpen}
                 >
                   {user?.avatar_url ? (
                     <img src={user.avatar_url} alt="" />
@@ -89,11 +109,13 @@ const Navbar = ({ landing }) => {
                   )}
                 </button>
                 {menuOpen && (
-                  <div className="navbar-dropdown">
-                    <Link to={`/user/${user.id}`} onClick={() => setMenuOpen(false)}>प्रोफ़ाइल</Link>
-                    <Link to="/stories" onClick={() => setMenuOpen(false)}>मेरी रचनाएँ</Link>
-                    <Link to="/bookmarks" onClick={() => setMenuOpen(false)}>पढ़ने की सूची</Link>
-                    <button type="button" onClick={handleLogout}>साइन आउट</button>
+                  <div className="navbar-dropdown" role="menu">
+                    {/* Nav search input is hidden below 700px — keep search reachable via the menu. */}
+                    <Link to="/search" role="menuitem" onClick={() => setMenuOpen(false)}>खोजें</Link>
+                    <Link to={`/user/${user.id}`} role="menuitem" onClick={() => setMenuOpen(false)}>प्रोफ़ाइल</Link>
+                    <Link to="/stories" role="menuitem" onClick={() => setMenuOpen(false)}>मेरी रचनाएँ</Link>
+                    <Link to="/bookmarks" role="menuitem" onClick={() => setMenuOpen(false)}>पढ़ने की सूची</Link>
+                    <button type="button" role="menuitem" onClick={handleLogout}>साइन आउट</button>
                   </div>
                 )}
               </div>

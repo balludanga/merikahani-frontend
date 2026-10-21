@@ -22,7 +22,12 @@ const PostView = () => {
   const registerLink = `/register?redirect=${encodeURIComponent(storyPath)}`;
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // In-app confirmation instead of window.confirm: { kind: 'post'|'comment', id, text }
+  const [confirmBox, setConfirmBox] = useState(null);
+  const [actionError, setActionError] = useState('');
+  const [shareState, setShareState] = useState('idle'); // idle | copied
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
@@ -75,22 +80,58 @@ const PostView = () => {
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to fetch post:', error);
-      navigate('/');
+      // Don't silently bounce the reader home — say what happened and
+      // offer a way back, so a broken link isn't a mystery.
+      setPageError(true);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm('क्या आप इस रचना को हटाना चाहते हैं?')) return;
-    setDeleting(true);
+  const runConfirm = async () => {
+    if (!confirmBox) return;
+    if (confirmBox.kind === 'post') {
+      setDeleting(true);
+      try {
+        await postsAPI.delete(post.id);
+        navigate('/stories');
+      } catch (error) {
+        setActionError('रचना हटाई नहीं जा सकी। कृपया फिर कोशिश करें।');
+      } finally {
+        setDeleting(false);
+        setConfirmBox(null);
+      }
+    } else {
+      try {
+        await commentsAPI.delete(confirmBox.id);
+        setComments((prev) => prev.filter((c) => c.id !== confirmBox.id));
+      } catch (error) {
+        setActionError('प्रतिक्रिया हटाई नहीं जा सकी।');
+      } finally {
+        setConfirmBox(null);
+      }
+    }
+  };
+
+  const handleShare = async () => {
+    const url = window.location.href;
     try {
-      await postsAPI.delete(post.id);
-      navigate('/stories');
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const field = document.createElement('textarea');
+        field.value = url;
+        field.style.position = 'fixed';
+        field.style.opacity = '0';
+        document.body.appendChild(field);
+        field.select();
+        document.execCommand('copy');
+        document.body.removeChild(field);
+      }
+      setShareState('copied');
+      window.setTimeout(() => setShareState('idle'), 2000);
     } catch (error) {
-      alert('हटाने में समस्या हुई।');
-    } finally {
-      setDeleting(false);
+      setActionError('कड़ी कॉपी नहीं हो सकी।');
     }
   };
 
@@ -179,20 +220,14 @@ const PostView = () => {
       setComments((prev) => [...prev, response.data]);
       setCommentText('');
     } catch (error) {
-      alert('प्रतिक्रिया सहेज नहीं सके।');
+      setActionError('प्रतिक्रिया सहेजी नहीं जा सकी।');
     } finally {
       setSubmittingComment(false);
     }
   };
 
-  const handleDeleteComment = async (commentId) => {
-    if (!window.confirm('यह प्रतिक्रिया हटाएँ?')) return;
-    try {
-      await commentsAPI.delete(commentId);
-      setComments((prev) => prev.filter((c) => c.id !== commentId));
-    } catch (error) {
-      alert('हटाने में समस्या हुई।');
-    }
+  const handleDeleteComment = (commentId) => {
+    setConfirmBox({ kind: 'comment', id: commentId, text: 'यह प्रतिक्रिया हटाएँ?' });
   };
 
   // Wrap the current selection inside a <mark> and sync it to the account.
@@ -211,7 +246,7 @@ const PostView = () => {
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Highlight failed:', error);
-      alert('हाइलाइट सहेज नहीं सके।');
+      setActionError('हाइलाइट सहेजा नहीं जा सकी।');
       return;
     }
 
@@ -297,6 +332,15 @@ const PostView = () => {
   }, [post, isAuthenticated]);
 
   if (loading) return <div className="page-loading">लोड हो रहा है…</div>;
+  if (pageError) {
+    return (
+      <div className="notfound-page">
+        <h1>रचना लोड नहीं हो सकी</h1>
+        <p>कोई तकनीकी दिक्कत आई है। थोड़ी देर में फिर कोशिश करें।</p>
+        <Link to="/" className="landing-cta">मुख्य पृष्ठ पर जाएँ</Link>
+      </div>
+    );
+  }
   if (!post) return null;
 
   const authorName = post.author.full_name || post.author.username;
@@ -339,7 +383,11 @@ const PostView = () => {
           {isAuthor ? (
             <div className="story-owner">
               <Link to={`/edit/${post.id}`}>संपादित करें</Link>
-              <button type="button" onClick={handleDelete} disabled={deleting}>
+              <button
+                type="button"
+                onClick={() => setConfirmBox({ kind: 'post', text: 'क्या आप इस रचना को हटाना चाहते हैं? यह वापस नहीं आएगी।' })}
+                disabled={deleting}
+              >
                 {deleting ? 'हटा रहे हैं…' : 'हटाएँ'}
               </button>
             </div>
@@ -372,9 +420,14 @@ const PostView = () => {
             }
           }}
         >
-          {paragraphs.map((paragraph, index) => (
-            <p key={index}>{paragraph}</p>
-          ))}
+          {post.content_html ? (
+            // Server-sanitized (bleach allowlist) rich text from the editor.
+            <div dangerouslySetInnerHTML={{ __html: post.content_html }} />
+          ) : (
+            paragraphs.map((paragraph, index) => (
+              <p key={index}>{paragraph}</p>
+            ))
+          )}
         </div>
 
         {post.is_preview && (
@@ -419,6 +472,14 @@ const PostView = () => {
             title={post.bookmarked ? 'पढ़ने की सूची से हटाएँ' : 'पढ़ने की सूची में सहेजें'}
           >
             {post.bookmarked ? 'सहेजा गया ✓' : 'सहेजें'}
+          </button>
+          <button
+            type="button"
+            className="share-button"
+            onClick={handleShare}
+            title="इस रचना की कड़ी कॉपी करें"
+          >
+            {shareState === 'copied' ? 'कॉपी हुआ ✓' : 'साझा करें'}
           </button>
           {!post.is_preview && (
             <button
@@ -517,6 +578,36 @@ const PostView = () => {
           ))
         )}
       </section>
+
+      {confirmBox && (
+        <div
+          className="confirm-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-title"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setConfirmBox(null);
+          }}
+        >
+          <div className="confirm-card">
+            <h3 id="confirm-title">{confirmBox.text}</h3>
+            <div className="confirm-actions">
+              <button type="button" className="confirm-cancel" onClick={() => setConfirmBox(null)}>
+                रहने दें
+              </button>
+              <button type="button" className="confirm-danger" onClick={runConfirm} disabled={deleting}>
+                {deleting ? 'हटा रहे हैं…' : 'हटाएँ'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {actionError && (
+        <div className="action-toast" role="alert" onClick={() => setActionError('')}>
+          {actionError}
+        </div>
+      )}
 
       {zoomImage && (
         <Lightbox

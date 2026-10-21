@@ -1,9 +1,13 @@
 .editor {
   min-height: 100vh;
-  background: #fff;
+  background: var(--bg);
+  transition: background-color 0.45s ease;
 }
 
 .editor-bar {
+  position: sticky;
+  top: 0;
+  z-index: 25;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -11,14 +15,40 @@
   padding: 0 24px;
   max-width: 1032px;
   margin: 0 auto;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
 }
 
 .editor-logo {
   font-family: "Source Serif 4", "Noto Serif Devanagari", Georgia, serif;
   font-size: 28px;
   font-weight: 700;
-  color: #242424;
+  color: var(--text);
   text-decoration: none;
+}
+
+/* Brand · मसौदा · सहेजा गया — the quiet status line, left of the bar. */
+.editor-bar-left {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  min-width: 0;
+}
+
+.editor-doctype {
+  font-size: 14px;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.editor-saved {
+  font-size: 14px;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.editor-saved.error {
+  color: var(--danger);
 }
 
 .editor-bar-actions {
@@ -31,24 +61,38 @@
 .editor-publish {
   border: 0;
   border-radius: 99px;
-  padding: 8px 16px;
+  padding: 0 18px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .editor-draft {
   background: transparent;
-  color: #6b6b6b;
+  color: var(--text-3);
+}
+
+.editor-draft:hover {
+  color: var(--text);
 }
 
 .editor-publish {
-  background: #1a8917;
-  color: #fff;
+  background: var(--accent);
+  color: var(--on-accent);
+  transition: background-color 0.25s ease;
+}
+
+.editor-publish:hover {
+  background: var(--accent-strong);
 }
 
 .editor-sheet {
   max-width: 680px;
-  margin: 48px auto 80px;
+  margin: 72px auto 80px;
   padding: 0 24px;
 }
 
@@ -59,43 +103,99 @@
   border: 0;
   outline: none;
   resize: none;
+  overflow: hidden;
   background: transparent;
+  color: var(--text);
+}
+
+/* The writing surfaces grow to fit their own text, so they never need a
+   scrollbar; and they must not take the global teal :focus-visible ring —
+   the caret already shows where you are. */
+.editor-title,
+.editor-title:focus,
+.editor-title:focus-visible,
+.editor-subtitle,
+.editor-subtitle:focus,
+.editor-subtitle:focus-visible,
+.editor-body-wrap .ql-editor:focus,
+.editor-body-wrap .ql-editor:focus-visible,
+.editor-body-wrap .ql-container:focus,
+.editor-body-wrap .ql-container:focus-visible {
+  outline: none;
+}
+
+.editor-title::placeholder,
+.editor-subtitle::placeholder {
+  color: var(--text-3);
+  opacity: 1;
+}
+
+/* Title lives in the page, not in a box. Focusing it slides a quiet
+   "शीर्षक" label in from the left, separated by a hairline. */
+.editor-field {
+  display: flex;
+  align-items: flex-start;
+}
+
+.editor-field-label {
+  flex: 0 0 auto;
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 14px;
+  color: var(--text-3);
+  border-right: 1px solid transparent;
+  padding-top: 16px;
+  opacity: 0;
+  transition: max-width 0.25s ease, opacity 0.25s ease, padding-right 0.25s ease, border-color 0.25s ease;
+}
+
+.editor-field:focus-within .editor-field-label {
+  max-width: 72px;
+  opacity: 1;
+  padding-right: 14px;
+  margin-right: 14px;
+  border-right-color: var(--border);
 }
 
 .editor-title {
   font-family: "Source Serif 4", "Noto Serif Devanagari", Georgia, serif;
-  font-size: 42px;
+  font-size: 38px;
   font-weight: 700;
-  line-height: 1.2;
-  min-height: 64px;
-  margin-bottom: 8px;
+  line-height: 1.25;
+  min-height: 58px;
+  margin-bottom: 6px;
+  transition: opacity 0.4s ease, color 0.4s ease;
 }
 
 .editor-subtitle {
-  font-size: 22px;
-  color: #6b6b6b;
-  min-height: 40px;
-  margin-bottom: 24px;
-}
-
-.editor-body {
   font-family: "Source Serif 4", "Noto Serif Devanagari", Georgia, serif;
-  font-size: 21px;
-  line-height: 1.7;
-  min-height: 50vh;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--text-2);
+  min-height: 36px;
+  margin-bottom: 32px;
+  transition: opacity 0.4s ease, color 0.4s ease;
 }
 
-.editor-hint {
-  margin-top: 32px;
-  color: #6b6b6b;
-  font-size: 13px;
-  line-height: 1.5;
+/* Focus fade: while the caret is in the body, the title recedes to a soft
+   ghost so the writer's eye stays on the line being written. */
+.editor-sheet.is-writing .editor-title:not(:focus),
+.editor-sheet.is-writing .editor-subtitle:not(:focus) {
+  opacity: 0.32;
+}
+
+.editor-sheet.is-writing .editor-field-label {
+  opacity: 0;
 }
 
 .publish-modal {
   position: fixed;
   inset: 0;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--sheet);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -105,8 +205,12 @@
 
 .publish-card {
   width: min(480px, 100%);
-  background: #fff;
-  border: 1px solid #f2f2f2;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-lift);
   padding: 28px;
 }
 
@@ -114,13 +218,14 @@
   font-family: "Source Serif 4", "Noto Serif Devanagari", Georgia, serif;
   font-size: 26px;
   margin-bottom: 20px;
+  color: var(--text);
 }
 
 .publish-card label {
   display: block;
   font-size: 13px;
   margin-bottom: 16px;
-  color: #6b6b6b;
+  color: var(--text-3);
 }
 
 .publish-card select,
@@ -129,10 +234,18 @@
   width: 100%;
   margin-top: 6px;
   padding: 10px 12px;
-  border: 1px solid #e6e6e6;
-  border-radius: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
   font-size: 15px;
-  color: #242424;
+  color: var(--text);
+  background: var(--bg-soft);
+  transition: border-color 0.2s ease;
+}
+
+.publish-card select:focus,
+.publish-card input:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 .publish-actions {
@@ -142,41 +255,581 @@
   margin-top: 12px;
 }
 
-/* Auto-draft status */
-.editor-autostatus {
-  font-size: 13px;
-  color: #6b6b6b;
+/* Auto-draft status moved into the bar's .editor-saved line. */
+
+/* Icon buttons: undo / redo / focus mode */
+.editor-icon {
+  border: 0;
+  background: transparent;
+  color: var(--text-3);
+  font-size: 19px;
+  line-height: 1;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.editor-icon:hover {
+  background: var(--bg-soft);
+  color: var(--text);
+}
+
+.editor-icon.on {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* ⋯ overflow menu — keeps secondary tools out of the quiet bar. */
+.editor-bar-menu {
+  position: relative;
+}
+
+.bar-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  min-width: 232px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lift);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+}
+
+.bar-dropdown button {
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 15px;
+  color: var(--text);
+  cursor: pointer;
   white-space: nowrap;
 }
 
-.editor-autostatus.saved {
-  color: #1a8917;
+.bar-dropdown button:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
-.editor-autostatus.error {
-  color: #c0271c;
-}
-
-/* Hinglish→Devanagari live toggle */
-.editor-translit {
-  border: 1px solid #e6e6e6;
-  border-radius: 99px;
-  padding: 7px 14px;
-  cursor: pointer;
+/* Writer's avatar, far right of the bar. */
+.editor-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: var(--on-accent);
   font-size: 14px;
-  font-weight: 500;
-  background: #fff;
-  color: #6b6b6b;
-  transition: all 0.15s ease;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid var(--border);
 }
 
-.editor-translit:hover {
-  border-color: #b9b9b9;
-  color: #242424;
+.editor-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.editor-translit.on {
+/* ---------------------------------------------------------- rich body (Quill) */
+.editor-body-wrap {
+  position: relative;
+}
+
+/* Transient overlay while a device photo uploads into the body. */
+.editor-uploading {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 25;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  box-shadow: var(--shadow-lift);
+  padding: 8px 18px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.editor-body-wrap .ql-container {
+  border: 0;
+  font-family: "Source Serif 4", "Noto Serif Devanagari", Georgia, serif;
+  font-size: 21px;
+}
+
+.editor-body-wrap .ql-editor {
+  padding: 0;
+  min-height: 55vh;
+  line-height: 1.75;
+  color: var(--text);
+}
+
+.editor-body-wrap .ql-editor p {
+  margin: 0 0 1.9em;
+}
+
+.editor-body-wrap .ql-editor h1,
+.editor-body-wrap .ql-editor h2,
+.editor-body-wrap .ql-editor h3 {
+  font-family: "Source Serif 4", "Noto Serif Devanagari", Georgia, serif;
+  margin: 1.2em 0 0.5em;
+  line-height: 1.3;
+}
+
+.editor-body-wrap .ql-editor h1 { font-size: 30px; }
+.editor-body-wrap .ql-editor h2 { font-size: 25px; }
+.editor-body-wrap .ql-editor h3 { font-size: 21px; }
+
+.editor-body-wrap .ql-editor blockquote {
+  border-left: 3px solid var(--accent);
+  margin: 1.4em 0;
+  padding: 4px 0 4px 20px;
+  font-style: italic;
+  color: var(--text-2);
+}
+
+.editor-body-wrap .ql-editor pre.ql-code-block {
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 15px;
+  line-height: 1.5;
+  margin: 1.2em 0;
+  white-space: pre-wrap;
+}
+
+.editor-body-wrap .ql-editor code {
+  background: var(--code-bg);
+  border-radius: 3px;
+  padding: 2px 5px;
+  font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.88em;
+}
+
+.editor-body-wrap .ql-editor ul,
+.editor-body-wrap .ql-editor ol {
+  padding-left: 30px;
+  margin: 0 0 1.6em;
+}
+
+.editor-body-wrap .ql-editor li {
+  margin-bottom: 0.5em;
+}
+
+.editor-body-wrap .ql-editor a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.editor-body-wrap .ql-editor img {
+  max-width: 100%;
+  border-radius: 6px;
+  margin: 1em 0;
+}
+
+.editor-body-wrap .ql-editor iframe,
+.editor-body-wrap .ql-editor .ql-video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: 8px;
+  margin: 1em 0;
+}
+
+.editor-body-wrap .ql-editor hr.ql-divider {
+  border: 0;
+  margin: 2em auto;
+  width: 120px;
+  border-top: 1px solid var(--border);
+}
+
+/* Placeholder: bubble theme leaves the default "undefined" caption */
+.editor-body-wrap .ql-editor.ql-blank::before {
+  font-style: normal;
+  color: var(--text-3);
+  left: 0;
+}
+
+/* Bubble (floating selection) toolbar */
+.editor-body-wrap .ql-bubble .ql-toolbar {
+  border-radius: 8px;
   background: #191919;
-  border-color: #191919;
-  color: #ffc017;
+  border: 0;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+  padding: 5px 7px;
+  white-space: nowrap;
+}
+
+/* Keep the quiet row on one line with a hairline between the two groups. */
+.editor-body-wrap .ql-bubble .ql-toolbar .ql-formats {
+  margin: 0;
+  vertical-align: middle;
+}
+
+.editor-body-wrap .ql-bubble .ql-toolbar .ql-formats + .ql-formats {
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+  margin-left: 6px;
+  padding-left: 8px;
+}
+
+.editor-body-wrap .ql-bubble .ql-toolbar button {
+  padding: 4px 5px;
+}
+
+.editor-body-wrap .ql-bubble .ql-toolbar::before {
+  border-bottom-color: #191919;
+}
+
+.editor-body-wrap .ql-bubble .ql-toolbar .ql-stroke {
+  stroke: #e9e9e9;
+}
+
+.editor-body-wrap .ql-bubble .ql-toolbar .ql-fill {
+  fill: #e9e9e9;
+}
+
+.editor-body-wrap .ql-bubble .ql-toolbar .ql-picker-label {
+  color: #e9e9e9;
+}
+
+.editor-body-wrap .ql-bubble .ql-toolbar button:hover .ql-stroke,
+.editor-body-wrap .ql-bubble .ql-toolbar button.ql-active .ql-stroke,
+.editor-body-wrap .ql-bubble .ql-toolbar .ql-picker-label:hover .ql-stroke,
+.editor-body-wrap .ql-bubble .ql-toolbar .ql-picker-label.ql-active .ql-stroke {
+  stroke: #5fc4b8;
+}
+
+.editor-body-wrap .ql-bubble .ql-toolbar button:hover .ql-fill,
+.editor-body-wrap .ql-bubble .ql-toolbar button.ql-active .ql-fill,
+.editor-body-wrap .ql-bubble .ql-toolbar .ql-picker-label:hover .ql-fill,
+.editor-body-wrap .ql-bubble .ql-toolbar .ql-picker-label.ql-active .ql-fill {
+  fill: #5fc4b8;
+}
+
+.editor-body-wrap .ql-bubble .ql-picker-options {
+  background: #191919;
+  border: 0;
+  border-radius: 8px;
+}
+
+/* ---------------------------------------------------------- gutter ⊕ button */
+/* Sits in the left margin, vertically hugging the block the caret is on.
+   Clicking folds it open into a row of circular media actions. */
+.gutter-add-zone {
+  position: absolute;
+  left: -60px;
+  width: 1px;
+  z-index: 20;
+}
+
+.gutter-add {
+  position: absolute;
+  left: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.gutter-add:hover {
+  border-color: var(--text-3);
+  color: var(--text);
+  transform: scale(1.06);
+}
+
+.gutter-add.on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* The block menu the ⊕ opens — a horizontal row of circular icon actions
+   fanning out to the right (headings, quotes, lists, code, dividers, media). */
+.gutter-add-row {
+  position: absolute;
+  left: 48px;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  max-width: 560px;
+  animation: gutter-pop 0.16s ease;
+}
+
+.gutter-add-item {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.gutter-add-item:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+  transform: scale(1.08);
+}
+
+@keyframes gutter-pop {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Keep the ⊕ usable on narrow screens: give the sheet a left gutter for it to
+   sit in instead of hiding the button (the "/" fallback is gone). */
+@media (max-width: 860px) {
+  .editor-sheet {
+    padding-left: 54px;
+  }
+  .gutter-add-zone {
+    left: -46px;
+  }
+  .gutter-add-row {
+    left: 44px;
+    max-width: calc(100vw - 96px);
+  }
+}
+
+/* Word / character / reading-time counter */
+.editor-stats {
+  margin-top: 28px;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+/* Focus (एकांत) mode: dim chrome, widen nothing, rest is the page */
+.editor-focus .editor-bar {
+  opacity: 0.25;
+  transition: opacity 0.2s ease;
+}
+
+.editor-focus .editor-bar:hover {
+  opacity: 1;
+}
+
+.editor-focus .editor-sheet {
+  margin-top: 96px;
+}
+
+/* Share-style dialog + cover preview in the publish card */
+.dialog-card input[type="url"] {
+  font-family: inherit;
+}
+
+/* Cover image field — device upload alongside the optional URL fallback. */
+.cover-field {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 16px;
+  color: var(--text-3);
+}
+
+.cover-field-label {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.cover-field-actions {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.cover-upload-btn {
+  flex: 0 0 auto;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 6px;
+  padding: 0 14px;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 0.15s ease;
+}
+
+.cover-upload-btn:hover:not(:disabled) {
+  filter: brightness(0.97);
+}
+
+.cover-upload-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.cover-url {
+  flex: 1 1 auto;
+  width: auto !important;
+  margin-top: 0 !important;
+}
+
+.cover-preview {
+  position: relative;
+  margin: 4px 0 16px;
+}
+
+.cover-preview img {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 6px;
+  display: block;
+}
+
+.cover-remove {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  border: 0;
+  border-radius: 99px;
+  background: rgba(25, 25, 25, 0.82);
+  color: #fff;
+  font-size: 13px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+/* Table block embed: read-only atom inside the editor, dbl-click to edit */
+.editor-body-wrap .ql-editor table.ql-table {
+  display: table;
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.4em 0;
+  font-size: 17px;
+}
+
+.editor-body-wrap .ql-editor table.ql-table th,
+.editor-body-wrap .ql-editor table.ql-table td {
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.editor-body-wrap .ql-editor table.ql-table th {
+  background: var(--bg-soft);
+  font-weight: 700;
+}
+
+.editor-body-wrap .ql-editor table.ql-table:hover {
+  outline: 2px solid var(--accent-soft);
+  outline-offset: 2px;
+  cursor: pointer;
+}
+
+/* Cell dialog for the table embed */
+.dialog-card.dialog-table {
+  width: min(640px, 100%);
+}
+
+.table-grid {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.table-grid input {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 15px;
+  font-family: inherit;
+  width: 100%;
+  min-width: 0;
+  background: var(--bg-soft);
+  color: var(--text);
+}
+
+.table-grid input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.table-grid-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.table-grid-actions button {
+  border: 1px solid var(--border);
+  background: transparent;
+  border-radius: 99px;
+  padding: 5px 12px;
+  font-size: 13px;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.table-grid-actions button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* In-editor notice — replaces native alert() so feedback stays on-brand
+   and readable in both themes. */
+.editor-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 30px;
+  transform: translateX(-50%);
+  z-index: 1200;
+  max-width: min(92vw, 480px);
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-size: 15px;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+  animation: overlay-in 0.2s ease;
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
