@@ -5,6 +5,14 @@ import { getEnv } from '../utils/env';
 
 const AuthContext = createContext();
 
+// FastAPI sends `detail` as a string for our errors but as an array of objects
+// for validation errors (422); rendering that array would crash the page.
+const errorText = (error, fallback) => {
+  const detail = error.response?.data?.detail;
+  if (error.response?.status === 422) return 'दर्ज की गई जानकारी सही नहीं है। पासवर्ड कम से कम ८ अक्षरों का रखें।';
+  return typeof detail === 'string' && detail ? detail : fallback;
+};
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -28,13 +36,27 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const fetchUser = useCallback(async () => {
+    // Network errors, timeouts and 5xx (e.g. Render cold start) must not sign
+    // the reader out — only a real 401 means the token is bad.
+    const RETRIES = 3;
+    const RETRY_DELAY_MS = 4000;
     try {
-      const response = await authAPI.getMe();
-      setUser(response.data);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to fetch user:', error);
-      logout();
+      for (let attempt = 0; attempt <= RETRIES; attempt += 1) {
+        try {
+          const response = await authAPI.getMe();
+          setUser(response.data);
+          return;
+        } catch (error) {
+          if (error.response?.status === 401) {
+            logout();
+            return;
+          }
+          // eslint-disable-next-line no-console
+          console.error('Failed to fetch user:', error);
+          if (attempt === RETRIES) return;
+          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -73,7 +95,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        error: error.response?.data?.detail || 'साइन इन नहीं हो सका',
+        error: errorText(error, 'साइन इन नहीं हो सका'),
       };
     }
   };
@@ -106,7 +128,7 @@ export const AuthProvider = ({ children }) => {
         
         return { success: true };
       } else {
-        return { success: false, error: data.detail || 'गूगल (Google) से साइन इन नहीं हो सका' };
+        return { success: false, error: typeof data.detail === 'string' && data.detail ? data.detail : 'गूगल (Google) से साइन इन नहीं हो सका' };
       }
     } catch (err) {
       // eslint-disable-next-line no-console
@@ -142,7 +164,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        error: error.response?.data?.detail || 'Registration failed',
+        error: errorText(error, 'खाता नहीं बन सका, कृपया दोबारा कोशिश करें'),
       };
     }
   };

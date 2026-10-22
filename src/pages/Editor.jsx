@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { postsAPI, uploadsAPI } from '../services/api';
 import { transliterateLastWord, dandaOnDoubleSpace } from '../utils/transliterate';
 import { initials } from '../utils/format';
+import { updateMetaTags, resetMetaTags } from '../utils/seo';
 import { compressImage, blobToDataUrl } from '../utils/imageCompress';
 import '../utils/quillHindi';
 import { BRAND, TOPICS } from '../brand';
@@ -213,6 +214,8 @@ const Editor = () => {
   const { isAuthenticated, loading: authLoading, user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(isEdit);
+  // null | 'notfound' (403/404) | 'error' (network, 5xx, timeout)
+  const [loadError, setLoadError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [draftId, setDraftId] = useState(null);
   const [autoStatus, setAutoStatus] = useState('idle'); // idle | saving | saved | error
@@ -269,6 +272,12 @@ const Editor = () => {
 
   useEffect(() => () => clearTimeout(toastTimer.current), []);
 
+  // The editor is private — keep it out of search indexes.
+  useEffect(() => {
+    updateMetaTags({ title: 'लिखें', type: 'website', noindex: true });
+    return () => resetMetaTags();
+  }, []);
+
   useEffect(() => {
     if (authLoading) return;
     if (!isAuthenticated) {
@@ -287,6 +296,8 @@ const Editor = () => {
   }, [id, isAuthenticated, authLoading, navigate, navigationType, isEdit]);
 
   const fetchPost = async () => {
+    setLoadError(null);
+    setLoading(true);
     try {
       const response = await postsAPI.getById(id);
       const post = response.data;
@@ -303,7 +314,8 @@ const Editor = () => {
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to fetch post:', error);
-      navigate('/');
+      const status = error.response?.status;
+      setLoadError(status === 403 || status === 404 ? 'notfound' : 'error');
     } finally {
       setLoading(false);
     }
@@ -810,6 +822,22 @@ const Editor = () => {
 
   if (loading || authLoading) {
     return <div className="page-loading">लोड हो रहा है…</div>;
+  }
+  if (loadError) {
+    return (
+      <div className="notfound-page">
+        <h1>{loadError === 'notfound' ? 'यह रचना नहीं मिली' : 'रचना लोड नहीं हो सकी'}</h1>
+        <p>
+          {loadError === 'notfound'
+            ? 'हो सकता है रचना हटा दी गई हो, या यह आपकी न हो।'
+            : 'कोई तकनीकी दिक्कत आई है। थोड़ी देर में फिर कोशिश करें।'}
+        </p>
+        {loadError === 'error' && (
+          <button type="button" className="landing-cta" onClick={fetchPost}>फिर कोशिश करें</button>
+        )}{' '}
+        <Link to="/stories" className="landing-cta">मेरी रचनाएँ देखें</Link>
+      </div>
+    );
   }
 
   const words = formData.content.trim() ? formData.content.trim().split(/\s+/).length : 0;

@@ -1,6 +1,8 @@
 # https://www.robotstxt.org/robotstxt.html
 User-agent: *
 Allow: /
+Allow: /api/share/
+Allow: /api/posts/*/cover
 Disallow: /admin
 Disallow: /api/
 
@@ -35,9 +37,17 @@ Disallow: /
 # Search engines
 User-agent: Googlebot
 Allow: /
+Allow: /api/share/
+Allow: /api/posts/*/cover
+Disallow: /admin
+Disallow: /api/
 
 User-agent: Bingbot
 Allow: /
+Allow: /api/share/
+Allow: /api/posts/*/cover
+Disallow: /admin
+Disallow: /api/
 
 # Sitemap
-Sitemap: https://lekhanii.vercel.app/api/sitemap.xml
+Sitemap: https://lekhanii.vercel.app/sitemap.xml

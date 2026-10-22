@@ -10,6 +10,7 @@ import useFocusScroll from '../utils/useFocusScroll';
 import useTextSelection from '../utils/useTextSelection';
 import FocusHeader from '../components/FocusHeader';
 import Lightbox from '../components/Lightbox';
+import { NotFound } from '../components/NotFound';
 import './PostView.css';
 
 const PostView = () => {
@@ -22,7 +23,8 @@ const PostView = () => {
   const registerLink = `/register?redirect=${encodeURIComponent(storyPath)}`;
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [pageError, setPageError] = useState(false);
+  // null | 'notfound' (real 404) | 'error' (network, 5xx, timeout)
+  const [pageError, setPageError] = useState(null);
   const [deleting, setDeleting] = useState(false);
   // In-app confirmation instead of window.confirm: { kind: 'post'|'comment', id, text }
   const [confirmBox, setConfirmBox] = useState(null);
@@ -40,6 +42,20 @@ const PostView = () => {
   const { progress, hidden } = useFocusScroll();
   const [selectionMenu, setSelectionMenu] = useTextSelection(bodyRef);
 
+  // Error toast: dismiss on Escape and automatically after ~6 seconds.
+  useEffect(() => {
+    if (!actionError) return undefined;
+    const timer = setTimeout(() => setActionError(''), 6000);
+    const onKey = (e) => {
+      if (e.key === 'Escape') setActionError('');
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [actionError]);
+
   useEffect(() => {
     fetchPost();
     return () => {
@@ -49,42 +65,57 @@ const PostView = () => {
   }, [slug]);
 
   const fetchPost = async () => {
+    setPageError(null);
+    setLoading(true);
+    let loaded;
     try {
       const response = await postsAPI.getBySlug(slug);
-      setPost(response.data);
+      loaded = response.data;
+      setPost(loaded);
       updateMetaTags({
-        title: response.data.title,
-        description: response.data.subtitle || response.data.content.substring(0, 160),
-        keywords: `${response.data.title}, हिंदी, लेखनी, ${(response.data.tags || []).join(', ')}, ${response.data.author.username}`,
-        image: response.data.cover_image,
+        title: loaded.title,
+        description: loaded.subtitle || loaded.content.substring(0, 160),
+        keywords: `${loaded.title}, हिंदी, लेखनी, ${(loaded.tags || []).join(', ')}, ${loaded.author.username}`,
+        // An uploaded (data:) cover is far too big for a meta tag; fall back to the logo.
+        image: /^https?:\/\//.test(loaded.cover_image || '') ? loaded.cover_image : undefined,
+        url: `${window.location.origin}/post/${encodeURIComponent(loaded.slug)}`,
         type: 'article',
-        author: response.data.author.full_name || response.data.author.username,
-        publishedTime: response.data.created_at,
-        modifiedTime: response.data.updated_at,
+        author: loaded.author.full_name || loaded.author.username,
+        publishedTime: loaded.created_at,
+        modifiedTime: loaded.updated_at,
       });
-      generateStructuredData(response.data, response.data.author);
-      const commentsRes = await commentsAPI.getByPost(response.data.id);
-      setComments(commentsRes.data);
-
-      // Follow state for the author (only meaningful for signed-in readers)
-      if (!user || user.id !== response.data.author_id) {
-        try {
-          const profileRes = await usersAPI.getById(response.data.author_id);
-          setIsFollowing(profileRes.data.is_following);
-          setFollowerCount(profileRes.data.follower_count);
-        } catch (error) {
-          // eslint-disable-next-line no-console
-          console.error('Failed to fetch author profile:', error);
-        }
-      }
+      generateStructuredData(loaded, loaded.author);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to fetch post:', error);
-      // Don't silently bounce the reader home — say what happened and
-      // offer a way back, so a broken link isn't a mystery.
-      setPageError(true);
-    } finally {
+      // Don't silently bounce the reader home — a real 404 gets the not-found
+      // page; anything else is a technical error with a retry button.
+      setPageError(error.response?.status === 404 ? 'notfound' : 'error');
       setLoading(false);
+      return;
+    }
+    setLoading(false);
+
+    // Comments and author follow-state are secondary: if they fail, the
+    // already-loaded post must stay on screen.
+    try {
+      const commentsRes = await commentsAPI.getByPost(loaded.id);
+      setComments(commentsRes.data);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to fetch comments:', error);
+    }
+
+    // Follow state for the author (only meaningful for signed-in readers)
+    if (!user || user.id !== loaded.author_id) {
+      try {
+        const profileRes = await usersAPI.getById(loaded.author_id);
+        setIsFollowing(profileRes.data.is_following);
+        setFollowerCount(profileRes.data.follower_count);
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to fetch author profile:', error);
+      }
     }
   };
 
@@ -114,7 +145,8 @@ const PostView = () => {
   };
 
   const handleShare = async () => {
-    const url = window.location.href;
+    // Share link serves per-story preview tags to crawlers, then redirects readers here.
+    const url = `${window.location.origin}/api/share/post/${encodeURIComponent(slug)}`;
     try {
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(url);
@@ -332,11 +364,13 @@ const PostView = () => {
   }, [post, isAuthenticated]);
 
   if (loading) return <div className="page-loading">लोड हो रहा है…</div>;
+  if (pageError === 'notfound') return <NotFound />;
   if (pageError) {
     return (
       <div className="notfound-page">
         <h1>रचना लोड नहीं हो सकी</h1>
         <p>कोई तकनीकी दिक्कत आई है। थोड़ी देर में फिर कोशिश करें।</p>
+        <button type="button" className="landing-cta" onClick={fetchPost}>फिर कोशिश करें</button>{' '}
         <Link to="/" className="landing-cta">मुख्य पृष्ठ पर जाएँ</Link>
       </div>
     );
@@ -604,8 +638,11 @@ const PostView = () => {
       )}
 
       {actionError && (
-        <div className="action-toast" role="alert" onClick={() => setActionError('')}>
-          {actionError}
+        <div className="action-toast" role="alert">
+          <span>{actionError}</span>
+          <button type="button" className="action-toast-close" onClick={() => setActionError('')} aria-label="बंद करें">
+            ×
+          </button>
         </div>
       )}
 

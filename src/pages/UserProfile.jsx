@@ -14,6 +14,8 @@ const UserProfile = () => {
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  // 'notfound' for a real 404; 'error' for anything else (network, 5xx, timeout)
+  const [loadError, setLoadError] = useState(null);
 
   useEffect(() => {
     fetchProfile();
@@ -21,28 +23,40 @@ const UserProfile = () => {
 
   const fetchProfile = async () => {
     setLoading(true);
+    setLoadError(null);
+    let profileData;
     try {
       const profileRes = await usersAPI.getById(userId);
-      setProfile(profileRes.data);
-
-      const postsRes = await postsAPI.getByUser(userId, { published: 1 });
-      setPosts(postsRes.data);
-
-      const authorName = profileRes.data.full_name || profileRes.data.username;
-      updateMetaTags({
-        title: authorName,
-        description: `${authorName} लेखनी पर ${profileRes.data.post_count} रचनाएँ लिख चुके हैं। ${profileRes.data.bio || ''}`,
-        keywords: `${authorName}, हिंदी लेखक, लेखनी, Lekhani, ${authorName} की कहानियाँ`,
-        image: profileRes.data.avatar_url,
-        url: `${window.location.origin}/user/${userId}`,
-        type: 'profile',
-      });
+      profileData = profileRes.data;
+      setProfile(profileData);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to fetch profile:', error);
-    } finally {
+      setProfile(null);
+      setLoadError(error.response?.status === 404 ? 'notfound' : 'error');
       setLoading(false);
+      return;
     }
+
+    // A failed posts list must not replace an already-loaded profile.
+    try {
+      const postsRes = await postsAPI.getByUser(userId, { published: 1 });
+      setPosts(postsRes.data);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to fetch author posts:', error);
+    }
+
+    const authorName = profileData.full_name || profileData.username;
+    updateMetaTags({
+      title: authorName,
+      description: `${authorName} लेखनी पर ${profileData.post_count} रचनाएँ लिख चुके हैं। ${profileData.bio || ''}`,
+      keywords: `${authorName}, हिंदी लेखक, लेखनी, ${authorName} की कहानियाँ`,
+      image: profileData.avatar_url,
+      url: `${window.location.origin}/user/${userId}`,
+      type: 'profile',
+    });
+    setLoading(false);
   };
 
   const isSelf = user && profile && user.id === profile.id;
@@ -72,6 +86,16 @@ const UserProfile = () => {
   }
 
   if (!profile) {
+    if (loadError === 'error') {
+      return (
+        <div className="user-profile">
+          <p className="empty-state">
+            कोई तकनीकी दिक्कत आई है, लेखक की जानकारी लोड नहीं हो सकी।{' '}
+            <button type="button" className="follow-btn" onClick={fetchProfile}>फिर कोशिश करें</button>
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="user-profile">
         <p className="empty-state">यह लेखक नहीं मिला। <Link to="/">मुख्य पृष्ठ पर जाएँ</Link>।</p>

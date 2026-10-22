@@ -11,8 +11,8 @@ html {
 /* ---- Design tokens: warm light + soft dark, teal accent ---- */
 :root {
   --nav-h: 57px;
-  --font-display: 'Rozha One', 'Playfair Display', 'Noto Serif Devanagari', Georgia, serif;
-  --font-ui: 'Inter', 'Mukta', 'Noto Sans Devanagari', -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Rozha One', 'Noto Serif Devanagari', 'Kohinoor Devanagari', Georgia, serif;
+  --font-ui: 'Inter', 'Mukta', 'Noto Sans Devanagari', 'Kohinoor Devanagari', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   /* Light: soft warm off-white, never pure white/black */
   --bg: #faf9f7;

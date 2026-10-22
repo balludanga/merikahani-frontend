@@ -39,6 +39,7 @@ const Bookmarks = () => {
       title: 'पढ़ने की सूची',
       description: 'लेखनी पर आपके द्वारा सहेजी गई रचनाएँ।',
       type: 'website',
+      noindex: true,
     });
   }, []);
 

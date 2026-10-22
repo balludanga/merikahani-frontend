@@ -1,0 +1,12 @@
+{
+  "name": "लेखनी",
+  "short_name": "लेखनी",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#0F766E",
+  "background_color": "#FFFDF7",
+  "icons": [
+    { "src": "/logo.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

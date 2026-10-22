@@ -1,6 +1,6 @@
-# लेखनी (Lekhani) — Frontend
+# लेखनी — Frontend
 
-Frontend for **Lekhani (लेखनी)** — a home for Hindi writers. कहानी, कविता, निबंध और संस्मरण — सब मानवीय लेखन, बिना किसी कृत्रिम लेखन सहायता के।
+Frontend for **लेखनी** — a home for Hindi writers. कहानी, कविता, निबंध और संस्मरण — सब मानवीय लेखन, बिना किसी कृत्रिम लेखन सहायता के।
 
 Built with React (Create React App) + React Router.
 

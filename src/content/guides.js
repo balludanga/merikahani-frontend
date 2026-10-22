@@ -1,5 +1,5 @@
 /**
- * Platform blog — written guide articles (हिंदी) teaching how to use Lekhani.
+ * Platform blog — written guide articles (हिंदी) teaching how to use लेखनी.
  */
 
 export const GUIDES = [

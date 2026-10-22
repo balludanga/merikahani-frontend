@@ -3,6 +3,7 @@ import { getEnv } from '../utils/env';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { BRAND } from '../brand';
+import { updateMetaTags, resetMetaTags } from '../utils/seo';
 import './Auth.css';
 
 const Login = () => {
@@ -20,6 +21,34 @@ const Login = () => {
   const [form, setForm] = useState({ email: '', password: '', username: '', full_name: '' });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [gsiReady, setGsiReady] = useState(
+    () => !!(window.google && window.google.accounts && window.google.accounts.id)
+  );
+
+  useEffect(() => {
+    updateMetaTags({ title: isRegister ? 'खाता बनाएँ' : 'साइन इन', type: 'website', noindex: true });
+    return () => resetMetaTags();
+  }, [isRegister]);
+
+  // Load the Google sign-in script only on this page, and only once.
+  useEffect(() => {
+    if (window.google && window.google.accounts && window.google.accounts.id) {
+      setGsiReady(true);
+      return undefined;
+    }
+    let script = document.querySelector('script[data-gsi]');
+    if (!script) {
+      script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.setAttribute('data-gsi', 'true');
+      document.body.appendChild(script);
+    }
+    const onLoad = () => setGsiReady(true);
+    script.addEventListener('load', onLoad);
+    return () => script.removeEventListener('load', onLoad);
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -39,7 +68,23 @@ const Login = () => {
       // eslint-disable-next-line no-console
       console.warn('Failed to initialize Google Sign-In:', e);
     }
-  }, [handleGoogleCallback]);
+  }, [handleGoogleCallback, gsiReady]);
+
+  const onGoogleClick = () => {
+    setError('');
+    if (!(window.google && window.google.accounts && window.google.accounts.id)) {
+      setError('गूगल (Google) अभी लोड हो रहा है, कृपया कुछ क्षण रुकें');
+      return;
+    }
+    window.google.accounts.id.prompt((notification) => {
+      const blocked =
+        (typeof notification.isNotDisplayed === 'function' && notification.isNotDisplayed()) ||
+        (typeof notification.isSkippedMoment === 'function' && notification.isSkippedMoment());
+      if (blocked) {
+        setError('गूगल (Google) साइन इन नहीं खुल सका। कृपया ईमेल से साइन इन करें, या पॉप-अप (pop-up) की अनुमति दें।');
+      }
+    });
+  };
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -62,11 +107,7 @@ const Login = () => {
         <button
           type="button"
           className="auth-google"
-          onClick={() => {
-            if (window.google && window.google.accounts) {
-              window.google.accounts.id.prompt();
-            }
-          }}
+          onClick={onGoogleClick}
         >
           गूगल (Google) से जारी रखें
         </button>
@@ -112,6 +153,8 @@ const Login = () => {
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               autoComplete={isRegister ? 'new-password' : 'current-password'}
+              minLength={isRegister ? 8 : undefined}
+              maxLength={128}
               required
             />
           </label>

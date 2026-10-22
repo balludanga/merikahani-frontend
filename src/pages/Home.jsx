@@ -16,8 +16,6 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [feed, setFeed] = useState('for-you');
   const [spotlight, setSpotlight] = useState(null);
-  const [newsletterDone, setNewsletterDone] = useState(false);
-  const [newsletterEmail, setNewsletterEmail] = useState('');
   const [speaking, setSpeaking] = useState(false);
 
   useEffect(() => {
@@ -42,7 +40,7 @@ const Home = () => {
       updateMetaTags({
         title: `${BRAND.name} — ${BRAND.tagline}`,
         description: BRAND.description,
-        keywords: 'हिंदी, लेखन, कहानी, कविता, निबंध, लेखनी, Lekhani',
+        keywords: 'हिंदी, लेखन, कहानी, कविता, निबंध, लेखनी',
         type: 'website',
       });
       generateHomepageStructuredData(response.data);
@@ -92,12 +90,6 @@ const Home = () => {
       // eslint-disable-next-line no-console
       console.error('Follow failed:', error);
     }
-  };
-
-  const handleNewsletter = (e) => {
-    e.preventDefault();
-    if (!newsletterEmail.trim()) return;
-    setNewsletterDone(true);
   };
 
   const toggleAudio = () => {
@@ -187,7 +179,12 @@ const Home = () => {
               onClick={() => navigate(`/post/${hero.slug}`)}
               role="link"
               tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && navigate(`/post/${hero.slug}`)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  navigate(`/post/${hero.slug}`);
+                }
+              }}
             >
               {hero.cover_image && <img className="hero-img" src={hero.cover_image} alt="" />}
               <div className="hero-overlay" aria-hidden="true" />
@@ -245,7 +242,7 @@ const Home = () => {
                 <span className="bento-label">विशेष लेखक</span>
                 <div className="writer-id">
                   {spotlight.avatar_url ? (
-                    <img src={spotlight.avatar_url} alt="" />
+                    <img src={spotlight.avatar_url} alt="" width="46" height="46" loading="lazy" decoding="async" />
                   ) : (
                     <span className="writer-avatar">
                       {initials(spotlight.full_name || spotlight.username || '')}
@@ -268,26 +265,6 @@ const Home = () => {
                 </div>
               </article>
             )}
-
-            <section className="bento-card bento-news">
-              <h3>साप्ताहिक चिट्ठी</h3>
-              <p>हर रविवार सर्वश्रेष्ठ रचनाएँ — सीधे आपके इनबॉक्स में।</p>
-              {newsletterDone ? (
-                <p className="news-done">✓ धन्यवाद! चिट्ठी आपके इनबॉक्स में आएगी।</p>
-              ) : (
-                <form className="news-form" onSubmit={handleNewsletter}>
-                  <input
-                    type="email"
-                    required
-                    placeholder="आपका ईमेल"
-                    value={newsletterEmail}
-                    onChange={(e) => setNewsletterEmail(e.target.value)}
-                    aria-label="ईमेल पता"
-                  />
-                  <button type="submit">जुड़ें</button>
-                </form>
-              )}
-            </section>
 
             <section className="bento-card bento-audio">
               <div className={`eq${speaking ? ' on' : ''}`} aria-hidden="true">
