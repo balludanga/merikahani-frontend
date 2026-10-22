@@ -1,13 +1,5 @@
 /* ===================== Dashboard (logged-in home) ===================== */
 
-:root {
-  --news-sub: rgba(255, 255, 255, 0.85);
-}
-
-[data-theme='dark'] {
-  --news-sub: rgba(11, 32, 29, 0.78);
-}
-
 .dash {
   height: calc(100vh - var(--nav-h));
   display: flex;
@@ -113,7 +105,7 @@
 
 .bento-label {
   display: block;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -127,6 +119,12 @@
   /* Deep editorial gradient: keeps the white overlay text readable even
      when a story has no cover image. */
   background: linear-gradient(160deg, var(--accent-strong) 0%, #0b201d 78%);
+}
+
+.bento-hero:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px var(--accent-soft);
 }
 
 .hero-img {
@@ -156,7 +154,7 @@
   display: inline-block;
   background: var(--accent);
   color: var(--on-accent);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -306,7 +304,7 @@
   grid-area: bottom;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
   gap: 18px;
 }
 
@@ -392,74 +390,6 @@
   background: var(--accent-soft);
   border-color: transparent;
   color: var(--accent);
-}
-
-/* Newsletter — high-contrast accent block */
-.bento-news {
-  background: linear-gradient(135deg, var(--accent-strong), var(--accent));
-  border-color: transparent;
-  color: var(--on-accent);
-}
-
-.bento-news h3 {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: 20px;
-}
-
-.bento-news p {
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--news-sub);
-  flex: 1;
-}
-
-.news-done {
-  font-size: 13.5px;
-  font-weight: 600;
-}
-
-.news-form {
-  display: flex;
-  gap: 8px;
-}
-
-.news-form input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  border-radius: 99px;
-  padding: 10px 14px;
-  font-size: 13.5px;
-  font-family: inherit;
-  background: #ffffff;
-  color: #27272a;
-  outline: none;
-}
-
-.news-form input::placeholder {
-  color: #8f8c86;
-}
-
-.news-form input:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.7);
-  outline-offset: 1px;
-}
-
-.news-form button {
-  border: 0;
-  border-radius: 99px;
-  padding: 10px 16px;
-  font-size: 13.5px;
-  font-weight: 700;
-  cursor: pointer;
-  background: var(--text);
-  color: var(--bg);
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.news-form button:hover {
-  transform: scale(1.04);
 }
 
 /* Audio preview */
@@ -564,7 +494,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .bento-audio {
+  .bento-audio:only-child {
     grid-column: 1 / -1;
   }
 }

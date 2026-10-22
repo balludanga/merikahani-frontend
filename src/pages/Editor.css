@@ -248,6 +248,11 @@
   border-color: var(--accent);
 }
 
+.publish-card select:focus-visible,
+.publish-card input:focus-visible {
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
 .publish-actions {
   display: flex;
   justify-content: flex-end;
@@ -784,6 +789,10 @@
 .table-grid input:focus {
   outline: none;
   border-color: var(--accent);
+}
+
+.table-grid input:focus-visible {
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 .table-grid-actions {

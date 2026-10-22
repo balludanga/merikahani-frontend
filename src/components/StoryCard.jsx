@@ -13,7 +13,7 @@ const StoryCard = ({ post }) => {
       <div className="story-card-body">
         <Link to={`/user/${post.author?.id}`} className="story-card-author">
           {post.author?.avatar_url ? (
-            <img src={post.author.avatar_url} alt="" className="avatar-sm" />
+            <img src={post.author.avatar_url} alt="" className="avatar-sm" width="22" height="22" loading="lazy" decoding="async" />
           ) : (
             <span className="avatar-sm avatar-fallback">{initials(authorName)}</span>
           )}
@@ -58,7 +58,7 @@ const StoryCard = ({ post }) => {
       </div>
       {post.cover_image && (
         <Link to={`/post/${post.slug}`} className="story-card-thumb">
-          <img src={post.cover_image} alt="" />
+          <img src={post.cover_image} alt="" width="112" height="112" loading="lazy" decoding="async" />
         </Link>
       )}
     </article>

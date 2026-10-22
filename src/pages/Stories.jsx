@@ -42,6 +42,7 @@ const Stories = () => {
       title: 'मेरी रचनाएँ',
       description: 'लेखनी पर आपके ड्राफ्ट और प्रकाशित रचनाएँ।',
       type: 'website',
+      noindex: true,
     });
   }, []);
 

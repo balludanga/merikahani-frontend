@@ -55,6 +55,10 @@
   color: var(--text);
 }
 
+.navbar-search:focus-within {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
 .navbar-menu {
   margin-left: auto;
   display: flex;
@@ -173,8 +177,29 @@
   background: var(--bg-soft);
 }
 
+.navbar-search-link {
+  display: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.navbar-search-link:hover {
+  background: var(--bg-soft);
+  color: var(--text);
+}
+
 @media (max-width: 700px) {
   .navbar-search {
     display: none;
+  }
+
+  .navbar-search-link {
+    display: inline-flex;
   }
 }

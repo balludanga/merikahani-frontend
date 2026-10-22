@@ -67,6 +67,10 @@
   border-color: var(--accent);
 }
 
+.auth-form input:focus-visible {
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
 .auth-button {
   width: 100%;
   margin-top: 8px;

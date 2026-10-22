@@ -5,6 +5,8 @@ const API_BASE_URL = getEnv('REACT_APP_API_URL', 'http://localhost:8000/api');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  // Free-tier cold start can take ~60s; don't give up before it wakes.
+  timeout: 90000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -17,6 +19,51 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Cold-start awareness: if any request is still pending after 6s, tell the UI
+// (SlowServerNotice) the server is waking up; clear it once all settle.
+const SLOW_AFTER_MS = 6000;
+let pendingRequests = 0;
+let slowTimer = null;
+let slowShown = false;
+
+api.interceptors.request.use((config) => {
+  pendingRequests += 1;
+  if (!slowTimer && !slowShown) {
+    slowTimer = setTimeout(() => {
+      slowTimer = null;
+      if (pendingRequests > 0) {
+        slowShown = true;
+        window.dispatchEvent(new CustomEvent('lekhani:slow-server'));
+      }
+    }, SLOW_AFTER_MS);
+  }
+  return config;
+});
+
+const requestSettled = () => {
+  pendingRequests = Math.max(0, pendingRequests - 1);
+  if (pendingRequests > 0) return;
+  if (slowTimer) {
+    clearTimeout(slowTimer);
+    slowTimer = null;
+  }
+  if (slowShown) {
+    slowShown = false;
+    window.dispatchEvent(new CustomEvent('lekhani:server-ready'));
+  }
+};
+
+api.interceptors.response.use(
+  (response) => {
+    requestSettled();
+    return response;
+  },
+  (error) => {
+    requestSettled();
+    return Promise.reject(error);
+  }
+);
 
 export const authAPI = {
   register: (data) => api.post('/auth/register', data),
