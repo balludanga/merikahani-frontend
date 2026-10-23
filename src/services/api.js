@@ -139,3 +139,8 @@ export const uploadsAPI = {
 };
 
 export default api;
+
+// The owner's status page. The server answers 404 to anyone who is not the admin.
+export const opsAPI = {
+  overview: () => api.get('/ops/overview'),
+};
