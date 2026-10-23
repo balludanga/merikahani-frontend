@@ -8,6 +8,7 @@ import PostView from './pages/PostView';
 import { NotFound } from './components/NotFound';
 import SlowServerNotice from './components/SlowServerNotice';
 import { pageview } from './utils/analytics';
+import { getEnv } from './utils/env';
 import './App.css';
 
 // Rare / heavy routes load on demand. Editor pulls in Quill, so writers pay
@@ -19,6 +20,13 @@ const Stories = lazy(() => import('./pages/Stories'));
 const Search = lazy(() => import('./pages/Search'));
 const Bookmarks = lazy(() => import('./pages/Bookmarks'));
 const Highlights = lazy(() => import('./pages/Highlights'));
+const Ops = lazy(() => import('./pages/Ops'));
+
+// The owner's status page lives at an address only the owner knows, set at build time in
+// REACT_APP_OPS_PATH (never committed). The server is what really guards it: anyone else gets
+// a "not found". Without a valid value the page is not routed at all.
+const OPS_PATH = String(getEnv('REACT_APP_OPS_PATH', '')).replace(/^\/+|\/+$/g, '');
+const OPS_ROUTE = /^[A-Za-z0-9_-]{20,}$/.test(OPS_PATH) ? `/${OPS_PATH}` : null;
 const InfoPage = lazy(() => import('./pages/InfoPage'));
 const BlogIndex = lazy(() => import('./pages/Blog').then((m) => ({ default: m.BlogIndex })));
 const GuidePage = lazy(() => import('./pages/Blog').then((m) => ({ default: m.GuidePage })));
@@ -92,6 +100,7 @@ const AppContent = () => {
           <Route path="/stories" element={<Stories />} />
           <Route path="/bookmarks" element={<Bookmarks />} />
           <Route path="/highlights" element={<Highlights />} />
+          {OPS_ROUTE && <Route path={OPS_ROUTE} element={<Ops />} />}
           <Route path="/search" element={<Search />} />
           <Route path="/topic/:topic" element={<Search />} />
           <Route path="/tag/:slug" element={<Search />} />
