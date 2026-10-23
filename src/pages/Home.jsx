@@ -8,6 +8,7 @@ import { updateMetaTags, generateHomepageStructuredData } from '../utils/seo';
 import { formatDate, readingMinutes, excerpt, initials } from '../utils/format';
 import ssmlTTS from '../utils/ssmlTTS';
 import './Home.css';
+import { mediaUrl } from '../utils/media';
 
 const Home = () => {
   const { isAuthenticated } = useAuth();
@@ -194,7 +195,7 @@ const Home = () => {
                 <p className="hero-excerpt">{excerpt(hero.content, 170)}</p>
                 <div className="hero-meta">
                   {hero.author?.avatar_url ? (
-                    <img src={hero.author.avatar_url} alt="" />
+                    <img src={mediaUrl(hero.author.avatar_url)} alt="" />
                   ) : (
                     <span className="hero-avatar">
                       {initials(hero.author?.full_name || hero.author?.username || '')}
@@ -242,7 +243,7 @@ const Home = () => {
                 <span className="bento-label">विशेष लेखक</span>
                 <div className="writer-id">
                   {spotlight.avatar_url ? (
-                    <img src={spotlight.avatar_url} alt="" width="46" height="46" loading="lazy" decoding="async" />
+                    <img src={mediaUrl(spotlight.avatar_url)} alt="" width="46" height="46" loading="lazy" decoding="async" />
                   ) : (
                     <span className="writer-avatar">
                       {initials(spotlight.full_name || spotlight.username || '')}

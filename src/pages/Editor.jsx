@@ -12,6 +12,7 @@ import { compressImage, blobToDataUrl } from '../utils/imageCompress';
 import '../utils/quillHindi';
 import { BRAND, TOPICS } from '../brand';
 import './Editor.css';
+import { mediaUrl } from '../utils/media';
 
 const EMPTY_DOC = '<p><br></p>';
 
@@ -928,7 +929,7 @@ const Editor = () => {
           {isAuthenticated && user && (
             <Link to={`/user/${user.id}`} className="editor-avatar" title="प्रोफ़ाइल" aria-label="प्रोफ़ाइल">
               {user.avatar_url ? (
-                <img src={user.avatar_url} alt="" />
+                <img src={mediaUrl(user.avatar_url)} alt="" />
               ) : (
                 <span>{initials(user.full_name || user.username || '')}</span>
               )}

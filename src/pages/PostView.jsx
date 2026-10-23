@@ -7,6 +7,7 @@ import { formatDate, readingMinutes, initials } from '../utils/format';
 import { topicLabel } from '../brand';
 import ssmlTTS from '../utils/ssmlTTS';
 import useFocusScroll from '../utils/useFocusScroll';
+import { useAccentStyle } from '../utils/accent';
 import useTextSelection from '../utils/useTextSelection';
 import {
   MAX_HIGHLIGHT, anchorFromRange, applyMarks, clearMarks, elementAt, indexBody, locate,
@@ -18,6 +19,7 @@ import Lightbox from '../components/Lightbox';
 import MoreStories from '../components/MoreStories';
 import { NotFound } from '../components/NotFound';
 import './PostView.css';
+import { mediaUrl } from '../utils/media';
 
 // "राम और 2 अन्य ने हाइलाइट किया" for the readers behind one stretch of text.
 function readerNames(found, myId) {
@@ -82,6 +84,8 @@ const PostView = () => {
   const bodyRef = useRef(null);
   const jumpedTo = useRef(null);
   const { progress, hidden } = useFocusScroll();
+  // The writer's own colour tints their story (progress bar, links, buttons).
+  const accentStyle = useAccentStyle(post && post.author && post.author.accent);
   const [selectionMenu, setSelectionMenu] = useTextSelection(bodyRef);
 
   // Error toast: dismiss on Escape and automatically after ~6 seconds.
@@ -537,7 +541,7 @@ const PostView = () => {
   }));
 
   return (
-    <div className="story-page">
+    <div className="story-page" style={accentStyle}>
       <div
         className="reading-progress"
         style={{ transform: `scaleX(${progress})` }}
@@ -552,7 +556,7 @@ const PostView = () => {
         <div className="story-byline">
           <Link to={`/user/${post.author.id}`} className="story-author">
             {post.author.avatar_url ? (
-              <img src={post.author.avatar_url} alt="" />
+              <img src={mediaUrl(post.author.avatar_url)} alt="" />
             ) : (
               <span className="avatar-lg">{initials(authorName)}</span>
             )}

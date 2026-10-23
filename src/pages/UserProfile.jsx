@@ -1,25 +1,48 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { followsAPI, postsAPI, usersAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { updateMetaTags } from '../utils/seo';
-import { formatDate, initials } from '../utils/format';
+import { formatDate } from '../utils/format';
+import { useAccentStyle } from '../utils/accent';
 import { topicLabel } from '../brand';
+import ProfileHeader from '../components/ProfileHeader';
 import './UserProfile.css';
+
+const PostRow = ({ post, pinned }) => (
+  <Link to={`/post/${post.slug}`} className={`user-post-item ${pinned ? 'is-pinned' : ''}`}>
+    <h3>{pinned && <span className="pin-mark" title="चुनी हुई रचना" aria-label="चुनी हुई रचना">📌</span>}{post.title}</h3>
+    {post.subtitle && <p className="post-subtitle">{post.subtitle}</p>}
+    <span className="post-date">
+      {formatDate(post.created_at)}
+      {post.topic && <> · {topicLabel(post.topic)}</>}
+      {post.clap_count > 0 && <> · 👏 {post.clap_count}</>}
+    </span>
+  </Link>
+);
 
 const UserProfile = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated } = useAuth();
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   // 'notfound' for a real 404; 'error' for anything else (network, 5xx, timeout)
   const [loadError, setLoadError] = useState(null);
+  const [notice, setNotice] = useState(location.state && location.state.saved ? 'प्रोफ़ाइल सहेज ली गई ✓' : '');
+  const accentStyle = useAccentStyle(profile && profile.accent);
 
   useEffect(() => {
     fetchProfile();
   }, [userId]);
+
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timer = setTimeout(() => setNotice(''), 3500);
+    return () => clearTimeout(timer);
+  }, [notice]);
 
   const fetchProfile = async () => {
     setLoading(true);
@@ -50,9 +73,9 @@ const UserProfile = () => {
     const authorName = profileData.full_name || profileData.username;
     updateMetaTags({
       title: authorName,
-      description: `${authorName} लेखनी पर ${profileData.post_count} रचनाएँ लिख चुके हैं। ${profileData.bio || ''}`,
+      description: `${authorName} लेखनी पर ${profileData.post_count} रचनाएँ लिख चुके हैं। ${profileData.tagline || profileData.bio || ''}`.slice(0, 200),
       keywords: `${authorName}, हिंदी लेखक, लेखनी, ${authorName} की कहानियाँ`,
-      image: profileData.avatar_url,
+      image: /^https?:\/\//.test(profileData.avatar_url || '') ? profileData.avatar_url : undefined,
       url: `${window.location.origin}/user/${userId}`,
       type: 'profile',
     });
@@ -81,6 +104,16 @@ const UserProfile = () => {
     }
   };
 
+  const copyLink = async () => {
+    const url = `${window.location.origin}/user/${userId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setNotice('प्रोफ़ाइल की कड़ी कॉपी हो गई ✓');
+    } catch (error) {
+      setNotice(url);
+    }
+  };
+
   if (loading) {
     return <div className="page-loading">लोड हो रहा है…</div>;
   }
@@ -103,61 +136,64 @@ const UserProfile = () => {
     );
   }
 
-  const authorName = profile.full_name || profile.username;
+  const pinnedIds = profile.pinned_post_ids || [];
+  const pinned = pinnedIds.map((id) => posts.find((post) => post.id === id)).filter(Boolean);
+  const rest = posts.filter((post) => !pinnedIds.includes(post.id));
+
+  const actions = (
+    <>
+      {isSelf ? (
+        <Link to="/settings/profile" className="follow-btn profile-follow">प्रोफ़ाइल सजाएँ</Link>
+      ) : (
+        <button
+          type="button"
+          className={`follow-btn profile-follow ${profile.is_following ? 'following' : ''}`}
+          onClick={handleFollow}
+        >
+          {profile.is_following ? 'फ़ॉलो हो रहे हैं ✓' : 'फ़ॉलो करें'}
+        </button>
+      )}
+      <button type="button" className="profile-share" onClick={copyLink} title="प्रोफ़ाइल की कड़ी कॉपी करें" aria-label="प्रोफ़ाइल की कड़ी कॉपी करें">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="18" cy="5" r="2.6" /><circle cx="6" cy="12" r="2.6" /><circle cx="18" cy="19" r="2.6" />
+          <path d="M8.3 10.7l7.4-4.2M8.3 13.3l7.4 4.2" />
+        </svg>
+      </button>
+    </>
+  );
 
   return (
-    <div className="user-profile">
+    <div className="user-profile" style={accentStyle}>
       <div className="user-profile-container">
-        <header className="profile-header">
-          {profile.avatar_url ? (
-            <img className="profile-avatar" src={profile.avatar_url} alt="" />
-          ) : (
-            <span className="profile-avatar profile-avatar-fallback">{initials(authorName)}</span>
-          )}
-          <div className="profile-info">
-            <h1>{authorName}</h1>
-            {profile.bio && <p className="user-bio">{profile.bio}</p>}
-            <div className="profile-stats">
-              <span><strong>{profile.follower_count}</strong> फ़ॉलोअर्स</span>
-              <span><strong>{profile.following_count}</strong> फ़ॉलोइंग</span>
-              <span><strong>{profile.post_count}</strong> रचनाएँ</span>
+        <ProfileHeader profile={profile} actions={actions} />
+
+        {pinned.length > 0 && (
+          <div className="user-posts user-pinned">
+            <h2>चुनिंदा रचनाएँ</h2>
+            <div className="user-posts-list">
+              {pinned.map((post) => <PostRow key={post.id} post={post} pinned />)}
             </div>
           </div>
-          {!isSelf && (
-            <button
-              type="button"
-              className={`follow-btn profile-follow ${profile.is_following ? 'following' : ''}`}
-              onClick={handleFollow}
-            >
-              {profile.is_following ? 'फ़ॉलो हो रहे हैं ✓' : 'फ़ॉलो करें'}
-            </button>
-          )}
-        </header>
+        )}
 
         <div className="user-posts">
-          <h2>रचनाएँ</h2>
+          <h2>{pinned.length > 0 ? 'सभी रचनाएँ' : 'रचनाएँ'}</h2>
           {posts.length === 0 ? (
             <p className="empty-state">
-              {isSelf ? 'अभी कोई प्रकाशित रचना नहीं। ' : 'अभी कोई प्रकाशित रचना नहीं। '}
-              {isSelf && <Link to="/new-story">लिखना शुरू करें</Link>}.
+              अभी कोई प्रकाशित रचना नहीं।{' '}
+              {isSelf && <Link to="/new-story">लिखना शुरू करें</Link>}
             </p>
+          ) : rest.length === 0 ? (
+            <p className="empty-state">बाकी सभी रचनाएँ ऊपर चुनिंदा में हैं।</p>
           ) : (
             <div className="user-posts-list">
-              {posts.map((post) => (
-                <Link key={post.id} to={`/post/${post.slug}`} className="user-post-item">
-                  <h3>{post.title}</h3>
-                  {post.subtitle && <p className="post-subtitle">{post.subtitle}</p>}
-                  <span className="post-date">
-                    {formatDate(post.created_at)}
-                    {post.topic && <> · {topicLabel(post.topic)}</>}
-                    {post.clap_count > 0 && <> · 👏 {post.clap_count}</>}
-                  </span>
-                </Link>
-              ))}
+              {rest.map((post) => <PostRow key={post.id} post={post} />)}
             </div>
           )}
         </div>
       </div>
+
+      {notice && <div className="profile-notice" role="status">{notice}</div>}
     </div>
   );
 };

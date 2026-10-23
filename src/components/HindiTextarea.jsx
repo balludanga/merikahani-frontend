@@ -47,7 +47,7 @@ export function useHinglish() {
  * work on plain strings; `hinglish` and `onToggle` come from `useHinglish`.
  */
 const HindiTextarea = React.forwardRef(function HindiTextarea(
-  { value, onChange, hinglish, onToggle, onSubmitKey, className = '', ...rest },
+  { value, onChange, hinglish, onToggle, onSubmitKey, singleLine = false, hideBar = false, className = '', ...rest },
   ref
 ) {
   const innerRef = useRef(null);
@@ -67,7 +67,7 @@ const HindiTextarea = React.forwardRef(function HindiTextarea(
 
   const handleChange = (event) => {
     const el = event.target;
-    let next = el.value;
+    let next = singleLine ? el.value.replace(/[\r\n]+/g, ' ') : el.value;
     if (hinglish) {
       const danda = dandaOnDoubleSpace(next, el.selectionStart);
       const done = danda || transliterateLastWord(next, el.selectionStart);
@@ -87,6 +87,11 @@ const HindiTextarea = React.forwardRef(function HindiTextarea(
   };
 
   const handleKeyDown = (event) => {
+    // A one-line field never takes a new line.
+    if (singleLine && event.key === 'Enter') {
+      event.preventDefault();
+      return;
+    }
     if (onSubmitKey && event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
       event.preventDefault();
       onSubmitKey();
@@ -94,32 +99,35 @@ const HindiTextarea = React.forwardRef(function HindiTextarea(
   };
 
   return (
-    <div className={`hindi-field ${className}`}>
+    <div className={`hindi-field ${singleLine ? 'single' : ''} ${className}`}>
       <textarea
         ref={innerRef}
         lang="hi"
+        rows={singleLine ? 1 : undefined}
         value={value}
         onChange={handleChange}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         {...rest}
       />
-      <div className="hindi-field-bar">
-        <button
-          type="button"
-          className={`hindi-toggle ${hinglish ? 'on' : ''}`}
-          onClick={onToggle}
-          aria-pressed={hinglish}
-          title="अंग्रेज़ी कीबोर्ड से हिंदी लिखें"
-        >
-          अ
-        </button>
-        <span className="hindi-hint">
-          {hinglish
-            ? 'हिंदी टाइपिंग चालू — (kahani) लिखें, कहानी बनेगा'
-            : 'हिंदी टाइपिंग बंद'}
-        </span>
-      </div>
+      {!hideBar && (
+        <div className="hindi-field-bar">
+          <button
+            type="button"
+            className={`hindi-toggle ${hinglish ? 'on' : ''}`}
+            onClick={onToggle}
+            aria-pressed={hinglish}
+            title="अंग्रेज़ी कीबोर्ड से हिंदी लिखें"
+          >
+            अ
+          </button>
+          <span className="hindi-hint">
+            {hinglish
+              ? 'हिंदी टाइपिंग चालू — (kahani) लिखें, कहानी बनेगा'
+              : 'हिंदी टाइपिंग बंद'}
+          </span>
+        </div>
+      )}
     </div>
   );
 });

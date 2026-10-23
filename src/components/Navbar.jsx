@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { getTheme, toggleTheme } from '../utils/theme';
 import { BRAND } from '../brand';
 import NotificationBell from './NotificationBell';
+import { mediaUrl } from '../utils/media';
 import { initials } from '../utils/format';
 import './Navbar.css';
 
@@ -111,7 +112,7 @@ const Navbar = ({ landing }) => {
                   aria-expanded={menuOpen}
                 >
                   {user?.avatar_url ? (
-                    <img src={user.avatar_url} alt="" />
+                    <img src={mediaUrl(user.avatar_url)} alt="" />
                   ) : (
                     <span>{initials(displayName)}</span>
                   )}
@@ -121,6 +122,7 @@ const Navbar = ({ landing }) => {
                     {/* Nav search input is hidden below 700px — keep search reachable via the menu. */}
                     <Link to="/search" role="menuitem" onClick={() => setMenuOpen(false)}>खोजें</Link>
                     <Link to={`/user/${user.id}`} role="menuitem" onClick={() => setMenuOpen(false)}>प्रोफ़ाइल</Link>
+                    <Link to="/settings/profile" role="menuitem" onClick={() => setMenuOpen(false)}>प्रोफ़ाइल सजाएँ</Link>
                     <Link to="/stories" role="menuitem" onClick={() => setMenuOpen(false)}>मेरी रचनाएँ</Link>
                     <Link to="/bookmarks" role="menuitem" onClick={() => setMenuOpen(false)}>पढ़ने की सूची</Link>
                     <button type="button" role="menuitem" onClick={handleLogout}>साइन आउट</button>
