@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { getEnv } from '../utils/env';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -6,8 +6,12 @@ import { BRAND } from '../brand';
 import { updateMetaTags, resetMetaTags } from '../utils/seo';
 import './Auth.css';
 
+// Google refuses sign-in inside the in-app browsers of social apps (disallowed_useragent).
+const isInAppBrowser = () =>
+  /FBAN|FBAV|FB_IAB|Instagram|Line\/|Snapchat|Twitter|MicroMessenger|WhatsApp|; wv\)/i.test(navigator.userAgent || '');
+
 const Login = () => {
-  const { isAuthenticated, handleGoogleCallback, login, register } = useAuth();
+  const { isAuthenticated, handleGoogleAccessToken, login, register } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -56,34 +60,58 @@ const Login = () => {
     }
   }, [isAuthenticated, navigate, redirectTo]);
 
+  const tokenClientRef = useRef(null);
+  const [googleBusy, setGoogleBusy] = useState(false);
+
+  // Pop-up sign-in: started directly by the button tap, so it works on phones where
+  // Google's One Tap prompt is often not shown at all.
   useEffect(() => {
+    if (!gsiReady || !(window.google && window.google.accounts && window.google.accounts.oauth2)) return;
+    // No client id (a local build without it) or a refused setup must never take
+    // the whole sign-in page down: email sign-in keeps working, Google says why.
+    const clientId = getEnv('REACT_APP_GOOGLE_CLIENT_ID');
+    if (!clientId) return;
     try {
-      if (window.google && window.google.accounts) {
-        window.google.accounts.id.initialize({
-          client_id: getEnv('REACT_APP_GOOGLE_CLIENT_ID'),
-          callback: handleGoogleCallback,
-        });
-      }
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn('Failed to initialize Google Sign-In:', e);
+      tokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: 'openid email profile',
+        callback: async (response) => {
+          if (!response || response.error || !response.access_token) {
+            setError('गूगल (Google) से साइन इन नहीं हो सका। कृपया दोबारा कोशिश करें, या ईमेल से साइन इन करें।');
+            return;
+          }
+          setGoogleBusy(true);
+          const result = await handleGoogleAccessToken(response.access_token);
+          setGoogleBusy(false);
+          if (!result.success) setError(result.error);
+        },
+        error_callback: (err) => {
+          // Closing the window is the user's own choice, not an error.
+          if (err && err.type === 'popup_closed') return;
+          setError('गूगल (Google) की खिड़की नहीं खुल सकी। कृपया पॉप-अप (pop-up) की अनुमति दें, या ईमेल से साइन इन करें।');
+        },
+      });
+    } catch (error) {
+      tokenClientRef.current = null;
     }
-  }, [handleGoogleCallback, gsiReady]);
+  }, [gsiReady, handleGoogleAccessToken]);
 
   const onGoogleClick = () => {
     setError('');
-    if (!(window.google && window.google.accounts && window.google.accounts.id)) {
+    if (isInAppBrowser()) {
+      setError('यह ऐप का भीतरी ब्राउज़र है, जिसमें गूगल (Google) साइन इन नहीं चलता। कृपया पेज को क्रोम (Chrome) या सफ़ारी (Safari) में खोलें, या ईमेल से साइन इन करें।');
+      return;
+    }
+    if (!getEnv('REACT_APP_GOOGLE_CLIENT_ID')) {
+      setError('इस कंप्यूटर पर गूगल (Google) साइन इन चालू नहीं है। कृपया ईमेल से साइन इन करें।');
+      return;
+    }
+    if (!tokenClientRef.current) {
       setError('गूगल (Google) अभी लोड हो रहा है, कृपया कुछ क्षण रुकें');
       return;
     }
-    window.google.accounts.id.prompt((notification) => {
-      const blocked =
-        (typeof notification.isNotDisplayed === 'function' && notification.isNotDisplayed()) ||
-        (typeof notification.isSkippedMoment === 'function' && notification.isSkippedMoment());
-      if (blocked) {
-        setError('गूगल (Google) साइन इन नहीं खुल सका। कृपया ईमेल से साइन इन करें, या पॉप-अप (pop-up) की अनुमति दें।');
-      }
-    });
+    // Must run synchronously inside the tap handler, or the browser blocks the pop-up.
+    tokenClientRef.current.requestAccessToken({ prompt: 'select_account' });
   };
 
   const onSubmit = async (e) => {
@@ -108,6 +136,7 @@ const Login = () => {
           type="button"
           className="auth-google"
           onClick={onGoogleClick}
+          disabled={googleBusy}
         >
           गूगल (Google) से जारी रखें
         </button>

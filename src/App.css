@@ -38,6 +38,11 @@ html {
   --sel-bg: #cde5e1;
   --highlight-bg: #fff1a8;
   --highlight-color: #27272a;
+  /* Passages other readers highlighted: teal, stronger when more readers agree */
+  --hl-others-1: rgba(15, 118, 110, 0.12);
+  --hl-others-2: rgba(15, 118, 110, 0.22);
+  --hl-others-3: rgba(15, 118, 110, 0.34);
+  --hl-others-line: rgba(15, 118, 110, 0.55);
   --danger: #b3261e;
   --danger-soft: #fdf1f0;
   --sheet: rgba(255, 255, 255, 0.94);
@@ -67,6 +72,10 @@ html {
   --sel-bg: #2f5a53;
   --highlight-bg: #5d5227;
   --highlight-color: #f0ede8;
+  --hl-others-1: rgba(69, 179, 167, 0.16);
+  --hl-others-2: rgba(69, 179, 167, 0.28);
+  --hl-others-3: rgba(69, 179, 167, 0.42);
+  --hl-others-line: rgba(95, 196, 184, 0.7);
   --danger: #f2b8b5;
   --danger-soft: #3a2526;
   --sheet: rgba(24, 24, 28, 0.94);

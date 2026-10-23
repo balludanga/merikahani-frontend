@@ -106,7 +106,8 @@ export const AuthProvider = ({ children }) => {
     return { success: true };
   };
 
-  const handleGoogleCredential = async (credential) => {
+  // Google sign-in: `payload` is { token } (ID token) or { access_token } (pop-up flow).
+  const signInWithGoogle = async (payload) => {
     try {
       const apiUrl = getEnv('REACT_APP_API_URL', 'http://localhost:8000/api');
       const res = await fetch(`${apiUrl.replace(/\/?$/, '')}/auth/google-login`, {
@@ -114,7 +115,7 @@ export const AuthProvider = ({ children }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ token: credential }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (res.ok && data.access_token) {
@@ -136,6 +137,9 @@ export const AuthProvider = ({ children }) => {
       return { success: false, error: 'गूगल (Google) से साइन इन नहीं हो सका' };
     }
   };
+
+  const handleGoogleCredential = (credential) => signInWithGoogle({ token: credential });
+  const handleGoogleAccessToken = (accessToken) => signInWithGoogle({ access_token: accessToken });
 
   const register = async (email, password, username, fullName) => {
     try {
@@ -176,6 +180,7 @@ export const AuthProvider = ({ children }) => {
     login,
     googleLogin,
     handleGoogleCredential,
+    handleGoogleAccessToken,
     handleGoogleCallback,
     register,
     logout,

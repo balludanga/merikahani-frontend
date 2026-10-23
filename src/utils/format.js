@@ -23,3 +23,19 @@ export const initials = (name = '') => {
   if (!parts.length) return 'ल';
   return parts.slice(0, 2).map((p) => p[0]).join('').toUpperCase();
 };
+
+// "अभी", "5 मिनट पहले", "2 घंटे पहले", "3 दिन पहले"; older than a week, the date.
+export const timeAgo = (dateString) => {
+  if (!dateString) return '';
+  // The API sends UTC without a zone marker.
+  const stamp = /Z|[+-]\d\d:?\d\d$/.test(dateString) ? dateString : `${dateString}Z`;
+  const seconds = Math.max(0, Math.round((Date.now() - new Date(stamp).getTime()) / 1000));
+  if (seconds < 60) return 'अभी';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} मिनट पहले`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} घंटे पहले`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} दिन पहले`;
+  return formatDate(stamp);
+};

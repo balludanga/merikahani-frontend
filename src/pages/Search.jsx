@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { postsAPI, tagsAPI } from '../services/api';
-import { updateMetaTags } from '../utils/seo';
+import { updateMetaTags, resetMetaTags } from '../utils/seo';
 import { topicLabel } from '../brand';
 import StoryCard from '../components/StoryCard';
 import './Home.css';
@@ -16,10 +16,33 @@ const Search = () => {
   const [posts, setPosts] = useState([]);
   const [popularTags, setPopularTags] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [tagName, setTagName] = useState('');
 
   useEffect(() => {
     fetchResults();
   }, [query, topic, tagSlug]);
+
+  // Meta is set on its own (not after the fetch) so the canonical always matches
+  // the page actually on screen. Free-text result pages are never indexed; the
+  // plain listing, /topic/:topic and /tag/:slug are, each with its own title.
+  useEffect(() => {
+    let title = 'सभी रचनाएँ';
+    let description = 'लेखनी पर प्रकाशित सभी हिंदी रचनाएँ — कहानी, कविता, निबंध और संस्मरण। अपनी पसंद की रचना खोजें और पढ़ें।';
+    if (tagSlug) {
+      const label = tagName || tagSlug;
+      title = `#${label} टैग की रचनाएँ`;
+      description = `लेखनी पर #${label} टैग वाली हिंदी रचनाएँ पढ़ें — कहानी, कविता, निबंध और संस्मरण, सीधे लेखकों की कलम से।`;
+    } else if (topic) {
+      const label = topicLabel(topic);
+      title = `${label} विषय की रचनाएँ`;
+      description = `लेखनी पर ${label} विषय की हिंदी रचनाएँ पढ़ें — नए और पुराने लेखकों की ताज़ा ${label} एक ही जगह।`;
+    } else if (query) {
+      title = `“${query}” के लिए खोज`;
+      description = `लेखनी पर “${query}” के लिए खोज परिणाम।`;
+    }
+    updateMetaTags({ title, description, type: 'website', noindex: !!query });
+    return () => resetMetaTags();
+  }, [query, topic, tagSlug, tagName]);
 
   const fetchResults = async () => {
     setLoading(true);
@@ -35,24 +58,19 @@ const Search = () => {
         });
       }
       setPosts(response.data);
+      if (tagSlug) {
+        const first = response.data[0];
+        const at = first && first.tag_slugs ? first.tag_slugs.indexOf(tagSlug) : -1;
+        setTagName(at >= 0 && first.tags ? first.tags[at] || '' : '');
+      } else {
+        setTagName('');
+      }
 
       if (!popularTags.length) {
         const tagsRes = await tagsAPI.list({ limit: 15 });
         setPopularTags(tagsRes.data);
       }
 
-      const heading = tagSlug
-        ? `#${tagSlug} टैग की रचनाएँ`
-        : topic
-          ? `${topicLabel(topic)} विषय की रचनाएँ`
-          : query
-            ? `“${query}” के लिए खोज`
-            : 'सभी रचनाएँ';
-      updateMetaTags({
-        title: heading,
-        description: `लेखनी पर ${heading}।`,
-        type: 'website',
-      });
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to fetch results:', error);
@@ -63,7 +81,7 @@ const Search = () => {
   };
 
   const heading = tagSlug
-    ? `#${tagSlug}`
+    ? `#${tagName || tagSlug}`
     : topic
       ? topicLabel(topic)
       : query

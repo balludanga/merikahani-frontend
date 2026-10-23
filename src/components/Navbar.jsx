@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getTheme, toggleTheme } from '../utils/theme';
 import { BRAND } from '../brand';
+import NotificationBell from './NotificationBell';
 import { initials } from '../utils/format';
 import './Navbar.css';
 
@@ -99,6 +100,7 @@ const Navbar = ({ landing }) => {
               <Link to="/new-story" className="navbar-write">
                 <span aria-hidden="true">✎</span> लिखें
               </Link>
+              <NotificationBell />
               <div className="navbar-avatar-wrap" ref={menuRef}>
                 <button
                   type="button"

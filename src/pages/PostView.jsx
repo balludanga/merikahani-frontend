@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { commentsAPI, followsAPI, postsAPI, usersAPI, bookmarksAPI, highlightsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { updateMetaTags, generateStructuredData, resetMetaTags } from '../utils/seo';
@@ -8,14 +8,47 @@ import { topicLabel } from '../brand';
 import ssmlTTS from '../utils/ssmlTTS';
 import useFocusScroll from '../utils/useFocusScroll';
 import useTextSelection from '../utils/useTextSelection';
+import {
+  MAX_HIGHLIGHT, anchorFromRange, applyMarks, clearMarks, elementAt, indexBody, locate,
+} from '../utils/textAnchors';
 import FocusHeader from '../components/FocusHeader';
+import HindiTextarea, { useHinglish } from '../components/HindiTextarea';
+import PassageComposer from '../components/PassageComposer';
 import Lightbox from '../components/Lightbox';
+import MoreStories from '../components/MoreStories';
 import { NotFound } from '../components/NotFound';
 import './PostView.css';
+
+// "राम और 2 अन्य ने हाइलाइट किया" for the readers behind one stretch of text.
+function readerNames(found, myId) {
+  const seen = new Map();
+  found.forEach((item) => {
+    if (!seen.has(item.user_id)) {
+      seen.set(item.user_id, {
+        id: item.user_id,
+        mine: item.user_id === myId,
+        name: (item.user && (item.user.full_name || item.user.username)) || 'पाठक',
+        highlightIds: [],
+      });
+    }
+    seen.get(item.user_id).highlightIds.push(item.id);
+  });
+  const readers = Array.from(seen.values());
+  readers.sort((a, b) => Number(b.mine) - Number(a.mine));
+  return readers;
+}
+
+function whoHighlighted(found, myId) {
+  const readers = readerNames(found, myId);
+  const names = readers.map((reader) => (reader.mine ? 'आपने' : reader.name));
+  if (names.length <= 2) return `${names.join(' और ')} ने हाइलाइट किया`;
+  return `${names.slice(0, 2).join(', ')} और ${names.length - 2} अन्य ने हाइलाइट किया`;
+}
 
 const PostView = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated } = useAuth();
   // Signed-out readers hit the gate; after sign-in they come back to this story.
   const storyPath = `/post/${slug}`;
@@ -38,7 +71,16 @@ const PostView = () => {
   const [followerCount, setFollowerCount] = useState(0);
   const [speaking, setSpeaking] = useState(false);
   const [zoomImage, setZoomImage] = useState(null);
+  // Every reader's highlights on this story, each with who made it.
+  const [highlights, setHighlights] = useState([]);
+  // Who highlighted the passage the reader tapped: { x, y, ids } | null
+  const [hlInfo, setHlInfo] = useState(null);
+  // The response popup for a selected passage: { range, quote } | null
+  const [composer, setComposer] = useState(null);
+  const [notice, setNotice] = useState('');
+  const [hinglish, toggleHinglish, finishHinglish] = useHinglish();
   const bodyRef = useRef(null);
+  const jumpedTo = useRef(null);
   const { progress, hidden } = useFocusScroll();
   const [selectionMenu, setSelectionMenu] = useTextSelection(bodyRef);
 
@@ -240,15 +282,16 @@ const PostView = () => {
   };
 
   const handleCommentSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!isAuthenticated) {
       navigate(loginLink);
       return;
     }
-    if (!commentText.trim()) return;
+    const content = finishHinglish(commentText).trim();
+    if (!content || submittingComment) return;
     setSubmittingComment(true);
     try {
-      const response = await commentsAPI.create({ content: commentText, post_id: post.id });
+      const response = await commentsAPI.create({ content, post_id: post.id });
       setComments((prev) => [...prev, response.data]);
       setCommentText('');
     } catch (error) {
@@ -262,7 +305,7 @@ const PostView = () => {
     setConfirmBox({ kind: 'comment', id: commentId, text: 'यह प्रतिक्रिया हटाएँ?' });
   };
 
-  // Wrap the current selection inside a <mark> and sync it to the account.
+  // Highlight the selected passage and share it with the account.
   const handleHighlightSelection = async () => {
     if (!isAuthenticated) {
       navigate(loginLink);
@@ -270,98 +313,206 @@ const PostView = () => {
     }
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed || sel.rangeCount === 0 || !bodyRef.current) return;
-    const text = sel.toString().replace(/\s+/g, ' ').trim();
-    if (!text) return;
+    const anchor = anchorFromRange(indexBody(bodyRef.current), sel.getRangeAt(0));
+    if (!anchor) return;
+    if (anchor.text.length > MAX_HIGHLIGHT) {
+      setActionError('इतना लंबा अंश हाइलाइट नहीं हो सकता। कृपया छोटा अंश चुनें।');
+      return;
+    }
+    sel.removeAllRanges();
+    setSelectionMenu(null);
 
     try {
-      await highlightsAPI.create({ post_id: post.id, text });
+      const response = await highlightsAPI.create({
+        post_id: post.id,
+        text: anchor.text,
+        start: anchor.start,
+        prefix: anchor.prefix,
+        suffix: anchor.suffix,
+      });
+      const saved = {
+        ...response.data,
+        user_id: user.id,
+        user: { id: user.id, username: user.username, full_name: user.full_name },
+      };
+      setHighlights((prev) => [...prev.filter((item) => item.id !== saved.id), saved]);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Highlight failed:', error);
       setActionError('हाइलाइट सहेजा नहीं जा सकी।');
+    }
+  };
+
+  // Open the response popup on the spot, so the reader never leaves the page.
+  const handleCommentSelection = () => {
+    if (!isAuthenticated) {
+      navigate(loginLink);
       return;
     }
-
-    const range = sel.getRangeAt(0);
-    const mark = document.createElement('mark');
-    mark.className = 'text-highlight';
-    mark.appendChild(range.extractContents());
-    range.insertNode(mark);
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || sel.rangeCount === 0 || !bodyRef.current) return;
+    const range = sel.getRangeAt(0).cloneRange();
+    const anchor = anchorFromRange(indexBody(bodyRef.current), range);
+    const quote = (anchor ? anchor.text : selectionMenu ? selectionMenu.text : '').slice(0, 1000);
+    if (!quote) return;
     sel.removeAllRanges();
     setSelectionMenu(null);
+    setComposer({ range, quote });
   };
 
-  // Send the quoted passage into the responses composer.
-  const handleCommentSelection = () => {
-    const quoted = selectionMenu ? selectionMenu.text : '';
-    setSelectionMenu(null);
+  const submitPassageResponse = async (content) => {
+    try {
+      const response = await commentsAPI.create({ content, post_id: post.id, quote: composer.quote });
+      setComments((prev) => [...prev, response.data]);
+      setComposer(null);
+      setNotice('प्रतिक्रिया जुड़ गई — यह नीचे “प्रतिक्रियाएँ” में दिखेगी।');
+    } catch (error) {
+      setActionError('प्रतिक्रिया सहेजी नहीं जा सकी।');
+      throw error;
+    }
+  };
+
+  // Scroll back to the passage a response is about.
+  const jumpToPassage = (quote) => {
+    if (!bodyRef.current) return;
+    const index = indexBody(bodyRef.current);
+    const at = index.text.indexOf(quote);
+    const found = at < 0 ? null : elementAt(index, at, at + quote.length);
+    if (!found) {
+      setNotice('यह अंश इस पृष्ठ पर नहीं दिख रहा।');
+      return;
+    }
+    const block = found.closest('p, li, blockquote, h1, h2, h3, h4, h5, h6') || found;
+    block.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    block.classList.add('passage-flash');
+    window.setTimeout(() => block.classList.remove('passage-flash'), 2400);
+  };
+
+  // Tapping a highlighted passage shows who highlighted it.
+  const handleBodyClick = (e) => {
+    if (e.target.tagName === 'IMG') {
+      setZoomImage({ src: e.target.src, alt: post.title });
+      return;
+    }
+    const mark = e.target.closest ? e.target.closest('mark.text-highlight') : null;
     const sel = window.getSelection();
-    if (sel) sel.removeAllRanges();
-    setCommentText((prev) => `${prev}${quoted ? `❝ ${quoted} ❞\n\n` : ''}`);
-    const responses = document.getElementById('responses');
-    if (responses) responses.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    window.setTimeout(() => {
-      const textarea = document.querySelector('.response-form textarea');
-      if (textarea) textarea.focus();
-    }, 450);
+    if (!mark || (sel && !sel.isCollapsed)) return;
+    const ids = mark.dataset.hl.split(',').map(Number);
+    setHlInfo({ x: e.clientX, y: e.clientY, ids });
   };
 
-  // Restore this reader's saved highlights once the body is on screen.
-  // Client-era localStorage highlights are imported into the account once.
+  const removeMyHighlights = async (ids) => {
+    const mine = highlights.filter((item) => ids.includes(item.id) && user && item.user_id === user.id);
+    setHlInfo(null);
+    try {
+      await Promise.all(mine.map((item) => highlightsAPI.remove(item.id)));
+      const gone = new Set(mine.map((item) => item.id));
+      setHighlights((prev) => prev.filter((item) => !gone.has(item.id)));
+    } catch (error) {
+      setActionError('हाइलाइट हटाई नहीं जा सकी।');
+    }
+  };
+
+  // Everyone's highlights on this story. Signed-out visitors get the ones in
+  // the teaser. Highlights kept on this device by an older version are moved
+  // into the account once.
   useEffect(() => {
-    if (!post || !isAuthenticated || !bodyRef.current) return undefined;
+    if (!post) return undefined;
     let cancelled = false;
-
-    const applySnippets = (snippets) => {
-      const walker = document.createTreeWalker(bodyRef.current, NodeFilter.SHOW_TEXT);
-      const nodes = [];
-      while (walker.nextNode()) nodes.push(walker.currentNode);
-      for (const snippet of snippets) {
-        const node = nodes.find(
-          (n) => n.parentElement && !n.parentElement.closest('mark') && n.textContent.includes(snippet)
-        );
-        if (!node) continue;
-        const start = node.textContent.indexOf(snippet);
-        const range = document.createRange();
-        range.setStart(node, start);
-        range.setEnd(node, start + snippet.length);
-        const mark = document.createElement('mark');
-        mark.className = 'text-highlight';
+    const load = async () => {
+      if (isAuthenticated) {
         try {
-          range.surroundContents(mark);
-        } catch (err) {
-          // Snippet spans several nodes — skip rather than mangle the DOM.
-        }
-      }
-    };
-
-    const restore = async () => {
-      try {
-        const localKey = `lekhani_hl_${post.id}`;
-        const local = JSON.parse(localStorage.getItem(localKey) || '[]');
-        if (Array.isArray(local) && local.length) {
-          for (const text of local) {
-            await highlightsAPI.create({ post_id: post.id, text }).catch(() => {});
+          const localKey = `lekhani_hl_${post.id}`;
+          const local = JSON.parse(localStorage.getItem(localKey) || '[]');
+          if (Array.isArray(local) && local.length) {
+            for (const text of local) {
+              await highlightsAPI.create({ post_id: post.id, text }).catch(() => {});
+            }
+            localStorage.removeItem(localKey);
           }
-          localStorage.removeItem(localKey);
+        } catch (err) {
+          // localStorage unavailable — nothing to move.
         }
-      } catch (err) {
-        // localStorage unavailable — nothing to migrate.
       }
       try {
-        const response = await highlightsAPI.list({ post_id: post.id });
-        if (!cancelled) applySnippets(response.data.map((item) => item.text));
+        const response = await highlightsAPI.forPost(post.id);
+        if (!cancelled) setHighlights(response.data);
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('Failed to load highlights:', error);
       }
     };
-
-    restore();
+    load();
     return () => {
       cancelled = true;
     };
-  }, [post, isAuthenticated]);
+  }, [post && post.id, isAuthenticated]);
+
+  // Paint the highlights onto the story. This runs when the body is really on
+  // screen (`loading` is false), not just when the post data arrives.
+  useEffect(() => {
+    const root = bodyRef.current;
+    if (loading || !post || !root) return;
+    clearMarks(root);
+    if (!highlights.length) return;
+    const index = indexBody(root);
+    const byId = new Map(highlights.map((item) => [item.id, item]));
+    const myId = user ? user.id : null;
+    const spans = [];
+    highlights.forEach((item) => {
+      const start = locate(index, item);
+      if (start >= 0) spans.push({ id: item.id, start, end: start + item.text.length });
+    });
+    applyMarks(index, spans, (ids) => {
+      const found = ids.map((id) => byId.get(id));
+      const mine = found.some((item) => item.user_id === myId);
+      const others = new Set(found.filter((item) => item.user_id !== myId).map((item) => item.user_id));
+      const className = [mine && 'hl-mine', others.size && `hl-others hl-n${Math.min(others.size, 3)}`]
+        .filter(Boolean)
+        .join(' ');
+      return { className, title: whoHighlighted(found, myId) };
+    });
+  }, [highlights, post, loading, user && user.id]);
+
+  // The "who highlighted" card closes on any outside tap, Escape, or scroll.
+  useEffect(() => {
+    if (!hlInfo) return undefined;
+    const close = () => setHlInfo(null);
+    const onDown = (e) => {
+      if (!e.target.closest || !e.target.closest('.hl-info')) close();
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') close();
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('scroll', close, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('scroll', close);
+    };
+  }, [hlInfo]);
+
+  // Arriving from a notification (#response-12): go to that response.
+  useEffect(() => {
+    const match = /^#response-(\d+)$/.exec(location.hash);
+    if (!match || loading || !comments.length) return undefined;
+    if (jumpedTo.current === location.key) return undefined;
+    const target = document.getElementById(`response-${match[1]}`);
+    if (!target) return undefined;
+    jumpedTo.current = location.key; // once per arrival, not on every new response
+    target.scrollIntoView({ block: 'center' });
+    target.classList.add('response-flash');
+    const timer = setTimeout(() => target.classList.remove('response-flash'), 2400);
+    return () => clearTimeout(timer);
+  }, [location.hash, loading, comments]);
+
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timer = setTimeout(() => setNotice(''), 4000);
+    return () => clearTimeout(timer);
+  }, [notice]);
 
   if (loading) return <div className="page-loading">लोड हो रहा है…</div>;
   if (pageError === 'notfound') return <NotFound />;
@@ -447,12 +598,9 @@ const PostView = () => {
 
         <div
           className="story-body"
+          key={post.id}
           ref={bodyRef}
-          onClick={(e) => {
-            if (e.target.tagName === 'IMG') {
-              setZoomImage({ src: e.target.src, alt: post.title });
-            }
-          }}
+          onClick={handleBodyClick}
         >
           {post.content_html ? (
             // Server-sanitized (bleach allowlist) rich text from the editor.
@@ -530,6 +678,8 @@ const PostView = () => {
         </div>
       </article>
 
+      <MoreStories currentId={post.id} />
+
       {selectionMenu && (
         <div
           className="selection-menu"
@@ -574,16 +724,67 @@ const PostView = () => {
         </div>
       )}
 
+      {hlInfo && (() => {
+        const found = highlights.filter((item) => hlInfo.ids.includes(item.id));
+        const readers = readerNames(found, user ? user.id : null);
+        const mineIds = found.filter((item) => user && item.user_id === user.id).map((item) => item.id);
+        if (!readers.length) return null;
+        return (
+          <div
+            className="hl-info"
+            style={{ left: Math.min(Math.max(hlInfo.x, 150), window.innerWidth - 150), top: Math.min(hlInfo.y + 16, window.innerHeight - 200) }}
+            role="dialog"
+            aria-label="हाइलाइट करने वाले पाठक"
+          >
+            <div className="hl-info-title">इस अंश को हाइलाइट किया</div>
+            <ul>
+              {readers.slice(0, 8).map((reader) => (
+                <li key={reader.id}>
+                  {reader.mine ? <strong>आपने</strong> : <Link to={`/user/${reader.id}`}>{reader.name}</Link>}
+                </li>
+              ))}
+            </ul>
+            {readers.length > 8 && <div className="hl-info-more">और {readers.length - 8} अन्य</div>}
+            {mineIds.length > 0 && (
+              <button type="button" className="hl-info-remove" onClick={() => removeMyHighlights(mineIds)}>
+                मेरी हाइलाइट हटाएँ
+              </button>
+            )}
+          </div>
+        );
+      })()}
+
+      {composer && (
+        <PassageComposer
+          range={composer.range}
+          quote={composer.quote}
+          hinglish={hinglish}
+          onToggleHinglish={toggleHinglish}
+          finish={finishHinglish}
+          onSubmit={submitPassageResponse}
+          onClose={() => setComposer(null)}
+        />
+      )}
+
+      {notice && (
+        <div className="reading-notice" role="status">
+          {notice}
+        </div>
+      )}
+
       <section className="responses" id="responses">
         <h2>प्रतिक्रियाएँ</h2>
         {isAuthenticated ? (
           <form onSubmit={handleCommentSubmit} className="response-form">
-            <textarea
-              lang="hi"
+            <HindiTextarea
               value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
+              onChange={setCommentText}
+              hinglish={hinglish}
+              onToggle={toggleHinglish}
+              onSubmitKey={handleCommentSubmit}
               placeholder="अपनी प्रतिक्रिया लिखें…"
               rows={3}
+              maxLength={5000}
             />
             <button type="submit" disabled={submittingComment || !commentText.trim()}>
               {submittingComment ? 'भेज रहे हैं…' : 'प्रकाशित करें'}
@@ -599,7 +800,7 @@ const PostView = () => {
           <p className="empty-state">अभी कोई प्रतिक्रिया नहीं।</p>
         ) : (
           comments.map((comment) => (
-            <div key={comment.id} className="response-item">
+            <div key={comment.id} id={`response-${comment.id}`} className="response-item">
               <div className="response-head">
                 <strong>{comment.author?.full_name || comment.author?.username || 'पाठक'}</strong>
                 <span>{formatDate(comment.created_at)}</span>
@@ -607,6 +808,23 @@ const PostView = () => {
                   <button type="button" onClick={() => handleDeleteComment(comment.id)}>हटाएँ</button>
                 )}
               </div>
+              {comment.quote && (
+                <blockquote
+                  className="response-quote"
+                  role="button"
+                  tabIndex={0}
+                  title="रचना में यह अंश देखें"
+                  onClick={() => jumpToPassage(comment.quote)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      jumpToPassage(comment.quote);
+                    }
+                  }}
+                >
+                  {comment.quote}
+                </blockquote>
+              )}
               <p>{comment.content}</p>
             </div>
           ))

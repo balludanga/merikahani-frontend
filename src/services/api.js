@@ -108,8 +108,17 @@ export const bookmarksAPI = {
 
 export const highlightsAPI = {
   list: (params) => api.get('/highlights', { params }),
+  // Every reader's highlights on a story, each with who made it.
+  forPost: (postId) => api.get(`/highlights/post/${postId}`),
   create: (data) => api.post('/highlights', data),
   remove: (id) => api.delete(`/highlights/${id}`),
+};
+
+export const notificationsAPI = {
+  list: (params) => api.get('/notifications', { params }),
+  unreadCount: () => api.get('/notifications/unread-count'),
+  // No ids: everything is marked read.
+  markRead: (ids) => api.post('/notifications/read', ids ? { ids } : {}),
 };
 
 export const tagsAPI = {

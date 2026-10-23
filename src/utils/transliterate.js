@@ -47,6 +47,20 @@ const WORDS = {
   ladka: 'लड़का', maa: 'माँ', papa: 'पापा', bhai: 'भाई', behen: 'बहन',
   dost: 'दोस्त', prem: 'प्रेम', vikas: 'विकास', topi: 'टोपी',
   priya: 'प्रिया', chhoti: 'छोटी', krishna: 'कृष्ण', raja: 'राजा',
+  // words readers use when responding to a story (the rules alone mis-spell
+  // them: silent final "a", nasal before d/t, "ya" endings)
+  sundar: 'सुंदर', shukriya: 'शुक्रिया', dhanyavad: 'धन्यवाद', dhanyawad: 'धन्यवाद',
+  dhanyavaad: 'धन्यवाद', badhai: 'बधाई', badhiya: 'बढ़िया', lajawab: 'लाजवाब',
+  shandaar: 'शानदार', umda: 'उम्दा', adbhut: 'अद्भुत', behtareen: 'बेहतरीन',
+  khoobsurat: 'खूबसूरत', bhavuk: 'भावुक', marmik: 'मार्मिक', prerna: 'प्रेरणा',
+  sahmat: 'सहमत', sachmuch: 'सचमुच', pasand: 'पसंद', hindi: 'हिंदी',
+  kavita: 'कविता', rachna: 'रचना', kavi: 'कवि', lekhak: 'लेखक', shabd: 'शब्द',
+  padh: 'पढ़', padha: 'पढ़ा', padhi: 'पढ़ी', padhna: 'पढ़ना', padhkar: 'पढ़कर',
+  likha: 'लिखा', likhna: 'लिखना', lagta: 'लगता', lagna: 'लगना',
+  mera: 'मेरा', tera: 'तेरा', hamara: 'हमारा', tumhara: 'तुम्हारा',
+  aapka: 'आपका', aapko: 'आपको', tumhe: 'तुम्हें', mujhe: 'मुझे',
+  achhi: 'अच्छी', achchi: 'अच्छी', acchi: 'अच्छी', accha: 'अच्छा', achhe: 'अच्छे',
+  acche: 'अच्छे', janta: 'जनता',
 };
 
 const CONSONANTS = {
