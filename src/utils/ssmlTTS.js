@@ -343,10 +343,14 @@ class SSMLTTSEngine {
     };
 
     utterance.onerror = (event) => {
-      // eslint-disable-next-line no-console
-      console.error('Speech synthesis error:', event);
+      // Pressing stop (or starting again) cancels the speech; browsers report that as an
+      // "error" too, possibly after the next utterance has begun. It is not a failure, and
+      // cancel() has already reset the state, so leave everything alone.
+      if (event.error === 'interrupted' || event.error === 'canceled') return;
       this.isSpeaking = false;
       this.currentUtterance = null;
+      // eslint-disable-next-line no-console
+      console.error('Speech synthesis error:', event);
       if (this.onErrorCallback) this.onErrorCallback(event);
     };
 

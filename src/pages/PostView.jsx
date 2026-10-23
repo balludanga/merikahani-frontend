@@ -286,7 +286,10 @@ const PostView = () => {
     ssmlTTS.speak(post.content, {
       lang: 'hi-IN',
       onEnd: () => setSpeaking(false),
-      onError: () => setSpeaking(false),
+      onError: () => {
+        setSpeaking(false);
+        setActionError('इस उपकरण पर रचना सुनाई नहीं जा सकी। हो सकता है हिंदी आवाज़ (वॉइस) उपलब्ध न हो।');
+      },
     });
   };
 
