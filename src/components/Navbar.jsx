@@ -125,6 +125,7 @@ const Navbar = ({ landing }) => {
                     <Link to="/settings/profile" role="menuitem" onClick={() => setMenuOpen(false)}>प्रोफ़ाइल सजाएँ</Link>
                     <Link to="/stories" role="menuitem" onClick={() => setMenuOpen(false)}>मेरी रचनाएँ</Link>
                     <Link to="/bookmarks" role="menuitem" onClick={() => setMenuOpen(false)}>पढ़ने की सूची</Link>
+                    <Link to="/highlights" role="menuitem" onClick={() => setMenuOpen(false)}>मेरी हाइलाइट</Link>
                     <button type="button" role="menuitem" onClick={handleLogout}>साइन आउट</button>
                   </div>
                 )}

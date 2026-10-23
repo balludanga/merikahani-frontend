@@ -96,7 +96,9 @@ const ProfileLibrary = ({ tab }) => {
           <h3><Link to={`/post/${post.slug}`}>{post.title}</Link></h3>
           {rows.map((row) => (
             <blockquote key={row.id} className="library-passage">
-              <p>{row.text}</p>
+              <p>
+                <Link to={`/post/${encodeURIComponent(post.slug)}#passage-${row.id}`} title="कहानी में यह अंश देखें">{row.text}</Link>
+              </p>
               <footer>
                 <span>{formatDate(row.created_at)}</span>
                 <button type="button" onClick={() => removeHighlight(row.id)}>हटाएँ</button>

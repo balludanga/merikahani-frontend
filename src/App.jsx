@@ -18,6 +18,7 @@ const EditProfile = lazy(() => import('./pages/EditProfile'));
 const Stories = lazy(() => import('./pages/Stories'));
 const Search = lazy(() => import('./pages/Search'));
 const Bookmarks = lazy(() => import('./pages/Bookmarks'));
+const Highlights = lazy(() => import('./pages/Highlights'));
 const InfoPage = lazy(() => import('./pages/InfoPage'));
 const BlogIndex = lazy(() => import('./pages/Blog').then((m) => ({ default: m.BlogIndex })));
 const GuidePage = lazy(() => import('./pages/Blog').then((m) => ({ default: m.GuidePage })));
@@ -90,6 +91,7 @@ const AppContent = () => {
           <Route path="/settings/profile" element={<EditProfile />} />
           <Route path="/stories" element={<Stories />} />
           <Route path="/bookmarks" element={<Bookmarks />} />
+          <Route path="/highlights" element={<Highlights />} />
           <Route path="/search" element={<Search />} />
           <Route path="/topic/:topic" element={<Search />} />
           <Route path="/tag/:slug" element={<Search />} />

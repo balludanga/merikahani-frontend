@@ -400,12 +400,14 @@ const PostView = () => {
     if (!quote) return;
     sel.removeAllRanges();
     setSelectionMenu(null);
-    setComposer({ range, quote });
+    setComposer({ range, quote, start: anchor ? anchor.start : null });
   };
 
   const submitPassageResponse = async (content) => {
     try {
-      const response = await commentsAPI.create({ content, post_id: post.id, quote: composer.quote });
+      const response = await commentsAPI.create({
+        content, post_id: post.id, quote: composer.quote, quote_start: composer.start,
+      });
       setComments((prev) => [...prev, response.data]);
       setComposer(null);
       setNotice('प्रतिक्रिया जुड़ गई — यह नीचे “प्रतिक्रियाएँ” में दिखेगी।');
@@ -415,12 +417,16 @@ const PostView = () => {
     }
   };
 
+  // Where the passage a response is about starts in the story's text: its recorded spot
+  // when it is still there, else the best match by words; -1 when the passage is gone.
+  const passageStart = (index, comment) => locate(index, { text: comment.quote, start_offset: comment.quote_start });
+
   // Scroll back to the passage a response is about.
-  const jumpToPassage = (quote) => {
+  const jumpToPassage = (comment) => {
     if (!bodyRef.current) return;
     const index = indexBody(bodyRef.current);
-    const at = index.text.indexOf(quote);
-    const found = at < 0 ? null : elementAt(index, at, at + quote.length);
+    const at = passageStart(index, comment);
+    const found = at < 0 ? null : elementAt(index, at, at + comment.quote.length);
     if (!found) {
       setNotice('यह अंश इस पृष्ठ पर नहीं दिख रहा।');
       return;
@@ -543,7 +549,7 @@ const PostView = () => {
     const index = indexBody(root);
     const byBlock = new Map();
     quoted.forEach((comment) => {
-      const at = index.text.indexOf(comment.quote);
+      const at = passageStart(index, comment);
       if (at < 0) return;
       const last = elementAt(index, at + comment.quote.length - 1, at + comment.quote.length);
       if (!last) return;
@@ -581,6 +587,23 @@ const PostView = () => {
       window.removeEventListener('scroll', close);
     };
   }, [hlInfo]);
+
+  // Arriving from the highlights page (#passage-7): go to that highlighted passage.
+  useEffect(() => {
+    const match = /^#passage-(\d+)$/.exec(location.hash);
+    if (!match || loading || !highlights.length) return undefined;
+    if (jumpedTo.current === location.key) return undefined;
+    const id = match[1];
+    const mark = Array.from(bodyRef.current ? bodyRef.current.querySelectorAll('mark.text-highlight') : [])
+      .find((el) => (el.dataset.hl || '').split(',').includes(id));
+    if (!mark) return undefined;
+    jumpedTo.current = location.key;
+    const block = mark.closest('p, li, blockquote, h1, h2, h3, h4, h5, h6') || mark;
+    block.scrollIntoView({ block: 'center' });
+    block.classList.add('passage-flash');
+    const timer = setTimeout(() => block.classList.remove('passage-flash'), 2400);
+    return () => clearTimeout(timer);
+  }, [location.hash, loading, highlights]);
 
   // Arriving from a notification (#response-12): go to that response.
   useEffect(() => {
@@ -635,11 +658,11 @@ const PostView = () => {
           role="button"
           tabIndex={0}
           title="रचना में यह अंश देखें"
-          onClick={() => jumpToPassage(comment.quote)}
+          onClick={() => jumpToPassage(comment)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
-              jumpToPassage(comment.quote);
+              jumpToPassage(comment);
             }
           }}
         >
