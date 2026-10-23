@@ -9,6 +9,7 @@ const POLL_MS = 60 * 1000;
 // What the reader did, as one Hindi sentence ("राम ने … को 3 तालियाँ दीं").
 function sentence(item) {
   const who = item.actor.full_name || item.actor.username;
+  if (item.kind === 'follow') return { who, rest: 'ने आपको फ़ॉलो करना शुरू किया' };
   const title = `“${item.post.title}”`;
   if (item.kind === 'comment') return { who, rest: `ने आपकी रचना ${title} पर प्रतिक्रिया दी` };
   if (item.kind === 'clap') {
@@ -27,9 +28,12 @@ function sentence(item) {
   };
 }
 
-// A response opens the story at that response; the rest open the story.
+// A follow opens the new follower's profile; a response opens the story at that
+// response; the rest open the story.
 const linkFor = (item) =>
-  `/post/${encodeURIComponent(item.post.slug)}${item.kind === 'comment' && item.comment_id ? `#response-${item.comment_id}` : ''}`;
+  item.kind === 'follow'
+    ? `/user/${item.actor.id}`
+    : `/post/${encodeURIComponent(item.post.slug)}${item.kind === 'comment' && item.comment_id ? `#response-${item.comment_id}` : ''}`;
 
 /**
  * Bell in the navbar: a badge with how many things are new, and a panel listing
@@ -132,7 +136,7 @@ const NotificationBell = () => {
           ) : items === null ? (
             <p className="notif-empty">लोड हो रहा है…</p>
           ) : items.length === 0 ? (
-            <p className="notif-empty">अभी कोई सूचना नहीं। जब कोई पाठक आपकी रचना पर प्रतिक्रिया देगा, ताली देगा या कोई अंश हाइलाइट करेगा, यहाँ दिखेगा।</p>
+            <p className="notif-empty">अभी कोई सूचना नहीं। जब कोई आपको फ़ॉलो करेगा, या आपकी रचना पर प्रतिक्रिया देगा, ताली देगा या कोई अंश हाइलाइट करेगा, यहाँ दिखेगा।</p>
           ) : (
             <ul className="notif-list">
               {items.map((item) => {

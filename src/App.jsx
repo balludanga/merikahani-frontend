@@ -14,6 +14,7 @@ import './App.css';
 // for it only when they open the editor; readers never download it.
 const Editor = lazy(() => import('./pages/Editor'));
 const UserProfile = lazy(() => import('./pages/UserProfile'));
+const EditProfile = lazy(() => import('./pages/EditProfile'));
 const Stories = lazy(() => import('./pages/Stories'));
 const Search = lazy(() => import('./pages/Search'));
 const Bookmarks = lazy(() => import('./pages/Bookmarks'));
@@ -86,6 +87,7 @@ const AppContent = () => {
           <Route path="/edit/:id" element={<Editor />} />
           <Route path="/post/:slug" element={<PostView />} />
           <Route path="/user/:userId" element={<UserProfile />} />
+          <Route path="/settings/profile" element={<EditProfile />} />
           <Route path="/stories" element={<Stories />} />
           <Route path="/bookmarks" element={<Bookmarks />} />
           <Route path="/search" element={<Search />} />

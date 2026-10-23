@@ -91,6 +91,12 @@ export const commentsAPI = {
 
 export const usersAPI = {
   getById: (userId) => api.get(`/users/${userId}`),
+  // The signed-in writer's own profile. Each returns the updated profile.
+  updateProfile: (data) => api.put('/users/me/profile', data),
+  setAvatar: (data, contentType) => api.put('/users/me/avatar', { data, content_type: contentType }, { timeout: 60000 }),
+  removeAvatar: () => api.delete('/users/me/avatar'),
+  setCover: (data, contentType) => api.put('/users/me/cover', { data, content_type: contentType }, { timeout: 60000 }),
+  removeCover: () => api.delete('/users/me/cover'),
 };
 
 export const followsAPI = {

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { formatDate, readingMinutes, excerpt, initials } from '../utils/format';
 import { topicLabel } from '../brand';
 import './StoryCard.css';
+import { mediaUrl } from '../utils/media';
 
 const StoryCard = ({ post }) => {
   const authorName = post.author?.full_name || post.author?.username || 'लेखक';
@@ -13,7 +14,7 @@ const StoryCard = ({ post }) => {
       <div className="story-card-body">
         <Link to={`/user/${post.author?.id}`} className="story-card-author">
           {post.author?.avatar_url ? (
-            <img src={post.author.avatar_url} alt="" className="avatar-sm" width="22" height="22" loading="lazy" decoding="async" />
+            <img src={mediaUrl(post.author.avatar_url)} alt="" className="avatar-sm" width="22" height="22" loading="lazy" decoding="async" />
           ) : (
             <span className="avatar-sm avatar-fallback">{initials(authorName)}</span>
           )}

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { initials } from '../utils/format';
+import { mediaUrl } from '../utils/media';
 
 /**
  * Slim reader header: wordmark, author, account menu, bookmark. Slides fully
@@ -41,7 +42,7 @@ const FocusHeader = ({ post, hidden, saved, onBookmark }) => {
         <span className="focus-divider" aria-hidden="true" />
         <Link to={`/user/${post.author.id}`} className="focus-author">
           {post.author.avatar_url ? (
-            <img src={post.author.avatar_url} alt="" />
+            <img src={mediaUrl(post.author.avatar_url)} alt="" />
           ) : (
             <span className="avatar-sm">{initials(authorName)}</span>
           )}
@@ -59,7 +60,7 @@ const FocusHeader = ({ post, hidden, saved, onBookmark }) => {
               aria-label="खाता मेनू"
             >
               {user.avatar_url ? (
-                <img src={user.avatar_url} alt="" />
+                <img src={mediaUrl(user.avatar_url)} alt="" />
               ) : (
                 <span>{initials(user.full_name || user.username)}</span>
               )}

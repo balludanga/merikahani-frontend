@@ -174,8 +174,12 @@ export const AuthProvider = ({ children }) => {
   };
 
 
+  // After the writer edits their profile: show the new name / photo / colour at once.
+  const updateUser = useCallback((changes) => setUser((prev) => (prev ? { ...prev, ...changes } : prev)), []);
+
   const value = {
     user,
+    updateUser,
     loading,
     login,
     googleLogin,
