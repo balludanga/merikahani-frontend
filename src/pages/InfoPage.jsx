@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { SITE_PAGES } from '../content/sitePages';
-import { updateMetaTags, resetMetaTags } from '../utils/seo';
+import { updateMetaTags, resetMetaTags, buildDescription } from '../utils/seo';
 import api from '../services/api';
 import Footer from '../components/Footer';
 import './Info.css';
@@ -17,9 +17,19 @@ const InfoPage = ({ page }) => {
 
   useEffect(() => {
     if (!doc) return undefined;
-    updateMetaTags({ title: doc.title, description: doc.intro });
+    updateMetaTags({
+      // Unique per page: kicker + title ("परिचय — हिंदी लेखकों का अपना मंच").
+      title: doc.title.includes(doc.kicker) ? doc.title : `${doc.kicker} — ${doc.title}`,
+      description: buildDescription(
+        doc.intro,
+        doc.sections[0] && doc.sections[0].body ? doc.sections[0].body[0] : ''
+      ),
+      type: 'website',
+      // The live-status page is not search material.
+      noindex: page === 'status',
+    });
     return () => resetMetaTags();
-  }, [doc]);
+  }, [doc, page]);
 
   useEffect(() => {
     if (page !== 'status' || !doc) return undefined;

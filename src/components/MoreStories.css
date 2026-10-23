@@ -1,0 +1,36 @@
+.more-stories {
+  max-width: 720px;
+  margin: 40px auto 0;
+  padding: 24px 20px 8px;
+  border-top: 1px solid var(--border);
+}
+
+.more-stories h2 {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.more-stories ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.more-stories li {
+  padding: 8px 0;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+.more-stories a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.more-stories a:hover {
+  text-decoration: underline;
+}

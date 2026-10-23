@@ -10,10 +10,6 @@
       "destination": "https://lekhanii-backend.onrender.com/api/:path*"
     },
     {
-      "source": "/sitemap.xml",
-      "destination": "https://lekhanii-backend.onrender.com/api/sitemap.xml"
-    },
-    {
       "source": "/rss.xml",
       "destination": "https://lekhanii-backend.onrender.com/api/rss.xml"
     },
@@ -27,6 +23,32 @@
         }
       ],
       "destination": "https://lekhanii-backend.onrender.com/api/prerender/post/:slug"
+    },
+    {
+      "source": "/sitemap-posts.xml",
+      "destination": "https://lekhanii-backend.onrender.com/api/sitemap.xml"
+    },
+    {
+      "source": "/tag/:slug",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(Googlebot|Google-InspectionTool|GoogleOther|AdsBot-Google|Mediapartners-Google|bingbot|BingPreview|msnbot|DuckDuckBot|YandexBot|Baiduspider|Sogou|Slurp|Applebot|SeznamBot|PetalBot|Qwantify|facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|LinkedInBot|Slackbot|Discordbot|Pinterestbot|redditbot|SkypeUriPreview|vkShare|Embedly).*"
+        }
+      ],
+      "destination": "https://lekhanii-backend.onrender.com/api/prerender/tag/:slug"
+    },
+    {
+      "source": "/user/:id",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(Googlebot|Google-InspectionTool|GoogleOther|AdsBot-Google|Mediapartners-Google|bingbot|BingPreview|msnbot|DuckDuckBot|YandexBot|Baiduspider|Sogou|Slurp|Applebot|SeznamBot|PetalBot|Qwantify|facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|LinkedInBot|Slackbot|Discordbot|Pinterestbot|redditbot|SkypeUriPreview|vkShare|Embedly).*"
+        }
+      ],
+      "destination": "https://lekhanii-backend.onrender.com/api/prerender/user/:id"
     },
     {
       "source": "/((?!api/|.*\\..*).*)",

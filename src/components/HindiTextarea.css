@@ -1,0 +1,47 @@
+.hindi-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.hindi-field textarea {
+  width: 100%;
+}
+
+.hindi-field-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  min-height: 28px;
+}
+
+.hindi-toggle {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-3);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.hindi-toggle.on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.hindi-toggle:hover {
+  border-color: var(--accent);
+}
+
+.hindi-hint {
+  font-size: 12px;
+  color: var(--text-3);
+  line-height: 1.4;
+}

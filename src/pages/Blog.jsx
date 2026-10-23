@@ -1,14 +1,21 @@
 import React, { useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { GUIDES, findGuide } from '../content/guides';
-import { updateMetaTags, resetMetaTags } from '../utils/seo';
+import { updateMetaTags, resetMetaTags, buildDescription, generateGuideStructuredData } from '../utils/seo';
 import Footer from '../components/Footer';
 import './Info.css';
 
 /** Blog index — magazine table-of-contents style list of guide articles. */
 export const BlogIndex = () => {
   useEffect(() => {
-    updateMetaTags({ title: 'लेखनी ब्लॉग', description: 'लेखनी का इस्तेमाल सीखिए — शुरुआत से प्रकाशन तक मार्गदर्शक लेख।' });
+    updateMetaTags({
+      title: 'ब्लॉग — लेखनी कैसे इस्तेमाल करें',
+      description: buildDescription(
+        'लेखनी की हर सुविधा का मार्गदर्शक लेख — शुरुआत से प्रकाशन तक, हाइलाइट से सुनने तक',
+        GUIDES.map((g) => g.title).join(', ')
+      ),
+      type: 'website',
+    });
     return () => resetMetaTags();
   }, []);
 
@@ -43,7 +50,12 @@ export const GuidePage = () => {
 
   useEffect(() => {
     if (!guide) { navigate('/blog', { replace: true }); return undefined; }
-    updateMetaTags({ title: guide.title, description: guide.subtitle });
+    const description = buildDescription(
+      guide.subtitle,
+      guide.sections[0] && guide.sections[0].body ? guide.sections[0].body[0] : ''
+    );
+    updateMetaTags({ title: guide.title, description, type: 'article' });
+    generateGuideStructuredData(guide, description);
     window.scrollTo(0, 0);
     return () => resetMetaTags();
   }, [guide, navigate]);
