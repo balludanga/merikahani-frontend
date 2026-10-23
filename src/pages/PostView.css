@@ -417,6 +417,72 @@
   color: var(--text-2);
 }
 
+/* Answers: one level, indented under the response they belong to */
+.response-thread {
+  border-bottom: 1px solid var(--border);
+}
+
+.response-thread > .response-item {
+  border-bottom: 0;
+}
+
+.response-answer {
+  margin-left: 18px;
+  padding-left: 16px;
+  border-left: 2px solid var(--border);
+}
+
+.response-answer .response-item {
+  padding: 12px 0;
+  border-bottom: 0;
+}
+
+.response-answer .response-item p {
+  font-size: 15px;
+}
+
+.response-reply {
+  margin-top: 6px;
+  padding: 2px 0;
+  background: none;
+  border: 0;
+  color: var(--text-3);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.response-reply:hover,
+.response-reply:focus-visible {
+  color: var(--accent);
+}
+
+.reply-form {
+  margin: 4px 0 18px 18px;
+}
+
+.reply-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.reply-actions button[type='submit'] {
+  margin-top: 0;
+}
+
+.reply-actions .reply-cancel {
+  background: none;
+  border: 0;
+  color: var(--text-3);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.reply-actions .reply-cancel:hover {
+  color: var(--text);
+}
+
 /* Read gate — signed-out visitors see a teaser, then this card */
 .story-gate {
   position: relative;

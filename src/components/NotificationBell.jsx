@@ -11,6 +11,7 @@ function sentence(item) {
   const who = item.actor.full_name || item.actor.username;
   if (item.kind === 'follow') return { who, rest: 'ने आपको फ़ॉलो करना शुरू किया' };
   const title = `“${item.post.title}”`;
+  if (item.kind === 'reply') return { who, rest: `ने “${item.post.title}” पर आपकी प्रतिक्रिया का जवाब दिया` };
   if (item.kind === 'comment') return { who, rest: `ने आपकी रचना ${title} पर प्रतिक्रिया दी` };
   if (item.kind === 'clap') {
     return {
@@ -28,12 +29,11 @@ function sentence(item) {
   };
 }
 
-// A follow opens the new follower's profile; a response opens the story at that
-// response; the rest open the story.
+// A follow opens the new follower's profile; a response or a reply opens the story at it; the rest open the story.
 const linkFor = (item) =>
   item.kind === 'follow'
     ? `/user/${item.actor.id}`
-    : `/post/${encodeURIComponent(item.post.slug)}${item.kind === 'comment' && item.comment_id ? `#response-${item.comment_id}` : ''}`;
+    : `/post/${encodeURIComponent(item.post.slug)}${(item.kind === 'comment' || item.kind === 'reply') && item.comment_id ? `#response-${item.comment_id}` : ''}`;
 
 /**
  * Bell in the navbar: a badge with how many things are new, and a panel listing

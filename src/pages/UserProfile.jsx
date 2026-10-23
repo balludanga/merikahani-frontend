@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { followsAPI, postsAPI, usersAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { updateMetaTags } from '../utils/seo';
@@ -7,7 +7,14 @@ import { formatDate } from '../utils/format';
 import { useAccentStyle } from '../utils/accent';
 import { topicLabel } from '../brand';
 import ProfileHeader from '../components/ProfileHeader';
+import ProfileLibrary from '../components/ProfileLibrary';
 import './UserProfile.css';
+
+const TABS = [
+  { id: 'stories', label: 'रचनाएँ' },
+  { id: 'saved', label: 'पढ़ने की सूची' },
+  { id: 'highlights', label: 'हाइलाइट' },
+];
 
 const PostRow = ({ post, pinned }) => (
   <Link to={`/post/${post.slug}`} className={`user-post-item ${pinned ? 'is-pinned' : ''}`}>
@@ -26,6 +33,7 @@ const UserProfile = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -83,6 +91,10 @@ const UserProfile = () => {
   };
 
   const isSelf = user && profile && user.id === profile.id;
+  // The reading list and highlights are private: only the writer sees these tabs.
+  const requestedTab = searchParams.get('tab');
+  const tab = isSelf && TABS.some((t) => t.id === requestedTab) ? requestedTab : 'stories';
+  const chooseTab = (id) => setSearchParams(id === 'stories' ? {} : { tab: id }, { replace: true });
 
   const handleFollow = async () => {
     if (!isAuthenticated) {
@@ -167,7 +179,30 @@ const UserProfile = () => {
       <div className="user-profile-container">
         <ProfileHeader profile={profile} actions={actions} />
 
-        {pinned.length > 0 && (
+        {isSelf && (
+          <div className="profile-tabs" role="tablist" aria-label="आपकी सामग्री">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={tab === t.id}
+                className={`profile-tab ${tab === t.id ? 'active' : ''}`}
+                onClick={() => chooseTab(t.id)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {tab !== 'stories' && (
+          <div className="user-posts">
+            <ProfileLibrary key={tab} tab={tab} />
+          </div>
+        )}
+
+        {tab === 'stories' && pinned.length > 0 && (
           <div className="user-posts user-pinned">
             <h2>चुनिंदा रचनाएँ</h2>
             <div className="user-posts-list">
@@ -176,6 +211,7 @@ const UserProfile = () => {
           </div>
         )}
 
+        {tab === 'stories' && (
         <div className="user-posts">
           <h2>{pinned.length > 0 ? 'सभी रचनाएँ' : 'रचनाएँ'}</h2>
           {posts.length === 0 ? (
@@ -191,6 +227,7 @@ const UserProfile = () => {
             </div>
           )}
         </div>
+        )}
       </div>
 
       {notice && <div className="profile-notice" role="status">{notice}</div>}
