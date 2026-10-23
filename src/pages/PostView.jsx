@@ -68,6 +68,10 @@ const PostView = () => {
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
+  // The response being answered, with its draft: { id, name } | null
+  const [replyTo, setReplyTo] = useState(null);
+  const [replyText, setReplyText] = useState('');
+  const [submittingReply, setSubmittingReply] = useState(false);
   const [clapping, setClapping] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
@@ -181,7 +185,8 @@ const PostView = () => {
     } else {
       try {
         await commentsAPI.delete(confirmBox.id);
-        setComments((prev) => prev.filter((c) => c.id !== confirmBox.id));
+        // Its answers go with it (the server deletes them too).
+        setComments((prev) => prev.filter((c) => c.id !== confirmBox.id && c.parent_id !== confirmBox.id));
       } catch (error) {
         setActionError('प्रतिक्रिया हटाई नहीं जा सकी।');
       } finally {
@@ -306,7 +311,38 @@ const PostView = () => {
   };
 
   const handleDeleteComment = (commentId) => {
-    setConfirmBox({ kind: 'comment', id: commentId, text: 'यह प्रतिक्रिया हटाएँ?' });
+    const hasAnswers = comments.some((c) => c.parent_id === commentId);
+    setConfirmBox({
+      kind: 'comment',
+      id: commentId,
+      text: hasAnswers ? 'यह प्रतिक्रिया और इसके सभी जवाब हटाएँ?' : 'यह प्रतिक्रिया हटाएँ?',
+    });
+  };
+
+  const openReply = (comment) => {
+    if (!isAuthenticated) {
+      navigate(loginLink);
+      return;
+    }
+    setReplyTo({ id: comment.id, name: comment.author?.full_name || comment.author?.username || 'पाठक' });
+    setReplyText('');
+  };
+
+  const handleReplySubmit = async (e) => {
+    if (e) e.preventDefault();
+    const content = finishHinglish(replyText).trim();
+    if (!content || !replyTo || submittingReply) return;
+    setSubmittingReply(true);
+    try {
+      const response = await commentsAPI.create({ content, post_id: post.id, parent_id: replyTo.id });
+      setComments((prev) => [...prev, response.data]);
+      setReplyTo(null);
+      setReplyText('');
+    } catch (error) {
+      setActionError('जवाब सहेजा नहीं जा सका।');
+    } finally {
+      setSubmittingReply(false);
+    }
   };
 
   // Highlight the selected passage and share it with the account.
@@ -534,6 +570,38 @@ const PostView = () => {
 
   const authorName = post.author.full_name || post.author.username;
   const isAuthor = user && user.id === post.author_id;
+
+  // One response (or one answer) with its author line, quoted passage, text and actions.
+  const renderResponse = (comment) => (
+    <div id={`response-${comment.id}`} className="response-item">
+      <div className="response-head">
+        <strong>{comment.author?.full_name || comment.author?.username || 'पाठक'}</strong>
+        <span>{formatDate(comment.created_at)}</span>
+        {user && (comment.author_id === user.id || isAuthor) && (
+          <button type="button" onClick={() => handleDeleteComment(comment.id)}>हटाएँ</button>
+        )}
+      </div>
+      {comment.quote && (
+        <blockquote
+          className="response-quote"
+          role="button"
+          tabIndex={0}
+          title="रचना में यह अंश देखें"
+          onClick={() => jumpToPassage(comment.quote)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              jumpToPassage(comment.quote);
+            }
+          }}
+        >
+          {comment.quote}
+        </blockquote>
+      )}
+      <p>{comment.content}</p>
+      <button type="button" className="response-reply" onClick={() => openReply(comment)}>जवाब दें</button>
+    </div>
+  );
   const paragraphs = post.content.split(/\n+/).filter((p) => p.trim());
   const tagLinks = (post.tags || []).map((name, index) => ({
     name,
@@ -803,35 +871,39 @@ const PostView = () => {
         {comments.length === 0 ? (
           <p className="empty-state">अभी कोई प्रतिक्रिया नहीं।</p>
         ) : (
-          comments.map((comment) => (
-            <div key={comment.id} id={`response-${comment.id}`} className="response-item">
-              <div className="response-head">
-                <strong>{comment.author?.full_name || comment.author?.username || 'पाठक'}</strong>
-                <span>{formatDate(comment.created_at)}</span>
-                {user && comment.author_id === user.id && (
-                  <button type="button" onClick={() => handleDeleteComment(comment.id)}>हटाएँ</button>
+          comments
+            .filter((comment) => !comment.parent_id)
+            .map((comment) => (
+              <div key={comment.id} className="response-thread">
+                {renderResponse(comment)}
+                {comments
+                  .filter((answer) => answer.parent_id === comment.id)
+                  .map((answer) => (
+                    <div key={answer.id} className="response-answer">{renderResponse(answer)}</div>
+                  ))}
+                {replyTo && (replyTo.id === comment.id || comments.some((a) => a.id === replyTo.id && a.parent_id === comment.id)) && (
+                  <form onSubmit={handleReplySubmit} className="response-form response-answer reply-form">
+                    <HindiTextarea
+                      value={replyText}
+                      onChange={setReplyText}
+                      hinglish={hinglish}
+                      onToggle={toggleHinglish}
+                      onSubmitKey={handleReplySubmit}
+                      placeholder={`${replyTo.name} को जवाब लिखें…`}
+                      rows={2}
+                      maxLength={5000}
+                      autoFocus
+                    />
+                    <div className="reply-actions">
+                      <button type="submit" disabled={submittingReply || !replyText.trim()}>
+                        {submittingReply ? 'भेज रहे हैं…' : 'जवाब दें'}
+                      </button>
+                      <button type="button" className="reply-cancel" onClick={() => setReplyTo(null)}>रहने दें</button>
+                    </div>
+                  </form>
                 )}
               </div>
-              {comment.quote && (
-                <blockquote
-                  className="response-quote"
-                  role="button"
-                  tabIndex={0}
-                  title="रचना में यह अंश देखें"
-                  onClick={() => jumpToPassage(comment.quote)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      jumpToPassage(comment.quote);
-                    }
-                  }}
-                >
-                  {comment.quote}
-                </blockquote>
-              )}
-              <p>{comment.content}</p>
-            </div>
-          ))
+            ))
         )}
       </section>
 

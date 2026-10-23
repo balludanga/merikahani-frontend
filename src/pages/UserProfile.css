@@ -33,6 +33,105 @@
   margin-top: 40px;
 }
 
+.profile-tabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 32px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+.profile-tab {
+  flex: 0 0 auto;
+  padding: 10px 16px;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--text-3);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.profile-tab:hover {
+  color: var(--text);
+}
+
+.profile-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.profile-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.profile-tabs + .user-posts {
+  margin-top: 28px;
+}
+
+.library-group {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+}
+
+.library-group h3 {
+  font-family: "Source Serif 4", "Noto Serif Devanagari", Georgia, serif;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+
+.library-group h3 a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.library-group h3 a:hover {
+  color: var(--accent);
+}
+
+.library-passage {
+  margin: 0 0 14px;
+  padding: 2px 0 2px 14px;
+  border-left: 3px solid var(--accent);
+}
+
+.library-passage:last-child {
+  margin-bottom: 0;
+}
+
+.library-passage p {
+  margin: 0 0 4px;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--text-2);
+}
+
+.library-passage footer {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.library-passage footer button {
+  background: none;
+  border: 0;
+  color: var(--text-3);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+}
+
+.library-passage footer button:hover {
+  color: var(--danger);
+}
+
 .user-post-item.is-pinned {
   border-color: var(--accent-soft);
   background: linear-gradient(0deg, var(--bg-card), var(--bg-card)) padding-box;
