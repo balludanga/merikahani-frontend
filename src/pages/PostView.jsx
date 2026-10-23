@@ -431,10 +431,24 @@ const PostView = () => {
     window.setTimeout(() => block.classList.remove('passage-flash'), 2400);
   };
 
+  // From a marker in the story down to the response written about that passage.
+  const jumpToResponse = (id) => {
+    const target = document.getElementById(`response-${id}`);
+    if (!target) return;
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target.classList.add('response-flash');
+    window.setTimeout(() => target.classList.remove('response-flash'), 2400);
+  };
+
   // Tapping a highlighted passage shows who highlighted it.
   const handleBodyClick = (e) => {
     if (e.target.tagName === 'IMG') {
       setZoomImage({ src: e.target.src, alt: post.title });
+      return;
+    }
+    const marker = e.target.closest ? e.target.closest('.passage-marker') : null;
+    if (marker) {
+      jumpToResponse(Number(marker.dataset.first));
       return;
     }
     const mark = e.target.closest ? e.target.closest('mark.text-highlight') : null;
@@ -516,6 +530,37 @@ const PostView = () => {
       return { className, title: whoHighlighted(found, myId) };
     });
   }, [highlights, post, loading, user && user.id]);
+
+  // Mark where responses about a passage sit: a small bubble with a count at the end of
+  // the paragraph that holds the passage. It is drawn by CSS (no text of its own), so it
+  // never changes the story's collapsed text that highlights are anchored to.
+  useEffect(() => {
+    const root = bodyRef.current;
+    if (loading || !post || !root) return;
+    root.querySelectorAll('.passage-marker').forEach((el) => el.remove());
+    const quoted = comments.filter((c) => c.quote);
+    if (!quoted.length) return;
+    const index = indexBody(root);
+    const byBlock = new Map();
+    quoted.forEach((comment) => {
+      const at = index.text.indexOf(comment.quote);
+      if (at < 0) return;
+      const last = elementAt(index, at + comment.quote.length - 1, at + comment.quote.length);
+      if (!last) return;
+      const block = last.closest('p, li, blockquote, h1, h2, h3, h4, h5, h6') || root;
+      if (!byBlock.has(block)) byBlock.set(block, []);
+      byBlock.get(block).push(comment.id);
+    });
+    byBlock.forEach((ids, block) => {
+      const marker = document.createElement('button');
+      marker.type = 'button';
+      marker.className = 'passage-marker';
+      marker.dataset.first = String(ids[0]);
+      marker.dataset.count = String(ids.length);
+      marker.setAttribute('aria-label', ids.length > 1 ? `इस अंश पर ${ids.length} प्रतिक्रियाएँ` : 'इस अंश पर एक प्रतिक्रिया');
+      block.appendChild(marker);
+    });
+  }, [comments, highlights, post, loading]);
 
   // The "who highlighted" card closes on any outside tap, Escape, or scroll.
   useEffect(() => {
