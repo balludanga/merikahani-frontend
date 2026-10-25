@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { audioAPI, commentsAPI, followsAPI, postsAPI, usersAPI, bookmarksAPI, highlightsAPI } from '../services/api';
+import { commentsAPI, followsAPI, postsAPI, usersAPI, bookmarksAPI, highlightsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { updateMetaTags, generateStructuredData, resetMetaTags } from '../utils/seo';
 import { formatDate, readingMinutes, initials } from '../utils/format';
 import { topicLabel } from '../brand';
 import ssmlTTS from '../utils/ssmlTTS';
-import { serverVoiceEnabled, silentAudioUrl } from '../utils/serverVoice';
+import { fetchNarration, serverVoiceEnabled, silentAudioUrl } from '../utils/serverVoice';
 import useFocusScroll from '../utils/useFocusScroll';
 import { useAccentStyle } from '../utils/accent';
 import useTextSelection from '../utils/useTextSelection';
@@ -79,6 +79,8 @@ const PostView = () => {
   const [speaking, setSpeaking] = useState(false);
   // The server is making (or fetching) the narration; nothing is audible yet.
   const [preparing, setPreparing] = useState(false);
+  // How much of the narration the server has made so far, 0-100 (0 until it says).
+  const [prepared, setPrepared] = useState(0);
   // Whether the server can narrate in its natural Hindi voice (else the browser's voice).
   const [serverVoice, setServerVoice] = useState(false);
   const [zoomImage, setZoomImage] = useState(null);
@@ -345,13 +347,17 @@ const PostView = () => {
       audio.src = silent;
       audio.play().catch(() => {});
       audioRef.current = audio;
+      setPrepared(0);
       setPreparing(true);
       try {
-        const response = await audioAPI.forPost(post.id);
+        const mp3 = await fetchNarration(post.id, {
+          isCancelled: () => run !== listenRun.current,
+          onProgress: setPrepared,
+        });
         URL.revokeObjectURL(silent);
-        if (run !== listenRun.current) return;
+        if (run !== listenRun.current || !mp3) return;
         audio.pause();
-        audio.src = URL.createObjectURL(response.data);
+        audio.src = URL.createObjectURL(mp3);
         audio.onended = () => {
           if (run !== listenRun.current) return;
           haltListening();
@@ -898,7 +904,7 @@ const PostView = () => {
               className={`listen-button ${speaking ? 'speaking' : ''}`}
               onClick={toggleListen}
             >
-              {speaking ? '⏹ रोकें' : preparing ? '⏳ आवाज़ तैयार हो रही है… (रद्द करें)' : '▶ सुनें'}
+              {speaking ? '⏹ रोकें' : preparing ? `⏳ आवाज़ तैयार हो रही है…${prepared ? ` ${prepared}%` : ''} (रद्द करें)` : '▶ सुनें'}
             </button>
           )}
           {(post.my_claps || 0) > 0 && (

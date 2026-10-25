@@ -155,12 +155,13 @@ const authHeader = () => {
 export const audioAPI = {
   // { enabled }: whether the server can narrate at all (a key is set up).
   status: () => axios.get(`${API_BASE_URL}/audio/status`, { timeout: 15000 }),
-  // The story as an MP3 Blob. Rejects with response.status 503 when the server voice is
-  // unavailable (not set up, monthly quota used, outage), 413 for a very long story.
+  // 200 + the story as an MP3 Blob, or 202 + a small JSON Blob { done, total } while the
+  // server is still making it (ask again). Rejects with response.status 503 when the server
+  // voice is unavailable (not set up, quota used, outage), 413 for a very long story.
   forPost: (id) =>
     axios.get(`${API_BASE_URL}/audio/post/${id}`, {
       responseType: 'blob',
-      timeout: 120000,
+      timeout: 90000,
       headers: authHeader(),
     }),
 };
