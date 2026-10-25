@@ -1,10 +1,12 @@
 /**
- * Follow-along reading: highlight the word being narrated and keep it in view.
+ * Follow-along reading: a band of colour that flows over the word being narrated, and keeps it
+ * in view.
  *
- * The story text on the page is never changed. The current word is marked with the CSS Custom
- * Highlight API (a Range painted by `::highlight(narration)`), so it cannot clash with readers'
- * own highlights, text selection or the layout. Browsers without that API still get the
- * scrolling, just not the coloured word.
+ * The story text on the page is never changed. The band is a separate element laid over the
+ * page; every frame it eases toward the word's real position, its front edge faster than its
+ * back edge, so it stretches forward and settles like a current rather than jumping from word to
+ * word. At the start of a new line it opens out from the line's start. Because the word's
+ * position is read again every frame, the band stays right through scrolling and reflow.
  *
  * Two kinds of narration feed it a spoken-word index: the server's audio (word times from the
  * backend, or an estimate) and the browser's own voice (word-boundary events or a timer). The
@@ -12,7 +14,16 @@
  * title is spoken, quote marks are not, a divider is skipped), so they are matched up first.
  */
 
-const HIGHLIGHT_NAME = 'narration';
+// How quickly the band's edges ease toward the word (time constants, ms): the front edge runs
+// ahead of the back edge, which is what makes it look like flowing water.
+const FRONT_MS = 70;
+const BACK_MS = 150;
+const LINE_MS = 60;
+// The band eases toward each word, so it arrives a little after the word starts. Reading the
+// audio clock this far ahead cancels that (measured: the band trailed the voice by 0.13 s).
+const LOOKAHEAD = 0.12;
+const PAD_X = 3;
+const PAD_Y = 1;
 
 /** A word reduced to what is heard: no punctuation, quote marks or nukta, one spelling. */
 export function normalizeWord(word) {
@@ -107,7 +118,7 @@ export function indexAt(times, at) {
 }
 
 // Room for the pause after a word, in "letters" of speaking time (same figures as the server).
-const PAUSE_WEIGHT = { clause: 2.5, sentence: 6 };
+const PAUSE_WEIGHT = { clause: 4.5, sentence: 11 };
 
 const letters = (word) => Math.max(1, (word.match(/[ऀ-ॣ०-ॿ\w]/g) || []).length);
 
@@ -132,9 +143,6 @@ export function estimateTimes(words, duration) {
   });
 }
 
-const supportsHighlight = () =>
-  typeof CSS !== 'undefined' && CSS.highlights && typeof window !== 'undefined' && typeof window.Highlight === 'function';
-
 /**
  * One follow-along session over the story body `root`.
  *
@@ -150,9 +158,20 @@ export function createFollowAlong(root) {
   let lastPage = -1;
   let manualUntil = 0;
   let frame = 0;
+  let loop = 0;
   let stopped = false;
   let onMetadata = null;
   let media = null;
+  let target = null; // the Range of the word being said
+  let box = null; // where the band is drawn now, in page coordinates
+  let lastTick = 0;
+
+  const reduceMotion = () => typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const pill = document.createElement('div');
+  pill.className = 'narration-pill';
+  pill.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(pill);
 
   const noteManualScroll = () => {
     manualUntil = Date.now() + 5000; // the reader is steering: leave the page alone for a while
@@ -171,16 +190,59 @@ export function createFollowAlong(root) {
     return range;
   };
 
+  /** The word's rectangle in page coordinates (its first line, if it wraps). */
+  const wordBox = (range) => {
+    const rects = range.getClientRects ? range.getClientRects() : null;
+    const r = rects && rects.length ? rects[0] : range.getBoundingClientRect();
+    return {
+      x0: r.left + window.scrollX - PAD_X,
+      x1: r.right + window.scrollX + PAD_X,
+      y0: r.top + window.scrollY - PAD_Y,
+      y1: r.bottom + window.scrollY + PAD_Y,
+    };
+  };
+
   const keepInView = (range) => {
     if (Date.now() < manualUntil) return;
-    const box = range.getBoundingClientRect ? range.getBoundingClientRect() : null;
-    if (!box || (!box.height && !box.width)) return;
+    const rect = range.getBoundingClientRect ? range.getBoundingClientRect() : null;
+    if (!rect || (!rect.height && !rect.width)) return;
     const height = window.innerHeight;
-    if (box.top < height * 0.18 || box.bottom > height * 0.62) {
-      const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      window.scrollTo({ top: window.scrollY + box.top - height * 0.3, behavior: reduce ? 'auto' : 'smooth' });
+    if (rect.top < height * 0.18 || rect.bottom > height * 0.62) {
+      window.scrollTo({ top: window.scrollY + rect.top - height * 0.3, behavior: reduceMotion() ? 'auto' : 'smooth' });
     }
   };
+
+  const ease = (from, to, dt, ms) => from + (to - from) * (1 - Math.exp(-dt / ms));
+
+  /** One animation frame: let the band flow toward the current word, and draw it. */
+  const flow = () => {
+    if (stopped) return;
+    const now = Date.now();
+    const dt = Math.min(64, lastTick ? now - lastTick : 16);
+    lastTick = now;
+    if (target) {
+      const goal = wordBox(target);
+      if (!box || reduceMotion()) {
+        box = { ...goal, x1: reduceMotion() ? goal.x1 : goal.x0 };
+      } else if (Math.abs(goal.y0 - box.y0) > (goal.y1 - goal.y0) * 0.6) {
+        // A new line: begin at its start and open out along it.
+        box = { x0: goal.x0 - 14, x1: goal.x0 - 14, y0: goal.y0, y1: goal.y1 };
+      } else {
+        box.y0 = ease(box.y0, goal.y0, dt, LINE_MS);
+        box.y1 = ease(box.y1, goal.y1, dt, LINE_MS);
+      }
+      if (!reduceMotion()) {
+        box.x0 = ease(box.x0, goal.x0, dt, BACK_MS);
+        box.x1 = ease(box.x1, goal.x1, dt, FRONT_MS);
+      }
+      pill.style.transform = `translate3d(${box.x0}px, ${box.y0}px, 0)`;
+      pill.style.width = `${Math.max(0, box.x1 - box.x0)}px`;
+      pill.style.height = `${Math.max(0, box.y1 - box.y0)}px`;
+      pill.classList.add('on');
+    }
+    loop = requestAnimationFrame(flow);
+  };
+  loop = requestAnimationFrame(flow);
 
   const follow = {
     /** The spoken words, in order; the first `titleWords` are the title and are not on the page. */
@@ -190,6 +252,11 @@ export function createFollowAlong(root) {
       lastPage = -1;
     },
 
+    /** The page word the band is on, as written (for tests and debugging). */
+    current() {
+      return page[lastPage] ? page[lastPage].raw : null;
+    },
+
     /** The i-th spoken word is being said. */
     moveTo(i) {
       if (stopped || !map.length) return;
@@ -197,14 +264,12 @@ export function createFollowAlong(root) {
       for (let back = 1; at < 0 && back <= 6 && i - back >= 0; back += 1) at = map[i - back]; // a gap: stay on the last word
       if (at < 0 || at === lastPage || !page[at]) return;
       lastPage = at;
-      let range;
       try {
-        range = rangeFor(page[at]);
+        target = rangeFor(page[at]);
       } catch (error) {
         return; // the page changed under us; the next word will do
       }
-      if (supportsHighlight()) CSS.highlights.set(HIGHLIGHT_NAME, new window.Highlight(range));
-      keepInView(range);
+      keepInView(target);
     },
 
     /** Follow an audio element: its clock decides the word, with real `timings` or an estimate. */
@@ -223,7 +288,7 @@ export function createFollowAlong(root) {
         let shown = -2;
         const tick = () => {
           if (stopped) return;
-          const i = indexAt(times, audio.currentTime);
+          const i = indexAt(times, audio.currentTime + LOOKAHEAD);
           if (i !== shown && i >= 0) {
             shown = i;
             follow.moveTo(i);
@@ -241,15 +306,17 @@ export function createFollowAlong(root) {
       }
     },
 
-    /** End the session: clear the marked word and stop watching. */
+    /** End the session: let the band fade away and stop watching. */
     stop() {
       stopped = true;
       cancelAnimationFrame(frame);
+      cancelAnimationFrame(loop);
       window.removeEventListener('wheel', noteManualScroll);
       window.removeEventListener('touchmove', noteManualScroll);
       window.removeEventListener('keydown', keys);
       if (media && onMetadata) media.removeEventListener('loadedmetadata', onMetadata);
-      if (supportsHighlight()) CSS.highlights.delete(HIGHLIGHT_NAME);
+      pill.classList.remove('on');
+      setTimeout(() => pill.remove(), 400);
     },
   };
   return follow;
