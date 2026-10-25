@@ -1,4 +1,4 @@
-import { SSMLTTSEngine, splitForSpeech } from './ssmlTTS';
+import { SSMLTTSEngine, splitForSpeech, planNarration } from './ssmlTTS';
 
 // A stand-in for the browser's speech synthesizer: it records what was spoken and lets a
 // test finish or fail an utterance by hand.
@@ -80,18 +80,24 @@ describe('SSMLTTSEngine', () => {
   });
 
   test('walks through the pieces in order and then calls onEnd once', () => {
+    jest.useFakeTimers();
     const { spoken } = installFakeSynth([HI]);
     const onEnd = jest.fn();
     new SSMLTTSEngine().speak('पहला वाक्य।\nदूसरा वाक्य।', { lang: 'hi-IN', useSSML: false, onEnd });
     expect(spoken.map((u) => u.text)).toEqual(['पहला वाक्य।']);
     spoken[0].onend();
+    // the narrator breathes between paragraphs before the next one starts
+    expect(spoken).toHaveLength(1);
+    jest.advanceTimersByTime(800);
     expect(spoken.map((u) => u.text)).toEqual(['पहला वाक्य।', 'दूसरा वाक्य।']);
     expect(onEnd).not.toHaveBeenCalled();
     spoken[1].onend();
     expect(onEnd).toHaveBeenCalledTimes(1);
+    jest.useRealTimers();
   });
 
   test('a late "end" from a cancelled run cannot skip or finish the new run', () => {
+    jest.useFakeTimers();
     const { spoken } = installFakeSynth([HI]);
     const engine = new SSMLTTSEngine();
     const firstEnd = jest.fn();
@@ -110,7 +116,9 @@ describe('SSMLTTSEngine', () => {
     expect(secondEnd).not.toHaveBeenCalled();
 
     spoken[1].onend();
+    jest.advanceTimersByTime(800);
     expect(spoken.map((u) => u.text)).toEqual(['पुराना एक।', 'नया एक।', 'नया दो।']);
+    jest.useRealTimers();
   });
 
   test('an "interrupted" error from cancel() is not reported as a failure', () => {
@@ -151,5 +159,95 @@ describe('SSMLTTSEngine', () => {
     expect(spoken).toHaveLength(1);
     expect(spoken[0].voice).toBe(HI);
     jest.useRealTimers();
+  });
+});
+
+describe('voice choice', () => {
+  const pick = (voices, lang = 'hi-IN') => {
+    installFakeSynth(voices);
+    return new SSMLTTSEngine().findVoice(lang, ['swara', 'lekha']);
+  };
+
+  test('prefers a neural / natural voice over a compact one', () => {
+    const compact = { name: 'Lekha (Compact)', lang: 'hi-IN' };
+    const natural = { name: 'Microsoft Swara Online (Natural) - Hindi (India)', lang: 'hi-IN' };
+    expect(pick([compact, natural])).toBe(natural);
+  });
+
+  test('skips the half-empty entries Edge sometimes lists', () => {
+    const broken = { name: 'Microsoft undefined Online (Natural) - undefined', lang: 'hi-IN' };
+    expect(pick([broken, HI])).toBe(HI);
+  });
+
+  test('understands the hi_IN spelling Android uses', () => {
+    const android = { name: 'Hindi', lang: 'hi_IN' };
+    expect(pick([EN_IN, android])).toBe(android);
+  });
+});
+
+describe('planNarration', () => {
+  const speech = (segments) => segments.filter((s) => !s.isBreak);
+  const gaps = (segments) => segments.filter((s) => s.isBreak).map((s) => s.breakDuration);
+
+  test('longer silence for a paragraph than a sentence, longer still for a blank line', () => {
+    const sentence = gaps(planNarration('एक बात कही गई थी। दूसरी बात भी कही गई।'));
+    const paragraph = gaps(planNarration('एक बात कही गई थी।\nदूसरी बात भी कही गई।'));
+    const section = gaps(planNarration('एक बात कही गई थी।\n\nदूसरी बात भी कही गई।'));
+    expect(sentence).toHaveLength(1);
+    expect(paragraph[0]).toBeGreaterThan(sentence[0]);
+    expect(section[0]).toBeGreaterThan(paragraph[0]);
+  });
+
+  test('breathes at a comma and does not leave a silence at the very end', () => {
+    const plan = planNarration('जब पहली बारिश आई तो, तब सब घर लौट आए।');
+    expect(speech(plan)).toHaveLength(2);
+    expect(gaps(plan)).toHaveLength(1);
+    expect(plan[plan.length - 1].isBreak).toBeFalsy();
+  });
+
+  test('a "* * *" line is a silent scene break, never spoken', () => {
+    const plan = planNarration('पहला अध्याय समाप्त हुआ।\n* * *\nदूसरा अध्याय शुरू हुआ।');
+    expect(speech(plan).map((s) => s.text)).toEqual(['पहला अध्याय समाप्त हुआ।', 'दूसरा अध्याय शुरू हुआ।']);
+    expect(gaps(plan)).toEqual([1300]);
+  });
+
+  test('quoted speech is set higher and brisker than narration; quote marks are not spoken', () => {
+    const plan = planNarration('उसने धीरे से कहा “मैं कल वापस आऊँगा” और चल दिया।', { rate: 1, pitch: 1 });
+    const parts = speech(plan);
+    expect(parts.map((s) => s.text).join(' ')).not.toMatch(/[“”]/);
+    const quoted = parts.find((s) => s.text.includes('वापस'));
+    const narration = parts[0];
+    expect(quoted.pitch).toBeGreaterThan(narration.pitch);
+  });
+
+  test('a question lifts the pitch and an ellipsis slows the pace', () => {
+    const base = { rate: 1, pitch: 1 };
+    const statement = speech(planNarration('वह सुबह बहुत जल्दी घर से निकल गया था।', base))[0];
+    const question = speech(planNarration('वह सुबह बहुत जल्दी घर से निकल गया था?', base))[0];
+    const trail = speech(planNarration('वह सुबह बहुत जल्दी घर से निकल गया था…', base))[0];
+    expect(question.pitch).toBeGreaterThan(statement.pitch);
+    expect(trail.rate).toBeLessThan(statement.rate);
+  });
+
+  test('sentences differ slightly, stay within a few percent, and are repeatable', () => {
+    const text = Array.from({ length: 12 }, (_, i) => `यह वाक्य संख्या ${i + 1} है जो पढ़ा जा रहा है।`).join(' ');
+    const a = speech(planNarration(text, { rate: 1, pitch: 1 }));
+    const b = speech(planNarration(text, { rate: 1, pitch: 1 }));
+    expect(a).toEqual(b);
+    expect(new Set(a.map((s) => s.rate)).size).toBeGreaterThan(1);
+    a.forEach((s) => {
+      expect(s.rate).toBeGreaterThan(0.95);
+      expect(s.rate).toBeLessThan(1.05);
+      expect(s.pitch).toBeGreaterThan(0.97);
+      expect(s.pitch).toBeLessThan(1.03);
+    });
+  });
+
+  test('the title is read first, slower and lower, then a pause', () => {
+    const plan = planNarration('कहानी शुरू होती है।', { rate: 1, pitch: 1, title: 'पहली बारिश' });
+    expect(plan[0].text).toBe('पहली बारिश');
+    expect(plan[0].rate).toBeLessThan(1);
+    expect(plan[0].pitch).toBeLessThan(1);
+    expect(plan[1].isBreak).toBe(true);
   });
 });

@@ -289,6 +289,7 @@ const PostView = () => {
     ssmlTTS.speak(post.content, {
       lang: 'hi-IN',
       useSSML: false,
+      title: post.title,
       onEnd: () => setSpeaking(false),
       onError: () => {
         setSpeaking(false);
