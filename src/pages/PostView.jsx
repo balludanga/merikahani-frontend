@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { commentsAPI, followsAPI, postsAPI, usersAPI, bookmarksAPI, highlightsAPI } from '../services/api';
+import { audioAPI, commentsAPI, followsAPI, postsAPI, usersAPI, bookmarksAPI, highlightsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { updateMetaTags, generateStructuredData, resetMetaTags } from '../utils/seo';
 import { formatDate, readingMinutes, initials } from '../utils/format';
 import { topicLabel } from '../brand';
 import ssmlTTS from '../utils/ssmlTTS';
+import { serverVoiceEnabled, silentAudioUrl } from '../utils/serverVoice';
 import useFocusScroll from '../utils/useFocusScroll';
 import { useAccentStyle } from '../utils/accent';
 import useTextSelection from '../utils/useTextSelection';
@@ -76,6 +77,10 @@ const PostView = () => {
   const [isFollowing, setIsFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [speaking, setSpeaking] = useState(false);
+  // The server is making (or fetching) the narration; nothing is audible yet.
+  const [preparing, setPreparing] = useState(false);
+  // Whether the server can narrate in its natural Hindi voice (else the browser's voice).
+  const [serverVoice, setServerVoice] = useState(false);
   const [zoomImage, setZoomImage] = useState(null);
   // Every reader's highlights on this story, each with who made it.
   const [highlights, setHighlights] = useState([]);
@@ -86,6 +91,9 @@ const PostView = () => {
   const [notice, setNotice] = useState('');
   const [hinglish, toggleHinglish, finishHinglish] = useHinglish();
   const bodyRef = useRef(null);
+  const audioRef = useRef(null);
+  // Bumped by every start and stop, so a download that finishes late cannot start playing.
+  const listenRun = useRef(0);
   const jumpedTo = useRef(null);
   const { progress, hidden } = useFocusScroll();
   // The writer's own colour tints their story (progress bar, links, buttons).
@@ -107,10 +115,20 @@ const PostView = () => {
   }, [actionError]);
 
   useEffect(() => {
+    let alive = true;
+    serverVoiceEnabled().then((enabled) => {
+      if (alive) setServerVoice(enabled);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
     fetchPost();
     return () => {
       resetMetaTags();
-      ssmlTTS.cancel();
+      haltListening();
     };
   }, [slug]);
 
@@ -118,6 +136,7 @@ const PostView = () => {
     // Moving to another story (same component, new slug): the cleanup above stopped the
     // voice, so the button must go back to "सुनें" too.
     setSpeaking(false);
+    setPreparing(false);
     setPageError(null);
     setLoading(true);
     let loaded;
@@ -279,12 +298,22 @@ const PostView = () => {
     }
   };
 
-  const toggleListen = () => {
-    if (speaking) {
-      ssmlTTS.cancel();
-      setSpeaking(false);
-      return;
+  // Stop whatever is playing (server audio or browser voice). Touches no state, so it is
+  // safe in an unmount cleanup.
+  const haltListening = () => {
+    listenRun.current += 1;
+    ssmlTTS.cancel();
+    const audio = audioRef.current;
+    if (audio) {
+      audio.onended = null;
+      audio.onerror = null;
+      audio.pause();
+      if (audio.src && audio.src.startsWith('blob:')) URL.revokeObjectURL(audio.src);
+      audioRef.current = null;
     }
+  };
+
+  const speakInBrowser = () => {
     setSpeaking(true);
     ssmlTTS.speak(post.content, {
       lang: 'hi-IN',
@@ -296,6 +325,58 @@ const PostView = () => {
         setActionError('इस उपकरण पर रचना सुनाई नहीं जा सकी। हो सकता है हिंदी आवाज़ (वॉइस) उपलब्ध न हो।');
       },
     });
+  };
+
+  const toggleListen = async () => {
+    if (speaking || preparing) {
+      haltListening();
+      setSpeaking(false);
+      setPreparing(false);
+      return;
+    }
+    listenRun.current += 1;
+    const run = listenRun.current;
+
+    if (serverVoice) {
+      // Made at the tap: iOS only plays audio the page started from a tap, and the real
+      // narration arrives seconds later. Playing a moment of silence now unlocks it.
+      const audio = new Audio();
+      const silent = silentAudioUrl();
+      audio.src = silent;
+      audio.play().catch(() => {});
+      audioRef.current = audio;
+      setPreparing(true);
+      try {
+        const response = await audioAPI.forPost(post.id);
+        URL.revokeObjectURL(silent);
+        if (run !== listenRun.current) return;
+        audio.pause();
+        audio.src = URL.createObjectURL(response.data);
+        audio.onended = () => {
+          if (run !== listenRun.current) return;
+          haltListening();
+          setSpeaking(false);
+        };
+        audio.onerror = () => {
+          if (run !== listenRun.current) return;
+          haltListening();
+          setSpeaking(false);
+          setActionError('आवाज़ चलाई नहीं जा सकी।');
+        };
+        await audio.play();
+        if (run !== listenRun.current) return;
+        setPreparing(false);
+        setSpeaking(true);
+        return;
+      } catch (error) {
+        URL.revokeObjectURL(silent);
+        if (run !== listenRun.current) return;
+        // Not set up, quota used, very long story, offline...: use the browser's own voice.
+        haltListening();
+        setPreparing(false);
+      }
+    }
+    speakInBrowser();
   };
 
   const handleCommentSubmit = async (e) => {
@@ -817,7 +898,7 @@ const PostView = () => {
               className={`listen-button ${speaking ? 'speaking' : ''}`}
               onClick={toggleListen}
             >
-              {speaking ? '⏹ रोकें' : '▶ सुनें'}
+              {speaking ? '⏹ रोकें' : preparing ? '⏳ आवाज़ तैयार हो रही है… (रद्द करें)' : '▶ सुनें'}
             </button>
           )}
           {(post.my_claps || 0) > 0 && (

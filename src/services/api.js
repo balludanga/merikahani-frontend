@@ -144,3 +144,23 @@ export default api;
 export const opsAPI = {
   overview: () => api.get('/ops/overview'),
 };
+
+// Narrated audio of a story. Plain axios calls (not `api`) on purpose: making a story's audio
+// the first time takes a while, and that must not raise the "server is waking up" banner.
+const authHeader = () => {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+export const audioAPI = {
+  // { enabled }: whether the server can narrate at all (a key is set up).
+  status: () => axios.get(`${API_BASE_URL}/audio/status`, { timeout: 15000 }),
+  // The story as an MP3 Blob. Rejects with response.status 503 when the server voice is
+  // unavailable (not set up, monthly quota used, outage), 413 for a very long story.
+  forPost: (id) =>
+    axios.get(`${API_BASE_URL}/audio/post/${id}`, {
+      responseType: 'blob',
+      timeout: 120000,
+      headers: authHeader(),
+    }),
+};
