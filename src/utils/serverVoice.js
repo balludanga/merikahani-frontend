@@ -1,22 +1,23 @@
 import { audioAPI } from '../services/api';
 
-let enabled = null;
-
 /**
- * Whether the server can narrate stories (asked once per page load, then remembered).
- * Resolves false when it cannot be reached, so the browser's own voice is used instead.
+ * Whether the server can narrate this story: a new narration can be made now, or it already
+ * exists (and plays even on a day the free allowance is used up). Resolves false when the server
+ * cannot be reached, so the browser's own voice is used instead.
  */
-export function serverVoiceEnabled() {
-  if (!enabled) {
-    enabled = audioAPI
-      .status()
-      .then((response) => Boolean(response.data && response.data.enabled))
-      .catch(() => {
-        enabled = null;
-        return false;
-      });
-  }
-  return enabled;
+export function serverVoiceFor(postId) {
+  return audioAPI
+    .status(postId)
+    .then((response) => Boolean(response.data && (response.data.enabled || response.data.ready)))
+    .catch(() => false);
+}
+
+/** When each word of a narration is spoken, or null if the server has no timings for it. */
+export function fetchTimings(postId) {
+  return audioAPI
+    .timings(postId)
+    .then((response) => response.data)
+    .catch(() => null);
 }
 
 /**

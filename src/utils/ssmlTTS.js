@@ -268,6 +268,8 @@ const PAUSE = {
 };
 
 const QUOTE_MARKS = /[“”"‘’]/g;
+// How fast a device voice reads Hindi at rate 1, in characters a second (for pacing the highlight).
+const CHARS_PER_SECOND = 13;
 // A line with none of these (a "* * *" or "———" divider) is a scene break, not speech.
 const HAS_WORDS = /[ऄ-ॣ०-ॿ\w]/;
 
@@ -301,20 +303,21 @@ function planNarration(text, { rate = 0.9, pitch = 1.0, volume = 1.0, title = ''
     else segments.push({ text: '', isBreak: true, breakDuration: ms });
   };
 
-  const say = (spoken, r, p, v) => {
+  const say = (spoken, r, p, v, isTitle = false) => {
     splitForSpeech(spoken).forEach((piece) => {
       segments.push({
         text: piece,
         rate: clamp(r, 0.5, 1.6),
         pitch: clamp(p, 0.5, 1.6),
         volume: clamp(v, 0, 1),
+        isTitle,
       });
     });
   };
 
   const heading = title.replace(QUOTE_MARKS, '').trim();
   if (heading) {
-    say(heading, rate * 0.94, pitch * 0.97, volume);
+    say(heading, rate * 0.94, pitch * 0.97, volume, true);
     pause(PAUSE.title);
   }
 
@@ -410,6 +413,7 @@ class SSMLTTSEngine {
     this.queue = [];
     this.onEndCallback = null;
     this.onErrorCallback = null;
+    this.onWordCallback = null;
     // Bumped by every speak() and cancel(). Callbacks from an older run (a late "end"
     // event, a pending <break> timer) compare against it and do nothing, so they can
     // never advance or finish the run that replaced them.
@@ -510,11 +514,14 @@ class SSMLTTSEngine {
       title = '',
       onEnd = null,
       onError = null,
+      onWord = null,
+      onTokens = null,
       useSSML = true
     } = options;
 
     this.onEndCallback = onEnd;
     this.onErrorCallback = onError;
+    this.onWordCallback = onWord;
 
     let segments;
     if (useSSML && text.includes('<')) {
@@ -533,6 +540,19 @@ class SSMLTTSEngine {
       // person reading it aloud.
       segments = planNarration(this.parser.removeEmojis(text), { rate, pitch, volume, title });
     }
+
+    // The spoken words in order, so the page can follow along: each piece knows which word it
+    // starts at, and the first `titleWords` are the title, which the page does not show.
+    const words = [];
+    let titleWords = 0;
+    segments.forEach((segment) => {
+      if (segment.isBreak) return;
+      const tokens = segment.text.match(/\S+/g) || [];
+      segment.firstWord = words.length;
+      words.push(...tokens);
+      if (segment.isTitle) titleWords += tokens.length;
+    });
+    if (onTokens) onTokens({ words, titleWords });
 
     const session = this.session;
     this.queue = segments;
@@ -596,14 +616,34 @@ class SSMLTTSEngine {
     utterance.pitch = segment.pitch;
     utterance.volume = segment.volume;
 
+    // Word by word: the voice's own boundary events where it sends them, else the clock.
+    const starts = [];
+    const wordPattern = /\S+/g;
+    for (let m = wordPattern.exec(segment.text); m; m = wordPattern.exec(segment.text)) starts.push(m.index);
+    const follow = { seen: false, begun: 0, wait: 0, timer: 0 };
+    const endFollow = () => {
+      clearTimeout(follow.wait);
+      clearInterval(follow.timer);
+    };
+    utterance.onstart = () => this.followStart(session, segment, starts, follow);
+    utterance.onboundary = (event) => {
+      if (event.name && event.name !== 'word') return;
+      follow.seen = true;
+      let index = -1;
+      for (let k = 0; k < starts.length && starts[k] <= event.charIndex; k += 1) index = k;
+      if (index >= 0) this.emitWord(session, segment.firstWord + index);
+    };
+
     // Event handlers
     utterance.onend = () => {
+      endFollow();
       if (session !== this.session) return;
       this.currentUtterance = null;
       this.speakNextSegment(session, lang, voicePreferences);
     };
 
     utterance.onerror = (event) => {
+      endFollow();
       // Pressing stop (or starting again) cancels the speech; browsers report that as an
       // "error" too, possibly after the next utterance has begun. It is not a failure.
       if (event.error === 'interrupted' || event.error === 'canceled') return;
@@ -614,6 +654,53 @@ class SSMLTTSEngine {
     // mid-speech, which would silently drop its "end" event)
     this.currentUtterance = utterance;
     window.speechSynthesis.speak(utterance);
+  }
+
+  emitWord(session, index) {
+    if (session === this.session && this.onWordCallback) this.onWordCallback(index);
+  }
+
+  /**
+   * A piece has started speaking: mark its first word now. Many voices (Chrome's online ones,
+   * for one) never send word-boundary events; if none arrives within a moment, pace the words
+   * by the clock instead, from an estimate of how long the piece takes at this rate.
+   */
+  followStart(session, segment, starts, follow) {
+    if (!this.onWordCallback || session !== this.session) return;
+    follow.begun = Date.now();
+    this.emitWord(session, segment.firstWord);
+    follow.wait = setTimeout(() => {
+      if (follow.seen || session !== this.session) return;
+      const tokens = segment.text.match(/\S+/g) || [];
+      const weights = tokens.map((token) => {
+        const letters = (token.match(/[\u0900-\u0963\u0966-\u097F\w]/g) || []).length || 1;
+        if (/[।॥?!][”"’)]*$|\.[”"’)]*$/.test(token)) return letters + 6;
+        if (/[,;:—–…][”"’)]*$/.test(token)) return letters + 2.5;
+        return letters;
+      });
+      const total = weights.reduce((a, b) => a + b, 0) || 1;
+      const duration = (segment.text.length / (CHARS_PER_SECOND * segment.rate)) * 1000;
+      let at = 0;
+      const offsets = weights.map((weight) => {
+        const start = (at / total) * duration;
+        at += weight;
+        return start;
+      });
+      let shown = -1;
+      follow.timer = setInterval(() => {
+        if (session !== this.session) {
+          clearInterval(follow.timer);
+          return;
+        }
+        const elapsed = Date.now() - follow.begun;
+        let index = 0;
+        while (index + 1 < offsets.length && offsets[index + 1] <= elapsed) index += 1;
+        if (index !== shown) {
+          shown = index;
+          this.emitWord(session, segment.firstWord + index);
+        }
+      }, 80);
+    }, 900);
   }
 
   /**
@@ -649,6 +736,7 @@ class SSMLTTSEngine {
       this.isPaused = false;
       this.currentUtterance = null;
       this.queue = [];
+      this.onWordCallback = null;
     }
   }
 

@@ -1,7 +1,7 @@
-import { fetchNarration } from './serverVoice';
+import { fetchNarration, fetchTimings, serverVoiceFor } from './serverVoice';
 import { audioAPI } from '../services/api';
 
-jest.mock('../services/api', () => ({ audioAPI: { forPost: jest.fn(), status: jest.fn() } }));
+jest.mock('../services/api', () => ({ audioAPI: { forPost: jest.fn(), status: jest.fn(), timings: jest.fn() } }));
 
 const working = (done, total) => ({ status: 202, data: { text: async () => JSON.stringify({ state: 'working', done, total }) } });
 const ready = (blob) => ({ status: 200, data: blob });
@@ -49,5 +49,33 @@ test('passes a refusal (quota used, not set up) on so the browser voice can take
   audioAPI.forPost.mockRejectedValue({ response: { status: 503 } });
   await expect(fetchNarration(7, { isCancelled: () => false, onProgress: () => {} })).rejects.toEqual({
     response: { status: 503 },
+  });
+});
+
+describe('serverVoiceFor', () => {
+  beforeEach(() => jest.useRealTimers());
+
+  test('is usable when a new narration can be made, or this story already has one', async () => {
+    audioAPI.status.mockResolvedValue({ data: { enabled: true, ready: false } });
+    await expect(serverVoiceFor(3)).resolves.toBe(true);
+    audioAPI.status.mockResolvedValue({ data: { enabled: false, ready: true } });
+    await expect(serverVoiceFor(3)).resolves.toBe(true);
+    expect(audioAPI.status).toHaveBeenLastCalledWith(3);
+  });
+
+  test('is not usable when neither is true, or the server cannot be reached', async () => {
+    audioAPI.status.mockResolvedValue({ data: { enabled: false, ready: false } });
+    await expect(serverVoiceFor(3)).resolves.toBe(false);
+    audioAPI.status.mockRejectedValue(new Error('offline'));
+    await expect(serverVoiceFor(3)).resolves.toBe(false);
+  });
+});
+
+describe('fetchTimings', () => {
+  test('returns the word times, or null when there are none', async () => {
+    audioAPI.timings.mockResolvedValue({ data: { w: ['एक'], t: [0], title: 0, d: 1 } });
+    await expect(fetchTimings(3)).resolves.toEqual({ w: ['एक'], t: [0], title: 0, d: 1 });
+    audioAPI.timings.mockRejectedValue({ response: { status: 404 } });
+    await expect(fetchTimings(3)).resolves.toBeNull();
   });
 });

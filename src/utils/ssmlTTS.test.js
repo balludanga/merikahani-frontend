@@ -258,3 +258,70 @@ describe('planNarration', () => {
     expect(plan[1].isBreak).toBe(true);
   });
 });
+
+describe('word callbacks for following along', () => {
+  const story = 'वह शाम बहुत सुंदर थी। हम सब बाहर बैठे थे।';
+
+  afterEach(() => jest.useRealTimers());
+
+  test('reports the spoken words in order, with how many of them are the title', () => {
+    installFakeSynth([HI]);
+    const onTokens = jest.fn();
+    new SSMLTTSEngine().speak(story, { lang: 'hi-IN', useSSML: false, title: 'पहली शाम', onTokens });
+    expect(onTokens).toHaveBeenCalledTimes(1);
+    const { words, titleWords } = onTokens.mock.calls[0][0];
+    expect(titleWords).toBe(2);
+    expect(words).toEqual(['पहली', 'शाम', 'वह', 'शाम', 'बहुत', 'सुंदर', 'थी।', 'हम', 'सब', 'बाहर', 'बैठे', 'थे।']);
+  });
+
+  test("uses the voice's own word-boundary events, counting on across the pieces", () => {
+    jest.useFakeTimers('modern');
+    const { spoken } = installFakeSynth([HI]);
+    const onWord = jest.fn();
+    new SSMLTTSEngine().speak(story, { lang: 'hi-IN', useSSML: false, title: 'पहली शाम', onWord });
+    // piece 1 is the title
+    spoken[0].onstart();
+    expect(onWord).toHaveBeenLastCalledWith(0);
+    spoken[0].onboundary({ name: 'word', charIndex: 5 }); // "शाम"
+    expect(onWord).toHaveBeenLastCalledWith(1);
+    spoken[0].onend();
+    jest.advanceTimersByTime(1100); // the pause after the title
+    // piece 2 is the first sentence; its words continue after the 2 title words
+    spoken[1].onstart();
+    expect(onWord).toHaveBeenLastCalledWith(2);
+    spoken[1].onboundary({ name: 'word', charIndex: 7 }); // "बहुत" (3rd word of the sentence)
+    expect(onWord).toHaveBeenLastCalledWith(4);
+    spoken[1].onboundary({ name: 'sentence', charIndex: 0 }); // not a word boundary: ignored
+    expect(onWord).toHaveBeenLastCalledWith(4);
+  });
+
+  test('a voice that sends no boundaries is followed by the clock instead', () => {
+    jest.useFakeTimers('modern');
+    const { spoken } = installFakeSynth([HI]);
+    const onWord = jest.fn();
+    const engine = new SSMLTTSEngine();
+    engine.speak('एक दो तीन चार पाँच छह सात आठ नौ दस।', { lang: 'hi-IN', useSSML: false, onWord });
+    spoken[0].onstart();
+    expect(onWord.mock.calls.map((c) => c[0])).toEqual([0]);
+    jest.advanceTimersByTime(5000);
+    const seen = onWord.mock.calls.map((c) => c[0]);
+    expect(seen).toEqual([...seen].sort((a, b) => a - b)); // moves forward only
+    expect(seen[seen.length - 1]).toBe(9); // reaches the last word by the end
+    expect(new Set(seen).size).toBeGreaterThan(4);
+    const count = onWord.mock.calls.length;
+    engine.cancel();
+    jest.advanceTimersByTime(5000);
+    expect(onWord.mock.calls.length).toBe(count); // nothing more after stop
+  });
+
+  test('when boundary events do arrive the clock stays out of it', () => {
+    jest.useFakeTimers('modern');
+    const { spoken } = installFakeSynth([HI]);
+    const onWord = jest.fn();
+    new SSMLTTSEngine().speak('एक दो तीन चार पाँच।', { lang: 'hi-IN', useSSML: false, onWord });
+    spoken[0].onstart();
+    spoken[0].onboundary({ name: 'word', charIndex: 3 });
+    jest.advanceTimersByTime(5000);
+    expect(onWord.mock.calls.map((c) => c[0])).toEqual([0, 1]);
+  });
+});

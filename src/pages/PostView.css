@@ -1218,3 +1218,10 @@ mark.text-highlight.hl-mine {
     height: 14px;
   }
 }
+
+/* The word being narrated while "सुनें" plays (painted by the CSS Custom Highlight API, so the
+   story's markup is untouched). Distinct from a reader's own yellow highlight. */
+::highlight(narration) {
+  background-color: var(--narration-bg);
+  color: var(--narration-color);
+}
