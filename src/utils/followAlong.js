@@ -19,9 +19,15 @@
 const FRONT_MS = 70;
 const BACK_MS = 150;
 const LINE_MS = 60;
-// The band eases toward each word, so it arrives a little after the word starts. Reading the
-// audio clock this far ahead cancels that (measured: the band trailed the voice by 0.13 s).
-const LOOKAHEAD = 0.12;
+// When the band's position already follows the audio clock continuously, it needs only a light
+// touch of easing, which keeps it tight to the voice.
+const FRONT_MS_CLOCK = 40;
+const BACK_MS_CLOCK = 85;
+// The band holds on a word while it is spoken and glides to the next one in the last moments
+// before that one starts, so it arrives as the voice does.
+const GLIDE_SECONDS = 0.3;
+// Reading the audio clock this far ahead cancels the small delay the easing leaves.
+const LOOKAHEAD = 0.05;
 const PAD_X = 3;
 const PAD_Y = 1;
 
@@ -163,6 +169,9 @@ export function createFollowAlong(root) {
   let onMetadata = null;
   let media = null;
   let target = null; // the Range of the word being said
+  let upcoming = null; // the Range of the word after it (for the glide), or null
+  let progress = 0; // 0 = on the word being said, 1 = on the next one
+  let continuous = false; // the band follows an audio clock (else it only hops between words)
   let box = null; // where the band is drawn now, in page coordinates
   let lastTick = 0;
 
@@ -222,6 +231,15 @@ export function createFollowAlong(root) {
     lastTick = now;
     if (target) {
       const goal = wordBox(target);
+      if (upcoming && progress > 0) {
+        const next = wordBox(upcoming);
+        if (Math.abs(next.y0 - goal.y0) < (goal.y1 - goal.y0) * 0.6) {
+          // same line: slide toward the next word (eased, so it leaves and arrives gently)
+          const e = progress * progress * (3 - 2 * progress);
+          goal.x0 += (next.x0 - goal.x0) * e;
+          goal.x1 += (next.x1 - goal.x1) * e;
+        }
+      }
       if (!box || reduceMotion()) {
         box = { ...goal, x1: reduceMotion() ? goal.x1 : goal.x0 };
       } else if (Math.abs(goal.y0 - box.y0) > (goal.y1 - goal.y0) * 0.6) {
@@ -232,8 +250,8 @@ export function createFollowAlong(root) {
         box.y1 = ease(box.y1, goal.y1, dt, LINE_MS);
       }
       if (!reduceMotion()) {
-        box.x0 = ease(box.x0, goal.x0, dt, BACK_MS);
-        box.x1 = ease(box.x1, goal.x1, dt, FRONT_MS);
+        box.x0 = ease(box.x0, goal.x0, dt, continuous ? BACK_MS_CLOCK : BACK_MS);
+        box.x1 = ease(box.x1, goal.x1, dt, continuous ? FRONT_MS_CLOCK : FRONT_MS);
       }
       pill.style.transform = `translate3d(${box.x0}px, ${box.y0}px, 0)`;
       pill.style.width = `${Math.max(0, box.x1 - box.x0)}px`;
@@ -257,19 +275,29 @@ export function createFollowAlong(root) {
       return page[lastPage] ? page[lastPage].raw : null;
     },
 
-    /** The i-th spoken word is being said. */
-    moveTo(i) {
+    /**
+     * The i-th spoken word is being said. `glide` (0..1), when the caller knows it, says how far
+     * the band should already be on its way to the next word.
+     */
+    moveTo(i, glide = 0) {
       if (stopped || !map.length) return;
       let at = map[i] === undefined ? -1 : map[i];
       for (let back = 1; at < 0 && back <= 6 && i - back >= 0; back += 1) at = map[i - back]; // a gap: stay on the last word
-      if (at < 0 || at === lastPage || !page[at]) return;
-      lastPage = at;
-      try {
-        target = rangeFor(page[at]);
-      } catch (error) {
-        return; // the page changed under us; the next word will do
+      if (at < 0 || !page[at]) return;
+      if (at !== lastPage) {
+        lastPage = at;
+        try {
+          target = rangeFor(page[at]);
+          // the next word on the page that the speech reaches (a spoken word with no page word is skipped)
+          let after = -1;
+          for (let k = i + 1; after < 0 && k <= i + 6 && k < map.length; k += 1) after = map[k];
+          upcoming = after > at && page[after] ? rangeFor(page[after]) : null;
+        } catch (error) {
+          return; // the page changed under us; the next word will do
+        }
+        keepInView(target);
       }
-      keepInView(target);
+      progress = upcoming ? Math.max(0, Math.min(1, glide)) : 0;
     },
 
     /** Follow an audio element: its clock decides the word, with real `timings` or an estimate. */
@@ -285,13 +313,38 @@ export function createFollowAlong(root) {
           follow.setSpoken(page.map((t) => t.raw), 0);
           times = estimateTimes(page.map((t) => t.raw), audio.duration || 0);
         }
-        let shown = -2;
+        continuous = true;
+        // The audio element reports its time in coarse steps; between reports, carry on at the
+        // playback speed so the band moves every frame rather than every few.
+        let reported = audio.currentTime;
+        let reportedAt = Date.now();
+        const clock = () => {
+          const now = Date.now();
+          if (audio.paused === false) {
+            const guess = reported + ((now - reportedAt) / 1000) * (audio.playbackRate || 1);
+            if (Math.abs(audio.currentTime - guess) > 0.12 || audio.currentTime < reported - 0.05) {
+              reported = audio.currentTime; // a seek, a stall, or a real drift: believe the element
+              reportedAt = now;
+              return reported;
+            }
+            return guess;
+          }
+          reported = audio.currentTime;
+          reportedAt = now;
+          return reported;
+        };
         const tick = () => {
           if (stopped) return;
-          const i = indexAt(times, audio.currentTime + LOOKAHEAD);
-          if (i !== shown && i >= 0) {
-            shown = i;
-            follow.moveTo(i);
+          const at = clock() + LOOKAHEAD;
+          const i = indexAt(times, at);
+          if (i >= 0) {
+            let glide = 0;
+            if (i + 1 < times.length) {
+              const gap = times[i + 1] - times[i];
+              const span = Math.min(GLIDE_SECONDS, gap * 0.8);
+              glide = span > 0 ? (at - (times[i + 1] - span)) / span : 0;
+            }
+            follow.moveTo(i, glide);
           }
           frame = requestAnimationFrame(tick);
         };

@@ -314,6 +314,41 @@ describe('word callbacks for following along', () => {
     expect(onWord.mock.calls.length).toBe(count); // nothing more after stop
   });
 
+  test('learns how fast a voice really reads and uses that for the next piece', () => {
+    jest.useFakeTimers('modern');
+    window.localStorage.clear();
+    const { spoken } = installFakeSynth([HI]);
+    const onWord = jest.fn();
+    const engine = new SSMLTTSEngine();
+    const first = 'एक दो तीन चार पाँच छह सात आठ नौ दस ग्यारह बारह तेरह चौदह पंद्रह सोलह सत्रह अठारह।';
+    const second = 'एक दो तीन चार पाँच छह सात आठ नौ दस ग्यारह बारह तेरह चौदह पंद्रह सोलह सत्रह अठारह।';
+    engine.speak(`${first}\n${second}`, { lang: 'hi-IN', useSSML: false, onWord });
+    expect(engine.paceFor('Lekha')).toBe(13); // nothing learned yet
+    spoken[0].onstart();
+    jest.advanceTimersByTime(4000); // this voice takes 4 s for the piece: much faster than the default guess
+    spoken[0].onend();
+    const learned = engine.paceFor(HI.name);
+    expect(learned).toBeGreaterThan(16); // clearly faster than the 13 it started from
+    expect(window.localStorage.getItem(`lekhani_tts_pace_${HI.name}`)).not.toBeNull(); // remembered for next time
+    jest.advanceTimersByTime(1100); // the pause between paragraphs
+    onWord.mockClear();
+    spoken[1].onstart();
+    jest.advanceTimersByTime(1000 + 1500); // no boundary events: paced by the clock at the learned speed
+    const seen = onWord.mock.calls.map((c) => c[0]);
+    // 1.5 s into a piece that this voice reads in ~4 s: well past the first few words
+    expect(seen[seen.length - 1] - 18).toBeGreaterThan(3);
+  });
+
+  test('a short or implausible piece teaches nothing', () => {
+    jest.useFakeTimers('modern');
+    window.localStorage.clear();
+    const engine = new SSMLTTSEngine();
+    engine.learnPace('V', { text: 'छोटा', rate: 1 }, 5000);
+    engine.learnPace('V', { text: 'x'.repeat(100), rate: 1 }, 300);
+    engine.learnPace('V', { text: 'x'.repeat(100), rate: 1 }, 999999);
+    expect(engine.paceFor('V')).toBe(13);
+  });
+
   test('when boundary events do arrive the clock stays out of it', () => {
     jest.useFakeTimers('modern');
     const { spoken } = installFakeSynth([HI]);
