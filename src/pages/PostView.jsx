@@ -115,6 +115,9 @@ const PostView = () => {
   }, [slug]);
 
   const fetchPost = async () => {
+    // Moving to another story (same component, new slug): the cleanup above stopped the
+    // voice, so the button must go back to "सुनें" too.
+    setSpeaking(false);
     setPageError(null);
     setLoading(true);
     let loaded;
@@ -285,6 +288,7 @@ const PostView = () => {
     setSpeaking(true);
     ssmlTTS.speak(post.content, {
       lang: 'hi-IN',
+      useSSML: false,
       onEnd: () => setSpeaking(false),
       onError: () => {
         setSpeaking(false);
