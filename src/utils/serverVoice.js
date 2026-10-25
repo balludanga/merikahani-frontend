@@ -46,3 +46,30 @@ export function silentAudioUrl() {
   view.setUint32(40, samples * 2, true);
   return URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }));
 }
+
+const POLL_MS = 2500;
+const GIVE_UP_MS = 6 * 60 * 1000;
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * The story's narration as an MP3 Blob. The server makes it in the background the first
+ * time (202 + progress), so ask again until it is ready. Resolves null if `isCancelled()`
+ * turns true meanwhile; rejects when the server cannot (503 / 413 / 401...) or takes too long.
+ */
+export async function fetchNarration(postId, { isCancelled, onProgress }) {
+  const started = Date.now();
+  for (;;) {
+    const response = await audioAPI.forPost(postId);
+    if (isCancelled()) return null;
+    if (response.status === 200) return response.data;
+    try {
+      const info = JSON.parse(await response.data.text());
+      if (info && info.total) onProgress(Math.round((100 * info.done) / info.total));
+    } catch (error) {
+      // progress is only a courtesy
+    }
+    if (Date.now() - started > GIVE_UP_MS) throw new Error('narration took too long');
+    await sleep(POLL_MS);
+    if (isCancelled()) return null;
+  }
+}
