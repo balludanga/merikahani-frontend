@@ -1219,9 +1219,30 @@ mark.text-highlight.hl-mine {
   }
 }
 
-/* The word being narrated while "सुनें" plays (painted by the CSS Custom Highlight API, so the
-   story's markup is untouched). Distinct from a reader's own yellow highlight. */
-::highlight(narration) {
-  background-color: var(--narration-bg);
-  color: var(--narration-color);
+/* The band that flows over the word being narrated while "सुनें" plays. It is a separate element
+   laid over the page (see utils/followAlong.js), so the story's markup is untouched. Multiply
+   keeps dark text dark on the light page; screen keeps light text light on the dark page. */
+.narration-pill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: 8px;
+  background: var(--narration-bg);
+  mix-blend-mode: var(--narration-blend);
+  box-shadow: 0 0 14px 3px var(--narration-glow);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  will-change: transform, width, height;
+}
+
+.narration-pill.on {
+  opacity: 1;
+}
+
+@media print {
+  .narration-pill {
+    display: none;
+  }
 }

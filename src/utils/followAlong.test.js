@@ -74,47 +74,43 @@ describe('tokenizePage', () => {
 });
 
 describe('follow-along session', () => {
-  let highlights;
   let rect;
 
   beforeEach(() => {
     jest.useFakeTimers('modern');
-    highlights = new Map();
-    global.CSS = { highlights };
-    window.Highlight = class {
-      constructor(...ranges) {
-        this.ranges = ranges;
-      }
-    };
-    rect = { top: 400, bottom: 420, height: 20, width: 40 };
+    rect = { left: 100, right: 160, top: 400, bottom: 424, height: 24, width: 60 };
     Range.prototype.getBoundingClientRect = () => rect;
     window.scrollTo = jest.fn();
     window.innerHeight = 800;
     window.requestAnimationFrame = (cb) => setTimeout(cb, 16);
     window.cancelAnimationFrame = (id) => clearTimeout(id);
+    window.matchMedia = () => ({ matches: false });
     document.body.innerHTML = '<div id="r"><p>वह शाम <mark>थी</mark> सुंदर।</p><p>फिर रात आई।</p></div>';
   });
 
   afterEach(() => {
     jest.useRealTimers();
-    delete global.CSS;
-    delete window.Highlight;
+    document.body.innerHTML = '';
   });
 
   const root = () => document.getElementById('r');
-  const marked = () => highlights.get('narration').ranges[0].toString();
+  const pill = () => document.querySelector('.narration-pill');
+  const pos = () => {
+    const [, x, y] = /translate3d\(([-\d.]+)px, ([-\d.]+)px/.exec(pill().style.transform);
+    return { x: parseFloat(x), y: parseFloat(y), w: parseFloat(pill().style.width), h: parseFloat(pill().style.height) };
+  };
+  const frames = (ms) => jest.advanceTimersByTime(ms);
 
-  test('marks the word being said, skipping the title the page does not show', () => {
+  test('knows which page word it is on, skipping the title the page does not show', () => {
     const follow = createFollowAlong(root());
     follow.setSpoken(['शाम', 'की', 'वह', 'शाम', 'थी', 'सुंदर।', 'फिर', 'रात', 'आई।'], 2);
     follow.moveTo(2);
-    expect(marked()).toBe('वह');
+    expect(follow.current()).toBe('वह');
     follow.moveTo(4);
-    expect(marked()).toBe('थी'); // inside the reader's own <mark>, still found
+    expect(follow.current()).toBe('थी'); // inside the reader's own <mark>, still found
     follow.moveTo(8);
-    expect(marked()).toBe('आई।');
+    expect(follow.current()).toBe('आई।');
     follow.stop();
-    expect(highlights.has('narration')).toBe(false);
   });
 
   test('on a word with no match it stays on the last one it found', () => {
@@ -122,9 +118,77 @@ describe('follow-along session', () => {
     follow.setSpoken(['वह', 'अजीब', 'शाम'], 0);
     follow.moveTo(0);
     follow.moveTo(1);
-    expect(marked()).toBe('वह'); // "अजीब" is not on the page
+    expect(follow.current()).toBe('वह'); // "अजीब" is not on the page
     follow.moveTo(2);
-    expect(marked()).toBe('शाम');
+    expect(follow.current()).toBe('शाम');
+    follow.stop();
+  });
+
+  test('the band settles over the word, a little wider than it', () => {
+    const follow = createFollowAlong(root());
+    follow.setSpoken(['वह', 'शाम'], 0);
+    follow.moveTo(0);
+    frames(1500);
+    const p = pos();
+    expect(p.x).toBeCloseTo(100 - 3, 0);
+    expect(p.w).toBeCloseTo(60 + 6, 0);
+    expect(p.y).toBeCloseTo(400 - 1, 0);
+    expect(p.h).toBeCloseTo(24 + 2, 0);
+    expect(pill().classList.contains('on')).toBe(true);
+    follow.stop();
+  });
+
+  test('moving to the next word is a glide, not a jump, and the front edge runs ahead of the back edge', () => {
+    const follow = createFollowAlong(root());
+    follow.setSpoken(['वह', 'शाम', 'थी'], 0);
+    follow.moveTo(0);
+    frames(1500);
+    rect = { left: 180, right: 250, top: 400, bottom: 424, height: 24, width: 70 }; // the next word, to the right
+    follow.moveTo(1);
+    frames(48); // a few frames in
+    const early = pos();
+    const front = early.x + early.w;
+    expect(early.x).toBeGreaterThan(97); // the back edge has started to move ...
+    expect(early.x).toBeLessThan(177); // ... but is nowhere near there yet
+    expect(front).toBeGreaterThan(163 + 20); // the front edge is well ahead of where it started (163)
+    expect(front - 253).toBeLessThan(0); // and not there yet either
+    expect(front - 163).toBeGreaterThan((early.x - 97) * 1.5); // front edge covers more distance than the back edge
+    frames(2000);
+    const settled = pos();
+    expect(settled.x).toBeCloseTo(177, 0);
+    expect(settled.x + settled.w).toBeCloseTo(253, 0);
+    follow.stop();
+  });
+
+  test('at a new line the band opens out from the start of that line instead of flying across', () => {
+    const follow = createFollowAlong(root());
+    follow.setSpoken(['वह', 'शाम', 'थी'], 0);
+    rect = { left: 400, right: 470, top: 400, bottom: 424, height: 24, width: 70 }; // end of a line
+    follow.moveTo(0);
+    frames(1500);
+    rect = { left: 40, right: 100, top: 440, bottom: 464, height: 24, width: 60 }; // start of the next line
+    follow.moveTo(1);
+    frames(16);
+    const first = pos();
+    expect(first.y).toBeCloseTo(439, 0); // already on the new line
+    expect(first.x).toBeLessThan(40); // at its start, not still out at 400
+    expect(first.w).toBeLessThan(40); // and only just opening out
+    frames(2000);
+    expect(pos().w).toBeCloseTo(66, 0);
+    follow.stop();
+  });
+
+  test('with reduced motion the band simply sits on the word', () => {
+    window.matchMedia = () => ({ matches: true });
+    const follow = createFollowAlong(root());
+    follow.setSpoken(['वह', 'शाम'], 0);
+    follow.moveTo(0);
+    frames(16);
+    rect = { left: 300, right: 360, top: 400, bottom: 424, height: 24, width: 60 };
+    follow.moveTo(1);
+    frames(16);
+    expect(pos().x).toBeCloseTo(297, 0);
+    follow.stop();
   });
 
   test('scrolls only when the word leaves the comfortable part of the screen', () => {
@@ -132,7 +196,7 @@ describe('follow-along session', () => {
     follow.setSpoken(['वह', 'शाम', 'थी'], 0);
     follow.moveTo(0); // top 400 of 800: comfortable
     expect(window.scrollTo).not.toHaveBeenCalled();
-    rect = { top: 700, bottom: 720, height: 20, width: 40 };
+    rect = { left: 100, right: 160, top: 700, bottom: 724, height: 24, width: 60 };
     follow.moveTo(1);
     expect(window.scrollTo).toHaveBeenCalledTimes(1);
     expect(window.scrollTo.mock.calls[0][0].top).toBe(700 - 800 * 0.3); // brings it to a third of the way down
@@ -143,7 +207,7 @@ describe('follow-along session', () => {
     const follow = createFollowAlong(root());
     follow.setSpoken(['वह', 'शाम', 'थी'], 0);
     window.dispatchEvent(new Event('wheel'));
-    rect = { top: 700, bottom: 720, height: 20, width: 40 };
+    rect = { left: 100, right: 160, top: 700, bottom: 724, height: 24, width: 60 };
     follow.moveTo(0);
     expect(window.scrollTo).not.toHaveBeenCalled();
     jest.advanceTimersByTime(5100);
@@ -157,13 +221,23 @@ describe('follow-along session', () => {
     const follow = createFollowAlong(root());
     follow.attachAudio(audio, { w: ['शाम', 'वह', 'शाम', 'थी', 'सुंदर।'], t: [0, 1, 2, 3, 4], title: 1, d: 6 });
     audio.currentTime = 2.2;
-    jest.advanceTimersByTime(40);
-    expect(marked()).toBe('शाम');
+    frames(40);
+    expect(follow.current()).toBe('शाम');
     audio.currentTime = 4.5;
-    jest.advanceTimersByTime(40);
-    expect(marked()).toBe('सुंदर।');
+    frames(40);
+    expect(follow.current()).toBe('सुंदर।');
     follow.stop();
-    expect(highlights.has('narration')).toBe(false);
+  });
+
+  test('reads the clock a little ahead so the easing band arrives with the word, not after it', () => {
+    const audio = { currentTime: 0, duration: 6, addEventListener: jest.fn(), removeEventListener: jest.fn() };
+    const follow = createFollowAlong(root());
+    follow.attachAudio(audio, { w: ['शाम', 'वह', 'शाम', 'थी', 'सुंदर।'], t: [0, 1, 2, 3, 4], title: 1, d: 6 });
+    audio.currentTime = 1.95; // 50 ms before "शाम" (the 2nd page word) is due to start
+    frames(40);
+    expect(follow.current()).toBe('शाम');
+    audio.currentTime = 1.8; // still well before it
+    follow.stop();
   });
 
   test('without word times it estimates from the page text and the audio length', () => {
@@ -171,17 +245,20 @@ describe('follow-along session', () => {
     const follow = createFollowAlong(root());
     follow.attachAudio(audio, null);
     audio.currentTime = 7.9;
-    jest.advanceTimersByTime(40);
-    expect(marked()).toBe('आई।'); // the last word, near the end
+    frames(40);
+    expect(follow.current()).toBe('आई।'); // the last word, near the end
     follow.stop();
   });
 
-  test('a browser without the highlight API still works, it just paints nothing', () => {
-    delete window.Highlight;
+  test('stopping fades the band out and then removes it', () => {
     const follow = createFollowAlong(root());
-    follow.setSpoken(['वह', 'शाम'], 0);
-    expect(() => follow.moveTo(1)).not.toThrow();
-    expect(highlights.size).toBe(0);
+    follow.setSpoken(['वह'], 0);
+    follow.moveTo(0);
+    frames(100);
+    expect(pill()).not.toBeNull();
     follow.stop();
+    expect(pill().classList.contains('on')).toBe(false);
+    frames(500);
+    expect(pill()).toBeNull();
   });
 });

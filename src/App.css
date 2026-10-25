@@ -38,8 +38,9 @@ html {
   --sel-bg: #cde5e1;
   --highlight-bg: #fff1a8;
   --highlight-color: #27272a;
-  --narration-bg: #a7ece1;
-  --narration-color: #052e2a;
+  --narration-bg: #8fe3d6;
+  --narration-glow: rgba(15, 118, 110, 0.28);
+  --narration-blend: multiply;
   /* Passages other readers highlighted: teal, stronger when more readers agree */
   --hl-others-1: rgba(15, 118, 110, 0.12);
   --hl-others-2: rgba(15, 118, 110, 0.22);
@@ -75,7 +76,8 @@ html {
   --highlight-bg: #5d5227;
   --highlight-color: #f0ede8;
   --narration-bg: #1f7a70;
-  --narration-color: #ffffff;
+  --narration-glow: rgba(95, 196, 184, 0.35);
+  --narration-blend: screen;
   --hl-others-1: rgba(69, 179, 167, 0.16);
   --hl-others-2: rgba(69, 179, 167, 0.28);
   --hl-others-3: rgba(69, 179, 167, 0.42);
