@@ -220,6 +220,13 @@ describe('planNarration', () => {
     expect(quoted.pitch).toBeGreaterThan(narration.pitch);
   });
 
+  test('a short lead-in does not swallow the quoted speech after it', () => {
+    const parts = speech(planNarration('उसने कहा “मैं कल वापस आऊँगा” और चल दिया।', { rate: 1, pitch: 1 }));
+    const quoted = parts.find((s) => s.text.includes('वापस'));
+    expect(quoted.text).not.toContain('उसने');
+    expect(quoted.pitch).toBeGreaterThan(parts[0].pitch);
+  });
+
   test('a question lifts the pitch and an ellipsis slows the pace', () => {
     const base = { rate: 1, pitch: 1 };
     const statement = speech(planNarration('वह सुबह बहुत जल्दी घर से निकल गया था।', base))[0];

@@ -343,7 +343,8 @@ function planNarration(text, { rate = 0.9, pitch = 1.0, volume = 1.0, title = ''
       let buffer = '';
       clauses.forEach((clause) => {
         buffer += clause;
-        if (buffer.trim().length >= 14) {
+        // Never merge across a quote mark: dialogue keeps its own voice.
+        if (buffer.trim().length >= 14 || /[“”"‘’]\s*$/.test(clause)) {
           parts.push(buffer);
           buffer = '';
         }
