@@ -414,6 +414,8 @@ class SSMLTTSEngine {
     this.onEndCallback = null;
     this.onErrorCallback = null;
     this.onWordCallback = null;
+    // How fast each voice really reads, learned as it speaks (characters a second at rate 1).
+    this.pace = {};
     // Bumped by every speak() and cancel(). Callbacks from an older run (a late "end"
     // event, a pending <break> timer) compare against it and do nothing, so they can
     // never advance or finish the run that replaced them.
@@ -620,7 +622,7 @@ class SSMLTTSEngine {
     const starts = [];
     const wordPattern = /\S+/g;
     for (let m = wordPattern.exec(segment.text); m; m = wordPattern.exec(segment.text)) starts.push(m.index);
-    const follow = { seen: false, begun: 0, wait: 0, timer: 0 };
+    const follow = { seen: false, begun: 0, wait: 0, timer: 0, voice: voice ? voice.name : 'default' };
     const endFollow = () => {
       clearTimeout(follow.wait);
       clearInterval(follow.timer);
@@ -638,6 +640,7 @@ class SSMLTTSEngine {
     utterance.onend = () => {
       endFollow();
       if (session !== this.session) return;
+      this.learnPace(follow.voice, segment, follow.begun ? Date.now() - follow.begun : 0);
       this.currentUtterance = null;
       this.speakNextSegment(session, lang, voicePreferences);
     };
@@ -654,6 +657,31 @@ class SSMLTTSEngine {
     // mid-speech, which would silently drop its "end" event)
     this.currentUtterance = utterance;
     window.speechSynthesis.speak(utterance);
+  }
+
+  /** Characters a second this voice reads at rate 1: what it has shown, else what a first try is judged by. */
+  paceFor(voice) {
+    if (this.pace[voice]) return this.pace[voice];
+    try {
+      const saved = parseFloat(window.localStorage.getItem(`lekhani_tts_pace_${voice}`));
+      if (saved > 4 && saved < 40) return saved;
+    } catch (error) {
+      // no storage: fine
+    }
+    return CHARS_PER_SECOND;
+  }
+
+  /** A piece has just been read in `ms`: that is this voice's real pace, so use it for the next one. */
+  learnPace(voice, segment, ms) {
+    if (segment.text.length < 25 || ms < 1500 || ms > 60000) return; // too short or odd to learn from
+    const measured = segment.text.length / (ms / 1000) / segment.rate;
+    const known = this.pace[voice] || this.paceFor(voice);
+    this.pace[voice] = known * 0.4 + measured * 0.6; // lean on what it just showed
+    try {
+      window.localStorage.setItem(`lekhani_tts_pace_${voice}`, String(this.pace[voice].toFixed(2)));
+    } catch (error) {
+      // no storage: fine
+    }
   }
 
   emitWord(session, index) {
@@ -679,7 +707,7 @@ class SSMLTTSEngine {
         return letters;
       });
       const total = weights.reduce((a, b) => a + b, 0) || 1;
-      const duration = (segment.text.length / (CHARS_PER_SECOND * segment.rate)) * 1000;
+      const duration = (segment.text.length / (this.paceFor(follow.voice) * segment.rate)) * 1000;
       let at = 0;
       const offsets = weights.map((weight) => {
         const start = (at / total) * duration;

@@ -233,11 +233,74 @@ describe('follow-along session', () => {
     const audio = { currentTime: 0, duration: 6, addEventListener: jest.fn(), removeEventListener: jest.fn() };
     const follow = createFollowAlong(root());
     follow.attachAudio(audio, { w: ['शाम', 'वह', 'शाम', 'थी', 'सुंदर।'], t: [0, 1, 2, 3, 4], title: 1, d: 6 });
-    audio.currentTime = 1.95; // 50 ms before "शाम" (the 2nd page word) is due to start
+    audio.currentTime = 1.96; // 40 ms before "शाम" (the 2nd page word) is due to start
     frames(40);
     expect(follow.current()).toBe('शाम');
     audio.currentTime = 1.8; // still well before it
     follow.stop();
+  });
+
+  describe('continuous glide', () => {
+    const boxes = {
+      'वह': { left: 100, right: 160, top: 400, bottom: 424, height: 24, width: 60 },
+      'शाम': { left: 180, right: 250, top: 400, bottom: 424, height: 24, width: 70 },
+      'थी': { left: 270, right: 310, top: 400, bottom: 424, height: 24, width: 40 },
+    };
+    const timings = { w: ['वह', 'शाम', 'थी'], t: [0, 1, 2], title: 0, d: 3 };
+    const audioAt = (currentTime, extra = {}) => ({ currentTime, duration: 3, addEventListener: jest.fn(), removeEventListener: jest.fn(), ...extra });
+
+    beforeEach(() => {
+      Range.prototype.getBoundingClientRect = function box() {
+        return boxes[this.toString()] || rect;
+      };
+    });
+
+    test('holds on a word while it is spoken', () => {
+      const audio = audioAt(0.4);
+      const follow = createFollowAlong(root());
+      follow.attachAudio(audio, timings);
+      frames(1500);
+      expect(pos().x).toBeCloseTo(97, 0); // still on the first word, mid-way through it
+      follow.stop();
+    });
+
+    test('glides to the next word in the last moments before it starts, arriving as the voice does', () => {
+      const audio = audioAt(0.9);
+      const follow = createFollowAlong(root());
+      follow.attachAudio(audio, timings);
+      frames(1500);
+      const partway = pos();
+      expect(partway.x).toBeGreaterThan(120); // already well on its way ...
+      expect(partway.x).toBeLessThan(175); // ... but not there yet
+      audio.currentTime = 1.0;
+      frames(1500);
+      expect(pos().x).toBeCloseTo(177, 0); // there when the word starts
+      follow.stop();
+    });
+
+    test('keeps moving between the audio element\'s coarse time reports', () => {
+      const audio = audioAt(0.9, { paused: false, playbackRate: 1 });
+      const follow = createFollowAlong(root());
+      follow.attachAudio(audio, timings);
+      expect(follow.current()).toBe('वह');
+      frames(80); // the element still says 0.9, but 80 ms have gone by
+      expect(follow.current()).toBe('शाम');
+      follow.stop();
+    });
+
+    test('believes the audio element after a seek or a stall', () => {
+      const audio = audioAt(0.1, { paused: false, playbackRate: 1 });
+      const follow = createFollowAlong(root());
+      follow.attachAudio(audio, timings);
+      frames(32);
+      audio.currentTime = 2.2; // the reader dragged to the end
+      frames(32);
+      expect(follow.current()).toBe('थी');
+      audio.currentTime = 0.2; // and back to the start
+      frames(32);
+      expect(follow.current()).toBe('वह');
+      follow.stop();
+    });
   });
 
   test('without word times it estimates from the page text and the audio length', () => {
