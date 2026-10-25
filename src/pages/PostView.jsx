@@ -6,7 +6,8 @@ import { updateMetaTags, generateStructuredData, resetMetaTags } from '../utils/
 import { formatDate, readingMinutes, initials } from '../utils/format';
 import { topicLabel } from '../brand';
 import ssmlTTS from '../utils/ssmlTTS';
-import { fetchNarration, serverVoiceEnabled, silentAudioUrl } from '../utils/serverVoice';
+import { fetchNarration, fetchTimings, serverVoiceFor, silentAudioUrl } from '../utils/serverVoice';
+import { createFollowAlong } from '../utils/followAlong';
 import useFocusScroll from '../utils/useFocusScroll';
 import { useAccentStyle } from '../utils/accent';
 import useTextSelection from '../utils/useTextSelection';
@@ -94,6 +95,8 @@ const PostView = () => {
   const [hinglish, toggleHinglish, finishHinglish] = useHinglish();
   const bodyRef = useRef(null);
   const audioRef = useRef(null);
+  // The word-by-word highlight that follows the narration (see utils/followAlong.js).
+  const followRef = useRef(null);
   // Bumped by every start and stop, so a download that finishes late cannot start playing.
   const listenRun = useRef(0);
   const jumpedTo = useRef(null);
@@ -116,15 +119,19 @@ const PostView = () => {
     };
   }, [actionError]);
 
+  // Whether the server can narrate THIS story (a new narration can be made, or one exists).
+  const listenPostId = post && !post.is_preview ? post.id : null;
   useEffect(() => {
+    setServerVoice(false);
+    if (!listenPostId) return undefined;
     let alive = true;
-    serverVoiceEnabled().then((enabled) => {
-      if (alive) setServerVoice(enabled);
+    serverVoiceFor(listenPostId).then((usable) => {
+      if (alive) setServerVoice(usable);
     });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [listenPostId]);
 
   useEffect(() => {
     fetchPost();
@@ -313,16 +320,32 @@ const PostView = () => {
       if (audio.src && audio.src.startsWith('blob:')) URL.revokeObjectURL(audio.src);
       audioRef.current = null;
     }
+    if (followRef.current) {
+      followRef.current.stop();
+      followRef.current = null;
+    }
   };
 
   const speakInBrowser = () => {
     setSpeaking(true);
+    const follow = bodyRef.current ? createFollowAlong(bodyRef.current) : null;
+    followRef.current = follow;
+    const endFollow = () => {
+      if (follow) follow.stop();
+      if (followRef.current === follow) followRef.current = null;
+    };
     ssmlTTS.speak(post.content, {
       lang: 'hi-IN',
       useSSML: false,
       title: post.title,
-      onEnd: () => setSpeaking(false),
+      onTokens: ({ words, titleWords }) => follow && follow.setSpoken(words, titleWords),
+      onWord: (index) => follow && follow.moveTo(index),
+      onEnd: () => {
+        endFollow();
+        setSpeaking(false);
+      },
       onError: () => {
+        endFollow();
         setSpeaking(false);
         setActionError('इस उपकरण पर रचना सुनाई नहीं जा सकी। हो सकता है हिंदी आवाज़ (वॉइस) उपलब्ध न हो।');
       },
@@ -373,6 +396,14 @@ const PostView = () => {
         if (run !== listenRun.current) return;
         setPreparing(false);
         setSpeaking(true);
+        // Mark each word as it is spoken, using the server's word times (or an estimate).
+        const follow = bodyRef.current ? createFollowAlong(bodyRef.current) : null;
+        if (follow) {
+          followRef.current = follow;
+          fetchTimings(post.id).then((timings) => {
+            if (run === listenRun.current && followRef.current === follow) follow.attachAudio(audio, timings);
+          });
+        }
         return;
       } catch (error) {
         URL.revokeObjectURL(silent);
