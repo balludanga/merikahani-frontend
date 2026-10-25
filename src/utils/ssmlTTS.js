@@ -236,7 +236,7 @@ function splitForSpeech(text, max = MAX_CHUNK) {
   };
 
   text.split(/\n+/).forEach((line) => {
-    const sentences = line.match(/.+?(?:[।॥?!]+|\.(?=\s|$)|$)\s*/g) || [];
+    const sentences = line.match(/.+?(?:[।॥?!]+[”"’]*|\.[”"’]*(?=\s|$)|$)\s*/g) || [];
     let current = '';
     sentences.forEach((sentence) => {
       const piece = sentence.trim();
@@ -251,6 +251,150 @@ function splitForSpeech(text, max = MAX_CHUNK) {
   });
 
   return chunks;
+}
+
+/**
+ * Silences (ms) a narrator leaves, shortest to longest. The synthesizer adds a small gap
+ * of its own between utterances, so these are a little under what a reader would take.
+ */
+const PAUSE = {
+  clause: 170,
+  sentence: 400,
+  question: 460,
+  trail: 620,
+  paragraph: 750,
+  section: 1300,
+  title: 1000,
+};
+
+const QUOTE_MARKS = /[“”"‘’]/g;
+// A line with none of these (a "* * *" or "———" divider) is a scene break, not speech.
+const HAS_WORDS = /[ऄ-ॣ०-ॿ\w]/;
+
+const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
+
+/** Small stable number from a piece of text, so the "random" variation never changes. */
+function hashOf(text) {
+  let h = 0;
+  for (let i = 0; i < text.length; i += 1) h = (h * 31 + text.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+/**
+ * Turn plain story text into what a writer reading aloud would do: a breath at every
+ * comma, a longer one at a full stop, longer still between paragraphs and at a blank line
+ * or "* * *" divider; questions lift slightly, ellipses trail off, quoted speech is set
+ * a touch higher and brisker than the narration, and no two sentences share exactly the
+ * same speed and pitch (a flat metronome is what makes synthetic voices sound robotic).
+ * The variation is a few percent only; larger swings sound artificial.
+ *
+ * Returns segments for the engine: speech ({text, rate, pitch, volume}) and silences
+ * ({isBreak, breakDuration}). `title`, when given, is read first, slower and lower.
+ */
+function planNarration(text, { rate = 0.9, pitch = 1.0, volume = 1.0, title = '' } = {}) {
+  const segments = [];
+
+  const pause = (ms) => {
+    const last = segments[segments.length - 1];
+    if (!last) return;
+    if (last.isBreak) last.breakDuration = Math.max(last.breakDuration, ms);
+    else segments.push({ text: '', isBreak: true, breakDuration: ms });
+  };
+
+  const say = (spoken, r, p, v) => {
+    splitForSpeech(spoken).forEach((piece) => {
+      segments.push({
+        text: piece,
+        rate: clamp(r, 0.5, 1.6),
+        pitch: clamp(p, 0.5, 1.6),
+        volume: clamp(v, 0, 1),
+      });
+    });
+  };
+
+  const heading = title.replace(QUOTE_MARKS, '').trim();
+  if (heading) {
+    say(heading, rate * 0.94, pitch * 0.97, volume);
+    pause(PAUSE.title);
+  }
+
+  let inQuote = false;
+  let blankLines = 0;
+
+  text.split('\n').forEach((raw) => {
+    const line = raw.trim();
+    if (!line) {
+      blankLines += 1;
+      return;
+    }
+    if (!HAS_WORDS.test(line)) {
+      pause(PAUSE.section);
+      blankLines = 0;
+      return;
+    }
+    pause(blankLines > 0 ? PAUSE.section : PAUSE.paragraph);
+    blankLines = 0;
+
+    const sentences = line.match(/.+?(?:[।॥?!]+[”"’]*|\.[”"’]*(?=\s|$)|$)\s*/g) || [];
+    sentences.forEach((sentence) => {
+      // Clauses at commas / colons / dashes / quote marks; one too short to say alone joins the next.
+      const clauses = sentence.match(/[^,;:—–…“”"‘’]+(?:[,;:—–…“”"‘’]+|$)/g) || [sentence];
+      const parts = [];
+      let buffer = '';
+      clauses.forEach((clause) => {
+        buffer += clause;
+        if (buffer.trim().length >= 14) {
+          parts.push(buffer);
+          buffer = '';
+        }
+      });
+      if (buffer.trim()) {
+        if (parts.length) parts[parts.length - 1] += buffer;
+        else parts.push(buffer);
+      }
+
+      parts.forEach((part, index) => {
+        const isLast = index === parts.length - 1;
+        const startsInQuote = inQuote || /^\s*[“"‘]/.test(part);
+        for (const ch of part) {
+          if (ch === '“' || ch === '‘') inQuote = true;
+          else if (ch === '”' || ch === '’') inQuote = false;
+          else if (ch === '"') inQuote = !inQuote;
+        }
+
+        const spoken = part.replace(QUOTE_MARKS, '').trim();
+        if (!spoken || !HAS_WORDS.test(spoken)) return;
+
+        let ending = 'clause';
+        if (/(…|\.{2,})\s*[”"’]*\s*$/.test(part)) ending = 'trail';
+        else if (isLast) {
+          if (/[?？]\s*[”"’]*\s*$/.test(part)) ending = 'question';
+          else if (/!\s*[”"’]*\s*$/.test(part)) ending = 'exclaim';
+          else ending = 'sentence';
+        }
+
+        const h = hashOf(spoken);
+        let r = rate * (1 + ((h % 7) - 3) / 100);
+        let p = pitch * (1 + (((h >> 3) % 5) - 2) / 100);
+        let v = volume;
+        if (startsInQuote) {
+          p *= 1.05;
+          r *= 1.03;
+        }
+        if (ending === 'question') p *= 1.05;
+        else if (ending === 'exclaim') {
+          p *= 1.04;
+          v = Math.min(1, v * 1.08);
+        } else if (ending === 'trail') r *= 0.92;
+
+        say(spoken, r, p, v);
+        pause(PAUSE[ending === 'exclaim' ? 'question' : ending]);
+      });
+    });
+  });
+
+  while (segments.length && segments[segments.length - 1].isBreak) segments.pop();
+  return segments;
 }
 
 /**
@@ -321,14 +465,26 @@ class SSMLTTSEngine {
     const normalize = (value) => (value || '').replace('_', '-').toLowerCase();
     const wanted = normalize(lang);
     const prefix = wanted.split('-')[0];
-    const matching = this.getVoices().filter((v) => normalize(v.lang).split('-')[0] === prefix);
+    // Edge has been seen listing half-empty entries ("Microsoft undefined Online ...").
+    const matching = this.getVoices().filter(
+      (v) => normalize(v.lang).split('-')[0] === prefix && !/undefined/i.test(v.name)
+    );
     if (!matching.length) return null;
 
-    for (const pref of preferences) {
-      const voice = matching.find((v) => v.name.toLowerCase().includes(pref.toLowerCase()));
-      if (voice) return voice;
-    }
-    return matching.find((v) => normalize(v.lang) === wanted) || matching[0];
+    // Neural / "natural" voices sound like a person; the old compact ones like a machine.
+    // Rank by that first, then by the caller's name preferences, then an exact locale.
+    const score = (voice) => {
+      const name = voice.name.toLowerCase();
+      let points = 0;
+      if (/natural|neural|premium|enhanced|siri|wavenet|studio|chirp/.test(name)) points += 100;
+      else if (/online/.test(name)) points += 60;
+      if (/compact/.test(name)) points -= 20;
+      const pref = preferences.findIndex((p) => name.includes(p.toLowerCase()));
+      if (pref !== -1) points += 40 - pref;
+      if (normalize(voice.lang) === wanted) points += 5;
+      return points;
+    };
+    return matching.reduce((best, voice) => (score(voice) > score(best) ? voice : best));
   }
 
   /**
@@ -346,10 +502,11 @@ class SSMLTTSEngine {
 
     const {
       lang = 'hi-IN',
-      voicePreferences = ['lekha', 'swara', 'madhur', 'google', 'hemant', 'kalpana'],
+      voicePreferences = ['swara', 'madhur', 'lekha', 'google', 'hemant', 'kalpana'],
       rate = 0.9,
-      pitch = 1.1,
-      volume = 0.9,
+      pitch = 1.0,
+      volume = 1.0,
+      title = '',
       onEnd = null,
       onError = null,
       useSSML = true
@@ -358,21 +515,23 @@ class SSMLTTSEngine {
     this.onEndCallback = onEnd;
     this.onErrorCallback = onError;
 
-    // Plain text (useSSML false) is spoken as written; "<" in a story is not markup.
-    const base = useSSML && text.includes('<')
-      ? this.parser.parseSSML(text)
-      : [{ text: this.parser.removeEmojis(text), rate, pitch, volume }];
-
-    const segments = [];
-    base.forEach((segment) => {
-      if (segment.isBreak) {
-        segments.push(segment);
-        return;
-      }
-      splitForSpeech(segment.text).forEach((piece) => {
-        segments.push({ ...segment, text: piece });
+    let segments;
+    if (useSSML && text.includes('<')) {
+      segments = [];
+      this.parser.parseSSML(text).forEach((segment) => {
+        if (segment.isBreak) {
+          segments.push(segment);
+          return;
+        }
+        splitForSpeech(segment.text).forEach((piece) => {
+          segments.push({ ...segment, text: piece });
+        });
       });
-    });
+    } else {
+      // Plain text is spoken as written ("<" in a story is not markup), paced like a
+      // person reading it aloud.
+      segments = planNarration(this.parser.removeEmojis(text), { rate, pitch, volume, title });
+    }
 
     const session = this.session;
     this.queue = segments;
@@ -504,4 +663,4 @@ class SSMLTTSEngine {
 const ssmlTTS = new SSMLTTSEngine();
 
 export default ssmlTTS;
-export { SSMLParser, SSMLTTSEngine, splitForSpeech };
+export { SSMLParser, SSMLTTSEngine, splitForSpeech, planNarration };
