@@ -661,6 +661,14 @@
   font-family: inherit;
 }
 
+/* Explanatory line in the confirm dialogs (e.g. taking a live story back to a draft) */
+.dialog-note {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--text-2);
+  margin-bottom: 22px;
+}
+
 /* Cover image field — device upload alongside the optional URL fallback. */
 .cover-field {
   display: block;

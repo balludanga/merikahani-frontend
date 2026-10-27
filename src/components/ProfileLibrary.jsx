@@ -10,10 +10,12 @@ import { formatDate } from '../utils/format';
 const ProfileLibrary = ({ tab }) => {
   const [items, setItems] = useState(null); // null = loading
   const [failed, setFailed] = useState(false);
+  const [removeFailed, setRemoveFailed] = useState(false);
 
   const load = async () => {
     setItems(null);
     setFailed(false);
+    setRemoveFailed(false);
     try {
       const response = tab === 'saved' ? await bookmarksAPI.list() : await highlightsAPI.list();
       setItems(response.data);
@@ -27,11 +29,14 @@ const ProfileLibrary = ({ tab }) => {
   }, [tab]);
 
   const removeHighlight = async (id) => {
+    setRemoveFailed(false);
     try {
       await highlightsAPI.remove(id);
       setItems((prev) => prev.filter((item) => item.id !== id));
     } catch (error) {
-      setFailed(true);
+      // The passage is still on the shelf, so this is not a broken list: say what failed and let
+      // the same button be pressed again.
+      setRemoveFailed(true);
     }
   };
 
@@ -39,7 +44,7 @@ const ProfileLibrary = ({ tab }) => {
     return (
       <p className="empty-state">
         यह सूची लोड नहीं हो सकी।{' '}
-        <button type="button" className="follow-btn" onClick={load}>फिर कोशिश करें</button>
+        <button type="button" onClick={load}>फिर कोशिश करें</button>
       </p>
     );
   }
@@ -91,6 +96,9 @@ const ProfileLibrary = ({ tab }) => {
 
   return (
     <div className="user-posts-list">
+      {removeFailed && (
+        <p className="library-note" role="alert">अंश हटाया नहीं जा सका। कृपया फिर कोशिश करें।</p>
+      )}
       {groups.map(({ post, rows }) => (
         <section key={post.id} className="library-group">
           <h3><Link to={`/post/${post.slug}`}>{post.title}</Link></h3>

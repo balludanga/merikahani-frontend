@@ -160,7 +160,7 @@ const Ops = () => {
     return (
       <div className="ops-page">
         <p className="empty-state">
-          आँकड़े लोड नहीं हो सके। <button type="button" className="follow-btn" onClick={load}>फिर कोशिश करें</button>
+          आँकड़े लोड नहीं हो सके। <button type="button" onClick={load}>फिर कोशिश करें</button>
         </p>
       </div>
     );

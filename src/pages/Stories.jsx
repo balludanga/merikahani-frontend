@@ -13,6 +13,7 @@ const Stories = () => {
   const [tab, setTab] = useState('published');
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -25,6 +26,7 @@ const Stories = () => {
 
   const fetchPosts = async () => {
     setLoading(true);
+    setFailed(false);
     try {
       const published = tab === 'published' ? 1 : 0;
       const response = await postsAPI.getMine({ published });
@@ -32,6 +34,8 @@ const Stories = () => {
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to fetch my posts:', error);
+      // "You have written nothing" and "the list did not arrive" must not look the same here.
+      setFailed(true);
     } finally {
       setLoading(false);
     }
@@ -68,6 +72,11 @@ const Stories = () => {
 
         {loading || authLoading ? (
           <div className="page-loading">लोड हो रहा है…</div>
+        ) : failed ? (
+          <p className="empty-state">
+            आपकी रचनाएँ लोड नहीं हो सकीं।{' '}
+            <button type="button" onClick={fetchPosts}>फिर कोशिश करें</button>।
+          </p>
         ) : posts.length === 0 ? (
           <p className="empty-state">
             {tab === 'published'

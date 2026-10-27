@@ -23,6 +23,17 @@ const readAsDataUrl = (blob) =>
     reader.readAsDataURL(blob);
   });
 
+// A preview address pins its whole picture in memory until it is released, so every path that
+// replaces or discards a preview revokes the one it drops. Idempotent: revoking twice is fine.
+const release = (url) => {
+  if (url) URL.revokeObjectURL(url);
+};
+
+const noImages = () => ({
+  avatar: { blob: null, preview: null, remove: false },
+  cover: { blob: null, preview: null, remove: false },
+});
+
 // The API's validation messages are already Hindi; drop pydantic's "Value error, " prefix.
 const problem = (error) => {
   const detail = error.response?.data?.detail;
@@ -41,10 +52,7 @@ const EditProfile = () => {
   const [draft, setDraft] = useState(null);
   const [snapshot, setSnapshot] = useState('');
   const [posts, setPosts] = useState([]);
-  const [images, setImages] = useState({
-    avatar: { blob: null, preview: null, remove: false },
-    cover: { blob: null, preview: null, remove: false },
-  });
+  const [images, setImages] = useState(noImages);
   const [cropping, setCropping] = useState(null); // { kind, file }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -108,6 +116,20 @@ const EditProfile = () => {
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
 
+  // A preview the writer never saved is still theirs to drop: release whatever is live when the
+  // page goes away, since nothing else on it is left to revoke it.
+  const liveImages = useRef(images);
+  useEffect(() => {
+    liveImages.current = images;
+  }, [images]);
+  useEffect(
+    () => () => {
+      release(liveImages.current.avatar.preview);
+      release(liveImages.current.cover.preview);
+    },
+    [],
+  );
+
   const set = (field) => (value) => setDraft((d) => ({ ...d, [field]: value }));
 
   const pickImage = (kind) => (e) => {
@@ -118,17 +140,27 @@ const EditProfile = () => {
 
   const croppedImage = (blob) => {
     const { kind } = cropping;
-    setImages((prev) => ({ ...prev, [kind]: { blob, preview: URL.createObjectURL(blob), remove: false } }));
+    // The address is made here, not inside the updater: StrictMode may run an updater twice, and
+    // the second pass would leave the first picture with no owner left to revoke it.
+    const preview = URL.createObjectURL(blob);
+    setImages((prev) => {
+      release(prev[kind].preview);
+      return { ...prev, [kind]: { blob, preview, remove: false } };
+    });
     if (kind === 'cover') setDraft((d) => ({ ...d, cover_style: null }));
     setCropping(null);
   };
 
-  const removeImage = (kind) => setImages((prev) => ({ ...prev, [kind]: { blob: null, preview: null, remove: true } }));
+  const removeImage = (kind) =>
+    setImages((prev) => {
+      release(prev[kind].preview);
+      return { ...prev, [kind]: { blob: null, preview: null, remove: true } };
+    });
 
   const choosePreset = (key) => {
     setDraft((d) => ({ ...d, cover_style: key }));
     // A design replaces any picture.
-    setImages((prev) => ({ ...prev, cover: { blob: null, preview: null, remove: true } }));
+    removeImage('cover');
   };
 
   const toggleGenre = (genre) =>
@@ -183,7 +215,11 @@ const EditProfile = () => {
       })).data;
       updateUser({ full_name: saved.full_name, avatar_url: saved.avatar_url, accent: saved.accent });
       setSnapshot(JSON.stringify(draft));
-      setImages({ avatar: { blob: null, preview: null, remove: false }, cover: { blob: null, preview: null, remove: false } });
+      setImages((prev) => {
+        release(prev.avatar.preview);
+        release(prev.cover.preview);
+        return noImages();
+      });
       navigate(`/user/${user.id}`, { state: { saved: true } });
     } catch (err) {
       setError(problem(err));
@@ -272,7 +308,7 @@ const EditProfile = () => {
                 style={{ background: coverBackground(null, draft.accent) }}
                 onClick={() => {
                   setDraft((d) => ({ ...d, cover_style: null }));
-                  setImages((prev) => ({ ...prev, cover: { blob: null, preview: null, remove: true } }));
+                  removeImage('cover');
                 }}
               >
                 <span>रंग से</span>

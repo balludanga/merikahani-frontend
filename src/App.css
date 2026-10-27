@@ -123,6 +123,24 @@ textarea {
   text-decoration: underline;
 }
 
+/* A "try again" sits inside an empty-state sentence on several pages. Styled here, next to the
+   links it stands beside, because the button classes those pages used to copy live in another
+   route's stylesheet - and a lazy route that has not loaded leaves an unstyled control. */
+.empty-state button {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.empty-state button:hover {
+  text-decoration: underline;
+}
+
 .layout {
   max-width: 1192px;
   margin: 0 auto;

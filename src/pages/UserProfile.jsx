@@ -40,6 +40,14 @@ const UserProfile = () => {
   // 'notfound' for a real 404; 'error' for anything else (network, 5xx, timeout)
   const [loadError, setLoadError] = useState(null);
   const [notice, setNotice] = useState(location.state && location.state.saved ? 'प्रोफ़ाइल सहेज ली गई ✓' : '');
+  const [noticeBad, setNoticeBad] = useState(false);
+
+  // The one line this page speaks through. A problem uses the same line and the same timer, but
+  // is announced rather than politely reported.
+  const say = (text, bad = false) => {
+    setNotice(text);
+    setNoticeBad(bad);
+  };
   const accentStyle = useAccentStyle(profile && profile.accent);
 
   useEffect(() => {
@@ -113,6 +121,7 @@ const UserProfile = () => {
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Follow failed:', error);
+      say('फ़ॉलो नहीं बदल सकी। कृपया फिर कोशिश करें।', true);
     }
   };
 
@@ -120,9 +129,9 @@ const UserProfile = () => {
     const url = `${window.location.origin}/user/${userId}`;
     try {
       await navigator.clipboard.writeText(url);
-      setNotice('प्रोफ़ाइल की कड़ी कॉपी हो गई ✓');
+      say('प्रोफ़ाइल की कड़ी कॉपी हो गई ✓');
     } catch (error) {
-      setNotice(url);
+      say(url);
     }
   };
 
@@ -136,7 +145,7 @@ const UserProfile = () => {
         <div className="user-profile">
           <p className="empty-state">
             कोई तकनीकी दिक्कत आई है, लेखक की जानकारी लोड नहीं हो सकी।{' '}
-            <button type="button" className="follow-btn" onClick={fetchProfile}>फिर कोशिश करें</button>
+            <button type="button" onClick={fetchProfile}>फिर कोशिश करें</button>
           </p>
         </div>
       );
@@ -230,7 +239,11 @@ const UserProfile = () => {
         )}
       </div>
 
-      {notice && <div className="profile-notice" role="status">{notice}</div>}
+      {notice && (
+        <div className={`profile-notice ${noticeBad ? 'bad' : ''}`} role={noticeBad ? 'alert' : 'status'}>
+          {notice}
+        </div>
+      )}
     </div>
   );
 };

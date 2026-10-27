@@ -49,6 +49,11 @@ function whoHighlighted(found, myId) {
   return `${names.slice(0, 2).join(', ')} और ${names.length - 2} अन्य ने हाइलाइट किया`;
 }
 
+// Responses are read newest thread first, a page of threads at a time — a story with
+// hundreds of them must not hide the older ones. One thread is its response plus answers.
+const COMMENT_PAGE = 100;
+const countThreads = (rows) => rows.filter((row) => !row.parent_id).length;
+
 const PostView = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -68,6 +73,10 @@ const PostView = () => {
   const [actionError, setActionError] = useState('');
   const [shareState, setShareState] = useState('idle'); // idle | copied
   const [comments, setComments] = useState([]);
+  // Older threads the reader can still pull in, and how many rows the server has given.
+  const [commentsOlder, setCommentsOlder] = useState(false);
+  const [loadingCommentsOlder, setLoadingCommentsOlder] = useState(false);
+  const commentsLoaded = useRef(0);
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   // The response being answered, with its draft: { id, name } | null
@@ -180,8 +189,10 @@ const PostView = () => {
     // Comments and author follow-state are secondary: if they fail, the
     // already-loaded post must stay on screen.
     try {
-      const commentsRes = await commentsAPI.getByPost(loaded.id);
+      const commentsRes = await commentsAPI.getByPost(loaded.id, { order: 'desc', limit: COMMENT_PAGE });
       setComments(commentsRes.data);
+      commentsLoaded.current = countThreads(commentsRes.data);
+      setCommentsOlder(countThreads(commentsRes.data) === COMMENT_PAGE);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to fetch comments:', error);
@@ -197,6 +208,34 @@ const PostView = () => {
         // eslint-disable-next-line no-console
         console.error('Failed to fetch author profile:', error);
       }
+    }
+  };
+
+  // A fresh response leads the list (newest thread first); an answer still joins the
+  // end of its own thread, which reads oldest first.
+  const addComment = (fresh) =>
+    setComments((prev) => (fresh.parent_id ? [...prev, fresh] : [fresh, ...prev]));
+
+  const loadOlderComments = async () => {
+    if (loadingCommentsOlder) return;
+    setLoadingCommentsOlder(true);
+    try {
+      const res = await commentsAPI.getByPost(post.id, {
+        order: 'desc',
+        limit: COMMENT_PAGE,
+        skip: commentsLoaded.current,
+      });
+      const older = res.data;
+      commentsLoaded.current += countThreads(older);
+      setComments((prev) => {
+        const seen = new Set(prev.map((row) => row.id));
+        return [...prev, ...older.filter((row) => !seen.has(row.id))];
+      });
+      setCommentsOlder(countThreads(older) === COMMENT_PAGE);
+    } catch (error) {
+      setActionError('पुरानी प्रतिक्रियाएँ लाई नहीं जा सकीं।');
+    } finally {
+      setLoadingCommentsOlder(false);
     }
   };
 
@@ -266,6 +305,8 @@ const PostView = () => {
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Clap failed:', error);
+      // Nothing on the page moves until the server answers, so a silent failure is an ignored tap.
+      setActionError('तालियाँ गिनी नहीं जा सकीं। कृपया फिर कोशिश करें।');
     } finally {
       setClapping(false);
     }
@@ -287,6 +328,7 @@ const PostView = () => {
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Bookmark failed:', error);
+      setActionError(post.bookmarked ? 'सूची से हटाया नहीं जा सका।' : 'रचना सूची में सहेजी नहीं जा सकी।');
     }
   };
 
@@ -304,6 +346,7 @@ const PostView = () => {
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Follow failed:', error);
+      setActionError(isFollowing ? 'फ़ॉलो छोड़ा नहीं जा सका।' : 'फ़ॉलो नहीं किया जा सका।');
     }
   };
 
@@ -427,7 +470,7 @@ const PostView = () => {
     setSubmittingComment(true);
     try {
       const response = await commentsAPI.create({ content, post_id: post.id });
-      setComments((prev) => [...prev, response.data]);
+      addComment(response.data);
       setCommentText('');
     } catch (error) {
       setActionError('प्रतिक्रिया सहेजी नहीं जा सकी।');
@@ -461,7 +504,7 @@ const PostView = () => {
     setSubmittingReply(true);
     try {
       const response = await commentsAPI.create({ content, post_id: post.id, parent_id: replyTo.id });
-      setComments((prev) => [...prev, response.data]);
+      addComment(response.data);
       setReplyTo(null);
       setReplyText('');
     } catch (error) {
@@ -531,7 +574,7 @@ const PostView = () => {
       const response = await commentsAPI.create({
         content, post_id: post.id, quote: composer.quote, quote_start: composer.start,
       });
-      setComments((prev) => [...prev, response.data]);
+      addComment(response.data);
       setComposer(null);
       setNotice('प्रतिक्रिया जुड़ गई — यह नीचे “प्रतिक्रियाएँ” में दिखेगी।');
     } catch (error) {
@@ -1098,6 +1141,17 @@ const PostView = () => {
                 )}
               </div>
             ))
+        )}
+
+        {commentsOlder && (
+          <button
+            type="button"
+            className="load-older"
+            onClick={loadOlderComments}
+            disabled={loadingCommentsOlder}
+          >
+            {loadingCommentsOlder ? 'पुरानी प्रतिक्रियाएँ आ रही हैं…' : 'पुरानी प्रतिक्रियाएँ देखें'}
+          </button>
         )}
       </section>
 

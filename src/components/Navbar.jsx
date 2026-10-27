@@ -108,7 +108,6 @@ const Navbar = ({ landing }) => {
                   className="navbar-avatar"
                   onClick={() => setMenuOpen((v) => !v)}
                   aria-label="खाता मेनू"
-                  aria-haspopup="true"
                   aria-expanded={menuOpen}
                 >
                   {user?.avatar_url ? (
@@ -118,15 +117,18 @@ const Navbar = ({ landing }) => {
                   )}
                 </button>
                 {menuOpen && (
-                  <div className="navbar-dropdown" role="menu">
+                  /* A group of plain links, not a menu: role="menu" promises arrow-key
+                     navigation this list does not implement, and a screen reader would then
+                     swallow the Tab key its user actually needs. */
+                  <div className="navbar-dropdown" role="group" aria-label="खाता मेनू">
                     {/* Nav search input is hidden below 700px — keep search reachable via the menu. */}
-                    <Link to="/search" role="menuitem" onClick={() => setMenuOpen(false)}>खोजें</Link>
-                    <Link to={`/user/${user.id}`} role="menuitem" onClick={() => setMenuOpen(false)}>प्रोफ़ाइल</Link>
-                    <Link to="/settings/profile" role="menuitem" onClick={() => setMenuOpen(false)}>प्रोफ़ाइल सजाएँ</Link>
-                    <Link to="/stories" role="menuitem" onClick={() => setMenuOpen(false)}>मेरी रचनाएँ</Link>
-                    <Link to="/bookmarks" role="menuitem" onClick={() => setMenuOpen(false)}>पढ़ने की सूची</Link>
-                    <Link to="/highlights" role="menuitem" onClick={() => setMenuOpen(false)}>मेरी हाइलाइट</Link>
-                    <button type="button" role="menuitem" onClick={handleLogout}>साइन आउट</button>
+                    <Link to="/search" onClick={() => setMenuOpen(false)}>खोजें</Link>
+                    <Link to={`/user/${user.id}`} onClick={() => setMenuOpen(false)}>प्रोफ़ाइल</Link>
+                    <Link to="/settings/profile" onClick={() => setMenuOpen(false)}>प्रोफ़ाइल सजाएँ</Link>
+                    <Link to="/stories" onClick={() => setMenuOpen(false)}>मेरी रचनाएँ</Link>
+                    <Link to="/bookmarks" onClick={() => setMenuOpen(false)}>पढ़ने की सूची</Link>
+                    <Link to="/highlights" onClick={() => setMenuOpen(false)}>मेरी हाइलाइट</Link>
+                    <button type="button" onClick={handleLogout}>साइन आउट</button>
                   </div>
                 )}
               </div>

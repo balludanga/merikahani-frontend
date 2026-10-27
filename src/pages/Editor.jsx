@@ -208,6 +208,10 @@ const BLOCK_ACTIONS = [
 const emptyCells = (rows, cols) =>
   Array.from({ length: rows }, () => Array.from({ length: cols }, () => ''));
 
+// What counts as "the piece as last saved on the server": the fields that carry the
+// writing. Compared against the current form to know whether there is unsaved work.
+const signatureOf = (form) => `${form.title || ''}\u0000${form.content || ''}\u0000${form.content_html || ''}`;
+
 const Editor = () => {
   const { id } = useParams();
   const isEdit = !!id;
@@ -218,10 +222,13 @@ const Editor = () => {
   // null | 'notfound' (403/404) | 'error' (network, 5xx, timeout)
   const [loadError, setLoadError] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [draftId, setDraftId] = useState(null);
+  // The id of the draft on the server. A ref and not state: every autosave closure
+  // must see it the instant it exists, or a reload mid-compose creates a second draft.
+  const draftIdRef = useRef(null);
   const [autoStatus, setAutoStatus] = useState('idle'); // idle | saving | saved | error
   const [savedAt, setSavedAt] = useState('');
   const [showPublish, setShowPublish] = useState(false);
+  const [unpublishAsk, setUnpublishAsk] = useState(false); // taking a live story back to a draft
   const [focusMode, setFocusMode] = useState(false);
   const [dialog, setDialog] = useState(null); // link/image/video: {kind, range, value} · table: {kind, cells, blot?}
   const [gutter, setGutter] = useState(null); // { index, top } — ⊕ button beside the active block
@@ -253,7 +260,12 @@ const Editor = () => {
   const quillRef = useRef(null);
   const autoTimer = useRef(null);
   const autosaveInFlight = useRef(false);
+  // A change typed while a save was still running: it is saved as soon as that one lands.
+  const autosavePending = useRef(false);
+  // The newest autosave, so a re-armed timer never uses a stale form snapshot.
+  const autoSaveRef = useRef(null);
   const saveSeq = useRef(0);
+  const savedSig = useRef('');
   const fileInputRef = useRef(null);
   // Where a device-picked image should land (the gutter ⊕ block index), since
   // the Quill selection is lost while the OS file dialog is open.
@@ -302,7 +314,7 @@ const Editor = () => {
     try {
       const response = await postsAPI.getById(id);
       const post = response.data;
-      setFormData({
+      const loaded = {
         title: post.title || '',
         subtitle: post.subtitle || '',
         content: post.content || '',
@@ -311,7 +323,9 @@ const Editor = () => {
         topic: post.topic || '',
         tags: (post.tags || []).join(', '),
         published: post.published || 0,
-      });
+      };
+      setFormData(loaded);
+      savedSig.current = signatureOf(loaded);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to fetch post:', error);
@@ -323,10 +337,12 @@ const Editor = () => {
   };
 
   // A local mirror survives refreshes and failed saves; the newest content
-  // always wins when the editor reopens in compose mode.
+  // always wins when the editor reopens in compose mode. The server id travels
+  // with it, so coming back to an interrupted compose continues the same draft
+  // instead of creating a duplicate one.
   const writeMirror = (data) => {
     try {
-      localStorage.setItem(mirrorKey, JSON.stringify({ data, at: Date.now() }));
+      localStorage.setItem(mirrorKey, JSON.stringify({ data, at: Date.now(), id: draftIdRef.current }));
     } catch (err) {
       // storage full or blocked — autosave to the server still works.
     }
@@ -339,6 +355,9 @@ const Editor = () => {
       const mirror = JSON.parse(raw);
       if (mirror && mirror.data && (mirror.data.title || mirror.data.content)) {
         setFormData((prev) => ({ ...prev, ...mirror.data }));
+        // Mirrors written before the id was kept: the draft still has to be created.
+        draftIdRef.current = mirror.id || null;
+        if (mirror.id) savedSig.current = signatureOf(mirror.data);
       }
     } catch (err) {
       // unreadable mirror — start fresh.
@@ -431,18 +450,19 @@ const Editor = () => {
     };
   }, [barMenuOpen]);
 
-  // Modal dialogs (link/image/video/table and the publish sheet) close on
-  // Escape, matching the in-app confirm modal elsewhere in the app.
+  // Modal dialogs (link/image/video/table, the publish sheet and the unpublish
+  // confirm) close on Escape, matching the in-app confirm modal elsewhere.
   useEffect(() => {
-    if (!dialog && !showPublish) return undefined;
+    if (!dialog && !showPublish && !unpublishAsk) return undefined;
     const onKey = (e) => {
       if (e.key !== 'Escape') return;
       if (dialog) setDialog(null);
+      else if (unpublishAsk) setUnpublishAsk(false);
       else if (showPublish) setShowPublish(false);
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [dialog, showPublish]);
+  }, [dialog, showPublish, unpublishAsk]);
 
   // Dialog hooks for Quill handlers (link/image buttons in the floating toolbar).
   useEffect(() => {
@@ -727,22 +747,29 @@ const Editor = () => {
   // Auto-draft: two seconds after typing pauses, the piece saves itself —
   // created once, then silently updated. Published posts stay manual.
   const autoSave = async () => {
-    if (autosaveInFlight.current) return;
+    if (autosaveInFlight.current) {
+      // A save is on its way: remember that the form moved and run again right after it.
+      autosavePending.current = true;
+      return;
+    }
     autosaveInFlight.current = true;
     setAutoStatus('saving');
     const seq = ++saveSeq.current;
     writeMirror(formData);
     try {
-      const targetId = isEdit ? id : draftId;
+      const targetId = isEdit ? id : draftIdRef.current;
       const payload = buildPayload(0);
       if (targetId) {
         await postsAPI.update(targetId, payload);
       } else {
         const response = await postsAPI.create(payload);
-        setDraftId(response.data.id);
+        draftIdRef.current = response.data.id;
+        // Keep the mirror pointing at the draft that now exists on the server.
+        writeMirror(formData);
       }
       // Ignore stale responses — a newer save owns the status line.
       if (seq === saveSeq.current) {
+        savedSig.current = signatureOf(formData);
         setAutoStatus('saved');
         setSavedAt(
           new Date().toLocaleTimeString('hi-IN', {
@@ -760,8 +787,15 @@ const Editor = () => {
       if (seq === saveSeq.current) setAutoStatus('error');
     } finally {
       autosaveInFlight.current = false;
+      if (autosavePending.current) {
+        autosavePending.current = false;
+        clearTimeout(autoTimer.current);
+        // autoSaveRef holds this render's latest form, never a stale snapshot.
+        autoTimer.current = setTimeout(() => autoSaveRef.current && autoSaveRef.current(), 1500);
+      }
     }
   };
+  autoSaveRef.current = autoSave;
 
   useEffect(() => {
     const isLivePost = isEdit && formData.published === 1;
@@ -781,6 +815,22 @@ const Editor = () => {
     isEdit,
   ]);
 
+  // Nothing on the server yet and nothing in the mirror either: ask before closing.
+  // Published posts are never auto-saved, so this is the only guard they get.
+  const hasWriting = !!(formData.title.trim() || formData.content.trim());
+  const dirty =
+    !loading && !loadError && hasWriting && signatureOf(formData) !== savedSig.current;
+
+  useEffect(() => {
+    if (!dirty) return undefined;
+    const warn = (e) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
+
   const save = async (published) => {
     if (!formData.title.trim() || !formData.content.trim()) {
       notify('शीर्षक और लेख दोनों लिखें।');
@@ -791,13 +841,16 @@ const Editor = () => {
     setSaving(true);
     const payload = buildPayload(published);
     try {
-      const targetId = isEdit ? id : draftId;
+      const targetId = isEdit ? id : draftIdRef.current;
       if (targetId) {
         const response = await postsAPI.update(targetId, payload);
         if (published) {
           try { localStorage.removeItem(mirrorKey); } catch (err) { /* noop */ }
           navigate(`/post/${response.data.slug}`);
         } else {
+          // Back to a draft: the words on screen are now the words on the server.
+          savedSig.current = signatureOf(formData);
+          setUnpublishAsk(false);
           setShowPublish(false);
           setFormData((prev) => ({ ...prev, published: 0 }));
         }
@@ -871,8 +924,13 @@ const Editor = () => {
         </div>
         <div className="editor-bar-actions">
           {isEdit && formData.published === 1 && (
-            <button type="button" className="editor-draft" onClick={() => save(0)} disabled={saving}>
-              {saving ? 'सहेज रहे हैं…' : 'ड्राफ्ट सहेजें'}
+            <button
+              type="button"
+              className="editor-draft"
+              onClick={() => setUnpublishAsk(true)}
+              disabled={saving}
+            >
+              ड्राफ्ट में बदलें
             </button>
           )}
           <button type="button" className="editor-publish" onClick={() => setShowPublish(true)}>
@@ -886,30 +944,26 @@ const Editor = () => {
               onClick={() => setBarMenuOpen((v) => !v)}
               title="और विकल्प"
               aria-label="और विकल्प"
-              aria-haspopup="true"
               aria-expanded={barMenuOpen}
             >
               ⋯
             </button>
             {barMenuOpen && (
-              <div className="bar-dropdown" role="menu">
+              <div className="bar-dropdown" role="group" aria-label="और विकल्प">
                 <button
                   type="button"
-                  role="menuitem"
                   onClick={() => { const e = getEditor(); if (e) e.history.undo(); setBarMenuOpen(false); }}
                 >
                   ↶ वापस जाएँ
                 </button>
                 <button
                   type="button"
-                  role="menuitem"
                   onClick={() => { const e = getEditor(); if (e) e.history.redo(); setBarMenuOpen(false); }}
                 >
                   ↷ आगे बढ़ें
                 </button>
                 <button
                   type="button"
-                  role="menuitem"
                   aria-pressed={hinglishOn}
                   onClick={toggleHinglish}
                 >
@@ -917,7 +971,6 @@ const Editor = () => {
                 </button>
                 <button
                   type="button"
-                  role="menuitem"
                   aria-pressed={focusMode}
                   onClick={() => { setFocusMode((v) => !v); setBarMenuOpen(false); }}
                 >
@@ -989,7 +1042,6 @@ const Editor = () => {
                 className={`gutter-add${addOpen ? ' on' : ''}`}
                 title="ब्लॉक जोड़ें"
                 aria-label="ब्लॉक जोड़ें"
-                aria-haspopup="true"
                 aria-expanded={addOpen}
                 onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
                 onClick={() => setAddOpen((v) => !v)}
@@ -1007,7 +1059,7 @@ const Editor = () => {
               {addOpen && (
                 <div
                   className="gutter-add-row"
-                  role="menu"
+                  role="group"
                   aria-label="ब्लॉक जोड़ें"
                   onMouseDown={(e) => e.stopPropagation()}
                 >
@@ -1015,7 +1067,6 @@ const Editor = () => {
                     <button
                       key={action.id}
                       type="button"
-                      role="menuitem"
                       className="gutter-add-item"
                       title={action.label}
                       aria-label={action.label}
@@ -1240,6 +1291,41 @@ const Editor = () => {
               <button type="button" className="editor-draft" onClick={() => setShowPublish(false)}>रद्द</button>
               <button type="button" className="editor-publish" onClick={() => save(1)} disabled={saving}>
                 {saving ? 'प्रकाशित हो रहा है…' : 'अभी प्रकाशित करें'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {unpublishAsk && (
+        <div
+          className="publish-modal"
+          role="dialog"
+          aria-labelledby="unpublish-title"
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setUnpublishAsk(false); }}
+        >
+          <div className="publish-card dialog-card">
+            <h2 id="unpublish-title">रचना को ड्राफ्ट में बदलें?</h2>
+            <p className="dialog-note">
+              यह रचना पाठकों से छिप जाएगी और केवल आपके पास ड्राफ्ट में दिखेगी। जब चाहें,
+              दोबारा प्रकाशित कर सकते हैं।
+            </p>
+            <div className="publish-actions">
+              <button
+                type="button"
+                className="editor-draft"
+                onClick={() => setUnpublishAsk(false)}
+                disabled={saving}
+              >
+                रहने दें
+              </button>
+              <button
+                type="button"
+                className="editor-publish"
+                onClick={() => save(0)}
+                disabled={saving}
+              >
+                {saving ? 'बदला जा रहा है…' : 'हाँ, ड्राफ्ट करें'}
               </button>
             </div>
           </div>
