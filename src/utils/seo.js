@@ -310,9 +310,10 @@ export const generateHomepageStructuredData = (posts) => {
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    '@id': `${origin}/`,
+    '@id': `${origin}/#website`,
     url: `${origin}/`,
     name: 'लेखनी',
+    alternateName: ['Lekhanii', 'Lekhani', 'लेखनी हिंदी'],
     description: 'हिंदी लेखकों का अपना मंच — कहानी, कविता, निबंध और संस्मरण',
     inLanguage: 'hi',
     potentialAction: {
