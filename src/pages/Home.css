@@ -76,7 +76,7 @@
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-  grid-template-rows: minmax(0, 1.6fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
   grid-template-areas:
     'hero trending'
     'bottom bottom';
@@ -304,8 +304,14 @@
   grid-area: bottom;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
   gap: 18px;
+  align-items: stretch;
+}
+
+/* alone in the row, the player spans all of it */
+.bento-bottom > .player:only-child {
+  grid-column: 1 / -1;
 }
 
 .bento-card {
@@ -392,119 +398,6 @@
   color: var(--accent);
 }
 
-/* Audio preview */
-.bento-audio {
-  background: var(--bg-soft);
-  align-items: flex-start;
-}
-
-.eq {
-  display: flex;
-  align-items: flex-end;
-  gap: 4px;
-  height: 26px;
-}
-
-.eq span {
-  width: 4px;
-  height: 8px;
-  border-radius: 2px;
-  background: var(--accent);
-  opacity: 0.55;
-}
-
-.eq.on span {
-  animation: eq-bounce 0.9s ease-in-out infinite;
-  opacity: 1;
-}
-
-.eq.on span:nth-child(1) { animation-delay: 0s; }
-.eq.on span:nth-child(2) { animation-delay: 0.15s; }
-.eq.on span:nth-child(3) { animation-delay: 0.3s; }
-.eq.on span:nth-child(4) { animation-delay: 0.45s; }
-.eq.on span:nth-child(5) { animation-delay: 0.6s; }
-
-@keyframes eq-bounce {
-  0%, 100% { height: 8px; }
-  50% { height: 26px; }
-}
-
-.bento-audio h3 {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: 20px;
-  color: var(--text);
-}
-
-.bento-audio p {
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--text-2);
-  flex: 1;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.audio-btn {
-  border: 0;
-  border-radius: 99px;
-  padding: 9px 18px;
-  font-size: 13.5px;
-  font-weight: 700;
-  cursor: pointer;
-  background: var(--accent);
-  color: var(--on-accent);
-  transition: background-color 0.25s ease, transform 0.2s ease;
-}
-
-.audio-btn:hover {
-  background: var(--accent-strong);
-  transform: translateY(-1px);
-}
-
-.audio-btn:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.audio-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-
-.audio-next {
-  border: 1px solid var(--border);
-  border-radius: 99px;
-  padding: 8px 16px;
-  font-size: 13.5px;
-  font-weight: 700;
-  cursor: pointer;
-  background: transparent;
-  color: var(--text);
-  transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
-}
-
-.audio-next:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  transform: translateY(-1px);
-}
-
-.audio-count {
-  font-size: 12px;
-  color: var(--text-3);
-}
-
-.audio-note {
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--danger, #b42318);
-}
-
 /* Small screens need to scroll the board vertically — physics wins */
 @media (max-width: 1023.98px) {
   .dash {
@@ -530,7 +423,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .bento-audio:only-child {
+  .bento-bottom > .player {
     grid-column: 1 / -1;
   }
 }

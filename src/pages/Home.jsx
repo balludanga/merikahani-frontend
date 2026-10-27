@@ -6,7 +6,7 @@ import { BRAND } from '../brand';
 import Footer from '../components/Footer';
 import { updateMetaTags, generateHomepageStructuredData } from '../utils/seo';
 import { formatDate, readingMinutes, excerpt, initials } from '../utils/format';
-import { useNarrationPlayer } from '../utils/narrationPlayer';
+import StoryPlayer from '../components/StoryPlayer';
 import './Home.css';
 import { mediaUrl } from '../utils/media';
 
@@ -17,9 +17,6 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [feed, setFeed] = useState('for-you');
   const [spotlight, setSpotlight] = useState(null);
-  // The audio card: which story it is on, and the player that reads it (server voice, else the browser's).
-  const [current, setCurrent] = useState(0);
-  const [audioState, player] = useNarrationPlayer();
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -58,21 +55,6 @@ const Home = () => {
   const hero = posts[0];
   const trending = posts.slice(1, 5);
 
-  // A new list of stories (another feed): the audio card starts again from the first one.
-  useEffect(() => {
-    player.stop();
-    setCurrent(0);
-  }, [posts]);
-
-  // The story the audio card is on, and the one after it. Asking the server about both ahead of the
-  // tap means pressing "next" can start at once.
-  const audioStory = posts[current] || posts[0];
-  const nextStory = posts.length > 1 ? posts[(current + 1) % posts.length] : null;
-  useEffect(() => {
-    if (audioStory) player.warm(audioStory.id);
-    if (nextStory) player.warm(nextStory.id);
-  }, [audioStory && audioStory.id, nextStory && nextStory.id]);
-
   // Spotlight: the strongest trending voice that is not the hero author.
   useEffect(() => {
     if (posts.length < 2) {
@@ -108,36 +90,6 @@ const Home = () => {
       // eslint-disable-next-line no-console
       console.error('Follow failed:', error);
     }
-  };
-
-  const audioActive = audioState.phase !== 'idle';
-
-  const toggleAudio = () => {
-    if (audioActive) {
-      player.stop();
-      return;
-    }
-    if (audioStory) player.play(audioStory);
-  };
-
-  // "Next": move the card to the next story; if it was reading, carry on reading the next one.
-  // (It does not move on by itself when a story ends: each new narration spends part of a small
-  // daily allowance, so listeners choose.)
-  const playNext = () => {
-    if (!nextStory) return;
-    const wasActive = audioActive;
-    const index = (current + 1) % posts.length;
-    player.stop();
-    setCurrent(index);
-    if (wasActive) player.play(nextStory);
-  };
-
-  const audioLabel = () => {
-    if (audioState.phase === 'playing') return '⏹ रोकें';
-    if (audioState.phase === 'preparing') {
-      return `⏳ आवाज़ तैयार हो रही है…${audioState.progress ? ` ${audioState.progress}%` : ''}`;
-    }
-    return '▶ सुनें';
   };
 
   if (!isAuthenticated) {
@@ -270,6 +222,7 @@ const Home = () => {
           </aside>
 
           <div className="bento-bottom">
+            <StoryPlayer stories={posts} />
             {spotlight && (
               <article className="bento-card bento-writer">
                 <span className="bento-label">विशेष लेखक</span>
@@ -299,35 +252,6 @@ const Home = () => {
               </article>
             )}
 
-            <section className="bento-card bento-audio">
-              <div className={`eq${audioState.phase === 'playing' ? ' on' : ''}`} aria-hidden="true">
-                <span /><span /><span /><span /><span />
-              </div>
-              <h3>लेखनी ऑडियो</h3>
-              <p>
-                {audioStory
-                  ? `${audioActive ? 'अभी सुन रहे हैं' : 'सुनें'}: ${audioStory.title}`
-                  : 'प्रस्तुत रचना उपलब्ध नहीं।'}
-              </p>
-              {posts.length > 1 && <span className="audio-count">{current + 1} / {posts.length}</span>}
-              <div className="audio-actions">
-                <button type="button" className="audio-btn" onClick={toggleAudio} disabled={!audioStory}>
-                  {audioLabel()}
-                </button>
-                {nextStory && (
-                  <button
-                    type="button"
-                    className="audio-next"
-                    onClick={playNext}
-                    title={`अगली रचना: ${nextStory.title}`}
-                    aria-label={`अगली रचना सुनें: ${nextStory.title}`}
-                  >
-                    अगली रचना ⏭
-                  </button>
-                )}
-              </div>
-              {audioState.error && <span className="audio-note" role="status">{audioState.error}</span>}
-            </section>
           </div>
         </div>
       )}
