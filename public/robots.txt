@@ -5,6 +5,7 @@ Allow: /api/share/
 Allow: /api/posts/*/cover
 Disallow: /admin
 Disallow: /api/
+Disallow: /_bot/
 
 # Block AI training crawlers — लेखनी का सारा लेख मानवीय है, इसे AI प्रशिक्षण के लिए इस्तेमाल न करें
 User-agent: GPTBot
@@ -41,6 +42,7 @@ Allow: /api/share/
 Allow: /api/posts/*/cover
 Disallow: /admin
 Disallow: /api/
+Disallow: /_bot/
 
 User-agent: Bingbot
 Allow: /
@@ -48,6 +50,7 @@ Allow: /api/share/
 Allow: /api/posts/*/cover
 Disallow: /admin
 Disallow: /api/
+Disallow: /_bot/
 
 # Sitemap
 Sitemap: https://lekhanii.vercel.app/sitemap.xml

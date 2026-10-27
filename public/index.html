@@ -40,8 +40,8 @@
     </script>
 
     <!-- SEO Meta Tags -->
-    <meta name="description" content="लेखनी — हिंदी लेखकों का अपना मंच। कहानी, कविता, निबंध और संस्मरण लिखें, पढ़ें और ताली बजाएँ। सारा लेख मानवीय, बिना कृत्रिम लेखन के।">
-    <meta name="keywords" content="लेखनी, हिंदी लेखन, हिंदी कहानी, हिंदी कविता, निबंध, संस्मरण, देवनागरी ब्लॉग, हिंदी ब्लॉग">
+    <meta name="description" content="लेखनी (Lekhanii) हिंदी लेखकों का मुफ़्त मंच — कहानी, कविता, निबंध और संस्मरण देवनागरी में लिखें और पढ़ें। हर रचना इंसान की लिखी, कृत्रिम बुद्धिमत्ता से नहीं।">
+    <meta name="keywords" content="लेखनी, हिंदी कहानी, हिंदी कविता, हिंदी निबंध, संस्मरण, हिंदी लेखन मंच, हिंदी ब्लॉग, देवनागरी में लिखें, कहानी लिखें, ऑनलाइन हिंदी साहित्य">
     <meta name="author" content="लेखनी">
     <link rel="alternate" type="application/rss+xml" title="लेखनी" href="/rss.xml">
     <meta name="robots" content="index, follow">
@@ -49,41 +49,77 @@
          Google Search Console (URL-prefix property -> HTML tag):  <meta name="google-site-verification" content="...">
          Bing Webmaster Tools (HTML meta tag):                      <meta name="msvalidate.01" content="...">
          (Bing can instead import the site from Search Console, which needs no tag of its own.) -->
-    <meta name="googlebot" content="index, follow">
-    <link rel="canonical" href="https://lekhanii.vercel.app">
+    <meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1">
+    <link rel="canonical" href="https://lekhanii.vercel.app/">
 
     <!-- Google AdSense -->
     <meta name="google-adsense-account" content="ca-pub-2811963212136233">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://lekhanii.vercel.app">
-    <meta property="og:title" content="लेखनी — हिंदी लेखकों का अपना मंच">
-    <meta property="og:description" content="कहानी, कविता, निबंध और संस्मरण — हिंदी में लंबी-फ़ॉर्म लेखन का घर। मानवीय लेखन, बिना कृत्रिम लेखन के।">
-    <meta property="og:image" content="https://lekhanii.vercel.app/logo.png">
+    <meta property="og:url" content="https://lekhanii.vercel.app/">
+    <meta property="og:site_name" content="लेखनी">
+    <meta property="og:title" content="लेखनी (Lekhanii) — हिंदी कहानी, कविता और निबंध लिखें-पढ़ें">
+    <meta property="og:description" content="लेखनी (Lekhanii) हिंदी लेखकों का मुफ़्त मंच — कहानी, कविता, निबंध और संस्मरण देवनागरी में लिखें और पढ़ें। हर रचना इंसान की लिखी, कृत्रिम बुद्धिमत्ता से नहीं।">
+    <meta property="og:image" content="https://lekhanii.vercel.app/og-image.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="लेखनी का कलम-नोक वाला चिह्न">
     <meta property="og:locale" content="hi_IN">
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="https://lekhanii.vercel.app">
-    <meta name="twitter:title" content="लेखनी — हिंदी लेखकों का अपना मंच">
-    <meta name="twitter:description" content="कहानी, कविता, निबंध और संस्मरण — हिंदी में लंबी-फ़ॉर्म लेखन का घर।">
-    <meta name="twitter:image" content="https://lekhanii.vercel.app/logo.png">
+    <meta name="twitter:url" content="https://lekhanii.vercel.app/">
+    <meta name="twitter:title" content="लेखनी (Lekhanii) — हिंदी कहानी, कविता और निबंध लिखें-पढ़ें">
+    <meta name="twitter:description" content="लेखनी (Lekhanii) हिंदी लेखकों का मुफ़्त मंच — कहानी, कविता, निबंध और संस्मरण देवनागरी में लिखें और पढ़ें। हर रचना इंसान की लिखी, कृत्रिम बुद्धिमत्ता से नहीं।">
+    <meta name="twitter:image" content="https://lekhanii.vercel.app/og-image.png">
+    <meta name="twitter:image:alt" content="लेखनी का कलम-नोक वाला चिह्न">
 
     <!-- Structured Data -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "लेखनी",
-      "url": "https://lekhanii.vercel.app",
-      "description": "हिंदी लेखकों का अपना मंच — कहानी, कविता, निबंध और संस्मरण",
-      "inLanguage": "hi",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": "https://lekhanii.vercel.app/search?q={search_term_string}",
-        "query-input": "required name=search_term_string"
-      }
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://lekhanii.vercel.app/#website",
+          "url": "https://lekhanii.vercel.app/",
+          "name": "लेखनी",
+          "alternateName": [
+            "Lekhanii",
+            "Lekhani",
+            "लेखनी हिंदी"
+          ],
+          "description": "हिंदी लेखकों का अपना मंच — कहानी, कविता, निबंध और संस्मरण",
+          "inLanguage": "hi",
+          "publisher": {
+            "@id": "https://lekhanii.vercel.app/#organization"
+          },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://lekhanii.vercel.app/search?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://lekhanii.vercel.app/#organization",
+          "name": "लेखनी",
+          "alternateName": [
+            "Lekhanii",
+            "Lekhani"
+          ],
+          "url": "https://lekhanii.vercel.app/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://lekhanii.vercel.app/logo.png",
+            "width": 512,
+            "height": 512
+          },
+          "description": "हिंदी लेखकों के लिए मुफ़्त मंच — कहानी, कविता, निबंध और संस्मरण लिखने और पढ़ने की जगह।"
+        }
+      ]
     }
     </script>
 
@@ -91,10 +127,17 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Inter:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&family=Noto+Serif+Devanagari:wght@400;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Inter:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&family=Noto+Serif+Devanagari:wght@400;600;700&display=swap"></noscript>
-    <title>लेखनी — हिंदी लेखकों का अपना मंच (Lekhani)</title>
+    <title>लेखनी (Lekhanii) — हिंदी कहानी, कविता और निबंध लिखें-पढ़ें</title>
 </head>
 <body>
     <noscript>इस ऐप को चलाने के लिए जावास्क्रिप्ट (JavaScript) सक्रिय करें।</noscript>
-    <div id="root"></div>
+    <div id="root">
+      <main style="max-width:640px;margin:0 auto;padding:72px 24px;font-family:'Noto Serif Devanagari','Mukta',serif;color:#1f2937;line-height:1.7">
+        <h1 style="font-size:2rem;line-height:1.4;margin:0 0 16px">मानवीय कहानियाँ। हिंदी में।</h1>
+        <p>लेखनी हिंदी लेखकों के लिए एक साफ़, लंबी-फ़ॉर्म जगह है — पढ़ें और लिखें। आपकी कलम आपकी है। यहाँ लेख कृत्रिम बुद्धिमत्ता से नहीं बनते।</p>
+        <p><a href="/register">मुफ़्त खाता बनाएँ</a> · <a href="/login">साइन इन करें</a></p>
+        <nav aria-label="पाद सूची"><a href="/about">परिचय</a> · <a href="/blog">ब्लॉग</a> · <a href="/help">सहायता</a> · <a href="/rules">नियम</a> · <a href="/privacy">गोपनीयता</a> · <a href="/terms">शर्तें</a></nav>
+      </main>
+    </div>
 </body>
 </html>

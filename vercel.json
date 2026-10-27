@@ -51,6 +51,83 @@
       "destination": "https://lekhanii-backend.onrender.com/api/prerender/user/:id"
     },
     {
+      "source": "/about",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(Googlebot|Google-InspectionTool|GoogleOther|AdsBot-Google|Mediapartners-Google|bingbot|BingPreview|msnbot|DuckDuckBot|YandexBot|Baiduspider|Sogou|Slurp|Applebot|SeznamBot|PetalBot|Qwantify|facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|LinkedInBot|Slackbot|Discordbot|Pinterestbot|redditbot|SkypeUriPreview|vkShare|Embedly).*"
+        }
+      ],
+      "destination": "/_bot/about.html"
+    },
+    {
+      "source": "/help",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(Googlebot|Google-InspectionTool|GoogleOther|AdsBot-Google|Mediapartners-Google|bingbot|BingPreview|msnbot|DuckDuckBot|YandexBot|Baiduspider|Sogou|Slurp|Applebot|SeznamBot|PetalBot|Qwantify|facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|LinkedInBot|Slackbot|Discordbot|Pinterestbot|redditbot|SkypeUriPreview|vkShare|Embedly).*"
+        }
+      ],
+      "destination": "/_bot/help.html"
+    },
+    {
+      "source": "/rules",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(Googlebot|Google-InspectionTool|GoogleOther|AdsBot-Google|Mediapartners-Google|bingbot|BingPreview|msnbot|DuckDuckBot|YandexBot|Baiduspider|Sogou|Slurp|Applebot|SeznamBot|PetalBot|Qwantify|facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|LinkedInBot|Slackbot|Discordbot|Pinterestbot|redditbot|SkypeUriPreview|vkShare|Embedly).*"
+        }
+      ],
+      "destination": "/_bot/rules.html"
+    },
+    {
+      "source": "/privacy",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(Googlebot|Google-InspectionTool|GoogleOther|AdsBot-Google|Mediapartners-Google|bingbot|BingPreview|msnbot|DuckDuckBot|YandexBot|Baiduspider|Sogou|Slurp|Applebot|SeznamBot|PetalBot|Qwantify|facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|LinkedInBot|Slackbot|Discordbot|Pinterestbot|redditbot|SkypeUriPreview|vkShare|Embedly).*"
+        }
+      ],
+      "destination": "/_bot/privacy.html"
+    },
+    {
+      "source": "/terms",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(Googlebot|Google-InspectionTool|GoogleOther|AdsBot-Google|Mediapartners-Google|bingbot|BingPreview|msnbot|DuckDuckBot|YandexBot|Baiduspider|Sogou|Slurp|Applebot|SeznamBot|PetalBot|Qwantify|facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|LinkedInBot|Slackbot|Discordbot|Pinterestbot|redditbot|SkypeUriPreview|vkShare|Embedly).*"
+        }
+      ],
+      "destination": "/_bot/terms.html"
+    },
+    {
+      "source": "/blog",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(Googlebot|Google-InspectionTool|GoogleOther|AdsBot-Google|Mediapartners-Google|bingbot|BingPreview|msnbot|DuckDuckBot|YandexBot|Baiduspider|Sogou|Slurp|Applebot|SeznamBot|PetalBot|Qwantify|facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|LinkedInBot|Slackbot|Discordbot|Pinterestbot|redditbot|SkypeUriPreview|vkShare|Embedly).*"
+        }
+      ],
+      "destination": "/_bot/blog.html"
+    },
+    {
+      "source": "/blog/:slug",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(Googlebot|Google-InspectionTool|GoogleOther|AdsBot-Google|Mediapartners-Google|bingbot|BingPreview|msnbot|DuckDuckBot|YandexBot|Baiduspider|Sogou|Slurp|Applebot|SeznamBot|PetalBot|Qwantify|facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|LinkedInBot|Slackbot|Discordbot|Pinterestbot|redditbot|SkypeUriPreview|vkShare|Embedly).*"
+        }
+      ],
+      "destination": "/_bot/blog/:slug/index.html"
+    },
+    {
       "source": "/((?!api/|.*\\..*).*)",
       "destination": "/index.html"
     }

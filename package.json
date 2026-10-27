@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "NODE_OPTIONS=--openssl-legacy-provider react-scripts start",
-    "prebuild": "node scripts/generate-sitemap-pages.mjs",
+    "prebuild": "node scripts/generate-sitemap-pages.mjs && node scripts/generate-bot-pages.mjs",
     "build": "NODE_OPTIONS=--openssl-legacy-provider react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
