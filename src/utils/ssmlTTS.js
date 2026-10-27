@@ -416,6 +416,8 @@ class SSMLTTSEngine {
     this.onWordCallback = null;
     // How fast each voice really reads, learned as it speaks (characters a second at rate 1).
     this.pace = {};
+    // The listener's speed setting (1 = as planned); applies from the next piece onward.
+    this.rateScale = 1;
     // Bumped by every speak() and cancel(). Callbacks from an older run (a late "end"
     // event, a pending <break> timer) compare against it and do nothing, so they can
     // never advance or finish the run that replaced them.
@@ -614,7 +616,7 @@ class SSMLTTSEngine {
     if (voice) utterance.voice = voice;
 
     // Set prosody
-    utterance.rate = segment.rate;
+    utterance.rate = clamp(segment.rate * this.rateScale, 0.1, 10);
     utterance.pitch = segment.pitch;
     utterance.volume = segment.volume;
 
@@ -674,7 +676,7 @@ class SSMLTTSEngine {
   /** A piece has just been read in `ms`: that is this voice's real pace, so use it for the next one. */
   learnPace(voice, segment, ms) {
     if (segment.text.length < 25 || ms < 1500 || ms > 60000) return; // too short or odd to learn from
-    const measured = segment.text.length / (ms / 1000) / segment.rate;
+    const measured = segment.text.length / (ms / 1000) / (segment.rate * this.rateScale);
     const known = this.pace[voice] || this.paceFor(voice);
     this.pace[voice] = known * 0.4 + measured * 0.6; // lean on what it just showed
     try {
@@ -682,6 +684,11 @@ class SSMLTTSEngine {
     } catch (error) {
       // no storage: fine
     }
+  }
+
+  /** Listener's speed (0.5-2): the next pieces are read faster or slower. */
+  setRateScale(scale) {
+    this.rateScale = Math.min(2.5, Math.max(0.4, Number(scale) || 1));
   }
 
   emitWord(session, index) {
@@ -707,7 +714,7 @@ class SSMLTTSEngine {
         return letters;
       });
       const total = weights.reduce((a, b) => a + b, 0) || 1;
-      const duration = (segment.text.length / (this.paceFor(follow.voice) * segment.rate)) * 1000;
+      const duration = (segment.text.length / (this.paceFor(follow.voice) * segment.rate * this.rateScale)) * 1000;
       let at = 0;
       const offsets = weights.map((weight) => {
         const start = (at / total) * duration;
