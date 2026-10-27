@@ -1,5 +1,7 @@
 // SEO Utility Functions
 
+import { asUtcDate } from './format';
+
 // Tags we manage. Their original values come from public/index.html; they are
 // snapshotted once so resetMetaTags() can restore the exact defaults.
 const META_SELECTORS = [
@@ -80,6 +82,27 @@ const removePostStructuredData = () => {
   if (script) script.remove();
 };
 
+const removeHomepageStructuredData = () => {
+  const script = document.querySelector('script[type="application/ld+json"][data-homepage]');
+  if (script) script.remove();
+};
+
+// Every page owns one JSON-LD block and nothing else: leaving the home page's WebSite (with
+// its ItemList of stories) in <head> while a story publishes its own BlogPosting tells
+// crawlers two contradictory things about the same document.
+const removePageStructuredData = () => {
+  removePostStructuredData();
+  removeHomepageStructuredData();
+};
+
+// The API sends UTC stamps with no zone marker (see utils/format). A bare "2026-01-01T18:30:00"
+// in JSON-LD is read in whatever zone the crawler likes, so put the offset back.
+const isoUtc = (stamp) => {
+  if (!stamp) return undefined;
+  const date = asUtcDate(stamp);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+};
+
 // Canonical URL of the page being shown: origin + pathname only (never the query
 // string, no trailing slash). Home returns null so it keeps the exact index.html defaults.
 const currentPageUrl = () => {
@@ -100,7 +123,7 @@ export const updateMetaTags = ({ title, description, keywords, image, url, type 
   // Start from the index.html defaults so nothing from the previous page
   // (image, article:* tags, canonical, noindex) leaks into this one.
   restoreDefaults();
-  removePostStructuredData();
+  removePageStructuredData();
 
   // Without an explicit url, every page declares itself canonical (not the home page).
   const pageUrl = url || currentPageUrl();
@@ -187,8 +210,8 @@ export const generateStructuredData = (post, author) => {
       logo: { '@type': 'ImageObject', url: `${origin}/logo.png` },
     },
     mainEntityOfPage: { '@type': 'WebPage', '@id': storyUrl },
-    datePublished: post.created_at,
-    dateModified: post.updated_at,
+    datePublished: isoUtc(post.created_at),
+    dateModified: isoUtc(post.updated_at),
     description: post.subtitle || (post.content || '').substring(0, 160),
     articleBody: post.content,
     inLanguage: 'hi',
@@ -281,15 +304,20 @@ export const generateGuideStructuredData = (guide, description) => {
 };
 
 export const generateHomepageStructuredData = (posts) => {
+  // The address of the site the reader is actually on. A hard-coded production host would
+  // make every preview deploy advertise somebody else's search page.
+  const origin = window.location.origin;
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
+    '@id': `${origin}/`,
+    url: `${origin}/`,
     name: 'लेखनी',
     description: 'हिंदी लेखकों का अपना मंच — कहानी, कविता, निबंध और संस्मरण',
     inLanguage: 'hi',
     potentialAction: {
       '@type': 'SearchAction',
-      target: 'https://lekhanii.vercel.app/search?q={search_term_string}',
+      target: `${origin}/search?q={search_term_string}`,
       'query-input': 'required name=search_term_string'
     }
   };
@@ -304,24 +332,24 @@ export const generateHomepageStructuredData = (posts) => {
         position: index + 1,
         item: {
           '@type': 'BlogPosting',
-          headline: post.title,
-          datePublished: post.created_at,
+          // A listing item a crawler cannot follow is not a listing item.
+          '@id': `${origin}/post/${encodeURIComponent(post.slug)}`,
+          url: `${origin}/post/${encodeURIComponent(post.slug)}`,
+          headline: (post.title || '').slice(0, 110),
+          datePublished: isoUtc(post.created_at),
           author: {
             '@type': 'Person',
-            name: post.author.full_name || post.author.username
+            name: post.author?.full_name || post.author?.username || 'लेखक',
+            ...(post.author?.id ? { url: `${origin}/user/${post.author.id}` } : {})
           }
         }
       }))
     };
   }
 
-  // Remove existing homepage structured data
-  const existingScript = document.querySelector('script[type="application/ld+json"][data-homepage]');
-  if (existingScript) {
-    existingScript.remove();
-  }
+  // Replace any homepage block already in the document
+  removeHomepageStructuredData();
 
-  // Add new structured data
   const script = document.createElement('script');
   script.type = 'application/ld+json';
   script.setAttribute('data-homepage', 'true');
@@ -332,5 +360,5 @@ export const generateHomepageStructuredData = (posts) => {
 export const resetMetaTags = () => {
   takeSnapshot();
   restoreDefaults();
-  removePostStructuredData();
+  removePageStructuredData();
 };

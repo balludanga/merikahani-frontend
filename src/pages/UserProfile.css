@@ -175,6 +175,13 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
 }
 
+/* The same line, said when something did not happen. */
+.profile-notice.bad {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
 .user-posts h2 {
   font-family: var(--font-display);
   font-weight: 400;

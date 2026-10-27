@@ -61,6 +61,19 @@ api.interceptors.response.use(
   },
   (error) => {
     requestSettled();
+    // A 401 on a normal call means the session itself is over: the token expired (they
+    // live 30 minutes), was retired by signing out elsewhere, or the account changed how
+    // it signs in. Failing one save in silence leaves the page looking signed in.
+    const url = (error.config && error.config.url) || '';
+    const signInCalls = ['/auth/login', '/auth/register', '/auth/google-login', '/auth/me'];
+    if (
+      error.response &&
+      error.response.status === 401 &&
+      localStorage.getItem('token') &&
+      !signInCalls.some((path) => url.includes(path))
+    ) {
+      window.dispatchEvent(new CustomEvent('lekhani:signed-out'));
+    }
     return Promise.reject(error);
   }
 );
@@ -84,7 +97,8 @@ export const postsAPI = {
 };
 
 export const commentsAPI = {
-  getByPost: (postId) => api.get(`/comments/post/${postId}`),
+  // { order: 'asc' | 'desc', limit, skip } — desc pages by whole threads, newest first.
+  getByPost: (postId, params) => api.get(`/comments/post/${postId}`, { params }),
   create: (data) => api.post('/comments', data),
   delete: (commentId) => api.delete(`/comments/${commentId}`),
 };

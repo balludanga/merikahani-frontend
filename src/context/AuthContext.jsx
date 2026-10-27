@@ -70,6 +70,15 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token, fetchUser]);
 
+  // Any call that comes back 401 means the session is over. Whichever one found it, the
+  // answer is the same: drop it, so no page is left showing a signed-in view that cannot
+  // save anything.
+  useEffect(() => {
+    const onSignedOut = () => logout();
+    window.addEventListener('lekhani:signed-out', onSignedOut);
+    return () => window.removeEventListener('lekhani:signed-out', onSignedOut);
+  }, [logout]);
+
   // Handle Google OAuth response from popup
   const handleGoogleCallback = async (response) => {
     await handleGoogleCredential(response.credential);
@@ -98,12 +107,6 @@ export const AuthProvider = ({ children }) => {
         error: errorText(error, 'साइन इन नहीं हो सका'),
       };
     }
-  };
-
-  const googleLogin = async (accessToken) => {
-    localStorage.setItem('token', accessToken);
-    setToken(accessToken);
-    return { success: true };
   };
 
   // Google sign-in: `payload` is { token } (ID token) or { access_token } (pop-up flow).
@@ -182,7 +185,6 @@ export const AuthProvider = ({ children }) => {
     updateUser,
     loading,
     login,
-    googleLogin,
     handleGoogleCredential,
     handleGoogleAccessToken,
     handleGoogleCallback,

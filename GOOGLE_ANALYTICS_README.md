@@ -1,5 +1,11 @@
 # Google Analytics Integration Guide
 
+> **Status: not installed.** Analytics was deliberately removed from this app —
+> `src/utils/analytics.js` is a no-op shim kept only so the existing `pageview` / `trackEvent`
+> imports across the app keep working, and no `REACT_APP_GA_*` variable is read anywhere (so
+> `.env.example` lists none either). The steps below describe what switching it back on takes;
+> treat `REACT_APP_GA_MEASUREMENT_ID` as the name to use, and wire it in `src/utils/analytics.js`.
+
 ## Setup Instructions
 
 ### 1. Get Your Google Analytics Tracking ID

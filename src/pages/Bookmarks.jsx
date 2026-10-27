@@ -11,6 +11,7 @@ const Bookmarks = () => {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -23,12 +24,15 @@ const Bookmarks = () => {
 
   const fetchBookmarks = async () => {
     setLoading(true);
+    setFailed(false);
     try {
       const response = await bookmarksAPI.list();
       setPosts(response.data);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to fetch bookmarks:', error);
+      // An empty shelf and a request that never arrived are not the same thing to the reader.
+      setFailed(true);
     } finally {
       setLoading(false);
     }
@@ -49,6 +53,11 @@ const Bookmarks = () => {
         <h1 className="list-heading">पढ़ने की सूची</h1>
         {loading || authLoading ? (
           <div className="page-loading">लोड हो रहा है…</div>
+        ) : failed ? (
+          <p className="empty-state">
+            पढ़ने की सूची लोड नहीं हो सकी।{' '}
+            <button type="button" onClick={fetchBookmarks}>फिर कोशिश करें</button>।
+          </p>
         ) : posts.length === 0 ? (
           <p className="empty-state">
             अभी कुछ सहेजा नहीं गया। किसी रचना पर <strong>सहेजें</strong> दबाकर यहाँ जोड़ें।{' '}

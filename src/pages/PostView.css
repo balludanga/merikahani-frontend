@@ -483,6 +483,30 @@
   color: var(--text);
 }
 
+/* Pull in the older responses of a long thread list */
+.load-older {
+  display: block;
+  margin: 20px auto 0;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  color: var(--text-2);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 8px 18px;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.load-older:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.load-older:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 /* Read gate — signed-out visitors see a teaser, then this card */
 .story-gate {
   position: relative;

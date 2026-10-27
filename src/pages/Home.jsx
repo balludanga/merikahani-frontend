@@ -15,6 +15,7 @@ const Home = () => {
   const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
   const [feed, setFeed] = useState('for-you');
   const [spotlight, setSpotlight] = useState(null);
 
@@ -32,6 +33,7 @@ const Home = () => {
 
   const fetchPosts = async () => {
     setLoading(true);
+    setFailed(false);
     try {
       const params = { limit: 12 };
       if (feed === 'following') params.feed = 'following';
@@ -47,6 +49,8 @@ const Home = () => {
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to fetch posts:', error);
+      // The dashboard would otherwise say "no stories" about a feed that never arrived.
+      setFailed(true);
     } finally {
       setLoading(false);
     }
@@ -148,6 +152,11 @@ const Home = () => {
 
       {loading ? (
         <div className="page-loading">लोड हो रहा है…</div>
+      ) : failed ? (
+        <p className="empty-state">
+          रचनाएँ लोड नहीं हो सकीं।{' '}
+          <button type="button" onClick={fetchPosts}>फिर कोशिश करें</button>।
+        </p>
       ) : posts.length === 0 ? (
         <div className="dash-empty">
           {feed === 'following' ? (

@@ -252,19 +252,18 @@ const StoryPlayer = ({ stories }) => {
         </button>
 
         <div className="pt-wrap">
-          <button type="button" className={`pt${state.sleep.mode !== 'off' ? ' on' : ''}`} onClick={() => { setSleepOpen((v) => !v); setQueueOpen(false); }} aria-haspopup="menu" aria-expanded={sleepOpen} title="नींद टाइमर">
+          <button type="button" className={`pt${state.sleep.mode !== 'off' ? ' on' : ''}`} onClick={() => { setSleepOpen((v) => !v); setQueueOpen(false); }} aria-expanded={sleepOpen} title="नींद टाइमर">
             <Icon name="moon" /><span>{sleepLabel()}</span>
           </button>
           {sleepOpen && (
-            <div className="player-menu" role="menu" aria-label="नींद टाइमर">
+            <div className="player-menu" role="group" aria-label="नींद टाइमर">
               {[{ key: 'off', label: 'बंद' }, ...SLEEP_MINUTES.map((m) => ({ key: m, label: `${m} मिनट बाद` })), { key: 'end', label: 'रचना के अंत तक' }].map((item) => {
                 const selected = item.key === 'off' ? state.sleep.mode === 'off' : item.key === 'end' ? state.sleep.mode === 'end' : false;
                 return (
                   <button
                     key={item.key}
                     type="button"
-                    role="menuitemradio"
-                    aria-checked={selected}
+                    aria-pressed={selected}
                     className={selected ? 'selected' : ''}
                     onClick={() => {
                       if (item.key === 'off') player.setSleep('off');

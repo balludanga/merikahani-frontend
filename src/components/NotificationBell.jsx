@@ -117,7 +117,7 @@ const NotificationBell = () => {
         className="notif-bell"
         onClick={toggle}
         aria-label={unread ? `सूचनाएँ, ${unread} नई` : 'सूचनाएँ'}
-        aria-haspopup="true"
+        aria-haspopup="dialog"
         aria-expanded={open}
         title="सूचनाएँ"
       >

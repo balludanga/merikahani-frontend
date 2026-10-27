@@ -1,6 +1,16 @@
+// The API sends UTC stamps with no zone marker ("2026-01-01T18:30:00"). Read as-is,
+// JS treats them as local time, so a reader away from UTC can get the wrong day.
+// Anchor the bare stamp to UTC before formatting or diffing.
+export const asUtcDate = (dateString) => {
+  const stamp = /Z|[+-]\d\d:?\d\d$/.test(dateString) ? dateString : `${dateString}Z`;
+  return new Date(stamp);
+};
+
 export const formatDate = (dateString) => {
   if (!dateString) return '';
-  return new Date(dateString).toLocaleDateString('hi-IN', {
+  const date = asUtcDate(dateString);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('hi-IN', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -27,9 +37,9 @@ export const initials = (name = '') => {
 // "अभी", "5 मिनट पहले", "2 घंटे पहले", "3 दिन पहले"; older than a week, the date.
 export const timeAgo = (dateString) => {
   if (!dateString) return '';
-  // The API sends UTC without a zone marker.
-  const stamp = /Z|[+-]\d\d:?\d\d$/.test(dateString) ? dateString : `${dateString}Z`;
-  const seconds = Math.max(0, Math.round((Date.now() - new Date(stamp).getTime()) / 1000));
+  const stamp = asUtcDate(dateString);
+  if (Number.isNaN(stamp.getTime())) return '';
+  const seconds = Math.max(0, Math.round((Date.now() - stamp.getTime()) / 1000));
   if (seconds < 60) return 'अभी';
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes} मिनट पहले`;
@@ -37,5 +47,5 @@ export const timeAgo = (dateString) => {
   if (hours < 24) return `${hours} घंटे पहले`;
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days} दिन पहले`;
-  return formatDate(stamp);
+  return formatDate(dateString);
 };

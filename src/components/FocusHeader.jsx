@@ -55,7 +55,6 @@ const FocusHeader = ({ post, hidden, saved, onBookmark }) => {
               type="button"
               className="focus-avatar"
               onClick={() => setMenuOpen((v) => !v)}
-              aria-haspopup="true"
               aria-expanded={menuOpen}
               aria-label="खाता मेनू"
             >
@@ -66,12 +65,14 @@ const FocusHeader = ({ post, hidden, saved, onBookmark }) => {
               )}
             </button>
             {menuOpen && (
-              <div className="focus-menu" role="menu">
-                <Link to="/new-story" role="menuitem" onClick={closeMenu}>नई रचना</Link>
-                <Link to="/stories" role="menuitem" onClick={closeMenu}>मेरी रचनाएँ</Link>
-                <Link to="/bookmarks" role="menuitem" onClick={closeMenu}>पढ़ने की सूची</Link>
-                <Link to={`/user/${user.id}`} role="menuitem" onClick={closeMenu}>मेरी प्रोफ़ाइल</Link>
-                <button type="button" role="menuitem" onClick={handleLogout}>साइन आउट</button>
+              /* A group, not a menu: nothing here moves between items with the arrow keys, and
+                 role="menu" tells a screen reader to try. */
+              <div className="focus-menu" role="group" aria-label="खाता मेनू">
+                <Link to="/new-story" onClick={closeMenu}>नई रचना</Link>
+                <Link to="/stories" onClick={closeMenu}>मेरी रचनाएँ</Link>
+                <Link to="/bookmarks" onClick={closeMenu}>पढ़ने की सूची</Link>
+                <Link to={`/user/${user.id}`} onClick={closeMenu}>मेरी प्रोफ़ाइल</Link>
+                <button type="button" onClick={handleLogout}>साइन आउट</button>
               </div>
             )}
           </div>

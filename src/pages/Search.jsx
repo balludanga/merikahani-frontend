@@ -16,6 +16,7 @@ const Search = () => {
   const [posts, setPosts] = useState([]);
   const [popularTags, setPopularTags] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
   const [tagName, setTagName] = useState('');
 
   useEffect(() => {
@@ -46,6 +47,7 @@ const Search = () => {
 
   const fetchResults = async () => {
     setLoading(true);
+    setFailed(false);
     try {
       let response;
       if (tagSlug) {
@@ -65,18 +67,25 @@ const Search = () => {
       } else {
         setTagName('');
       }
-
-      if (!popularTags.length) {
-        const tagsRes = await tagsAPI.list({ limit: 15 });
-        setPopularTags(tagsRes.data);
-      }
-
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to fetch results:', error);
       setPosts([]);
+      // "nothing matches this search" and "the search never ran" are different news.
+      setFailed(true);
     } finally {
       setLoading(false);
+    }
+
+    // The tag rail beside the results is decoration: it must not be able to spoil a good search.
+    try {
+      if (!popularTags.length) {
+        const tagsRes = await tagsAPI.list({ limit: 15 });
+        setPopularTags(tagsRes.data);
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to fetch popular tags:', error);
     }
   };
 
@@ -94,6 +103,11 @@ const Search = () => {
         <h1 className="list-heading">{heading}</h1>
         {loading ? (
           <div className="page-loading">लोड हो रहा है…</div>
+        ) : failed ? (
+          <p className="empty-state">
+            रचनाएँ लोड नहीं हो सकीं।{' '}
+            <button type="button" onClick={fetchResults}>फिर कोशिश करें</button>।
+          </p>
         ) : posts.length === 0 ? (
           <p className="empty-state">कुछ नहीं मिला। दूसरे शब्दों से खोजें या विषय बदलें।</p>
         ) : (
