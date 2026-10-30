@@ -16,6 +16,9 @@ const TABS = [
   { id: 'highlights', label: 'हाइलाइट' },
 ];
 
+const profileRedirect = (location) =>
+  `${location.pathname}${location.search}${location.hash}`;
+
 const PostRow = ({ post, pinned }) => (
   <Link to={`/post/${post.slug}`} className={`user-post-item ${pinned ? 'is-pinned' : ''}`}>
     <h3>{pinned && <span className="pin-mark" title="चुनी हुई रचना" aria-label="चुनी हुई रचना">📌</span>}{post.title}</h3>
@@ -36,6 +39,7 @@ const UserProfile = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
+  const [postsFailed, setPostsFailed] = useState(false);
   const [loading, setLoading] = useState(true);
   // 'notfound' for a real 404; 'error' for anything else (network, 5xx, timeout)
   const [loadError, setLoadError] = useState(null);
@@ -63,6 +67,8 @@ const UserProfile = () => {
   const fetchProfile = async () => {
     setLoading(true);
     setLoadError(null);
+    setPosts([]);
+    setPostsFailed(false);
     let profileData;
     try {
       const profileRes = await usersAPI.getById(userId);
@@ -84,6 +90,7 @@ const UserProfile = () => {
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to fetch author posts:', error);
+      setPostsFailed(true);
     }
 
     const authorName = profileData.full_name || profileData.username;
@@ -106,7 +113,7 @@ const UserProfile = () => {
 
   const handleFollow = async () => {
     if (!isAuthenticated) {
-      navigate('/login');
+      navigate(`/login?redirect=${encodeURIComponent(profileRedirect(location))}`);
       return;
     }
     try {
@@ -189,13 +196,12 @@ const UserProfile = () => {
         <ProfileHeader profile={profile} actions={actions} />
 
         {isSelf && (
-          <div className="profile-tabs" role="tablist" aria-label="आपकी सामग्री">
+          <div className="profile-tabs" role="group" aria-label="आपकी सामग्री">
             {TABS.map((t) => (
               <button
                 key={t.id}
                 type="button"
-                role="tab"
-                aria-selected={tab === t.id}
+                aria-pressed={tab === t.id}
                 className={`profile-tab ${tab === t.id ? 'active' : ''}`}
                 onClick={() => chooseTab(t.id)}
               >
@@ -211,7 +217,7 @@ const UserProfile = () => {
           </div>
         )}
 
-        {tab === 'stories' && pinned.length > 0 && (
+        {tab === 'stories' && !postsFailed && pinned.length > 0 && (
           <div className="user-posts user-pinned">
             <h2>चुनिंदा रचनाएँ</h2>
             <div className="user-posts-list">
@@ -223,7 +229,12 @@ const UserProfile = () => {
         {tab === 'stories' && (
         <div className="user-posts">
           <h2>{pinned.length > 0 ? 'सभी रचनाएँ' : 'रचनाएँ'}</h2>
-          {posts.length === 0 ? (
+          {postsFailed ? (
+            <p className="empty-state">
+              रचनाएँ लोड नहीं हो सकीं।{' '}
+              <button type="button" onClick={fetchProfile}>फिर कोशिश करें</button>।
+            </p>
+          ) : posts.length === 0 ? (
             <p className="empty-state">
               अभी कोई प्रकाशित रचना नहीं।{' '}
               {isSelf && <Link to="/new-story">लिखना शुरू करें</Link>}

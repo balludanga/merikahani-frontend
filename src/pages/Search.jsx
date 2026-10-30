@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { postsAPI, tagsAPI } from '../services/api';
 import { updateMetaTags, resetMetaTags } from '../utils/seo';
-import { topicLabel } from '../brand';
+import { TOPICS, topicLabel } from '../brand';
 import StoryCard from '../components/StoryCard';
 import './Home.css';
 
@@ -18,10 +18,49 @@ const Search = () => {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [tagName, setTagName] = useState('');
+  const requestId = useRef(0);
+
+  const fetchResults = useCallback(async () => {
+    const activeRequest = ++requestId.current;
+    setLoading(true);
+    setFailed(false);
+    try {
+      let response;
+      if (tagSlug) {
+        response = await tagsAPI.posts(tagSlug, { limit: 30 });
+      } else {
+        response = await postsAPI.getAll({
+          limit: 30,
+          q: query || undefined,
+          topic: topic || undefined,
+        });
+      }
+      if (activeRequest !== requestId.current) return;
+      setPosts(response.data);
+      if (tagSlug) {
+        const first = response.data[0];
+        const at = first && first.tag_slugs ? first.tag_slugs.indexOf(tagSlug) : -1;
+        setTagName(at >= 0 && first.tags ? first.tags[at] || '' : '');
+      } else {
+        setTagName('');
+      }
+    } catch (error) {
+      if (activeRequest !== requestId.current) return;
+      // eslint-disable-next-line no-console
+      console.error('Failed to fetch results:', error);
+      setPosts([]);
+      setFailed(true);
+    } finally {
+      if (activeRequest === requestId.current) setLoading(false);
+    }
+  }, [query, tagSlug, topic]);
 
   useEffect(() => {
     fetchResults();
-  }, [query, topic, tagSlug]);
+    return () => {
+      requestId.current += 1;
+    };
+  }, [fetchResults]);
 
   // Meta is set on its own (not after the fetch) so the canonical always matches
   // the page actually on screen. Free-text result pages are never indexed; the
@@ -45,49 +84,20 @@ const Search = () => {
     return () => resetMetaTags();
   }, [query, topic, tagSlug, tagName]);
 
-  const fetchResults = async () => {
-    setLoading(true);
-    setFailed(false);
-    try {
-      let response;
-      if (tagSlug) {
-        response = await tagsAPI.posts(tagSlug, { limit: 30 });
-      } else {
-        response = await postsAPI.getAll({
-          limit: 30,
-          q: query || undefined,
-          topic: topic || undefined,
-        });
-      }
-      setPosts(response.data);
-      if (tagSlug) {
-        const first = response.data[0];
-        const at = first && first.tag_slugs ? first.tag_slugs.indexOf(tagSlug) : -1;
-        setTagName(at >= 0 && first.tags ? first.tags[at] || '' : '');
-      } else {
-        setTagName('');
-      }
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to fetch results:', error);
-      setPosts([]);
-      // "nothing matches this search" and "the search never ran" are different news.
-      setFailed(true);
-    } finally {
-      setLoading(false);
-    }
-
-    // The tag rail beside the results is decoration: it must not be able to spoil a good search.
-    try {
-      if (!popularTags.length) {
-        const tagsRes = await tagsAPI.list({ limit: 15 });
-        setPopularTags(tagsRes.data);
-      }
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to fetch popular tags:', error);
-    }
-  };
+  useEffect(() => {
+    let active = true;
+    tagsAPI.list({ limit: 15 })
+      .then((response) => {
+        if (active) setPopularTags(response.data);
+      })
+      .catch((error) => {
+        // eslint-disable-next-line no-console
+        console.error('Failed to fetch popular tags:', error);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const heading = tagSlug
     ? `#${tagName || tagSlug}`
@@ -126,6 +136,11 @@ const Search = () => {
         <h3 className="aside-title aside-gap">विषय</h3>
         <div className="topic-list">
           <Link to="/search">सभी</Link>
+          {TOPICS.map((item) => (
+            <Link key={item.id} to={`/topic/${encodeURIComponent(item.id)}`}>
+              {item.label}
+            </Link>
+          ))}
         </div>
         <p className="aside-note">
           टैग और विषय से अपनी पसंद की रचनाएँ खोजें।

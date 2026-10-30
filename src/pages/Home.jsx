@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { postsAPI, usersAPI, followsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -18,26 +18,17 @@ const Home = () => {
   const [failed, setFailed] = useState(false);
   const [feed, setFeed] = useState('for-you');
   const [spotlight, setSpotlight] = useState(null);
+  const requestId = useRef(0);
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      // Logged-out visitors see no stories here — only the invitation to join.
-      setPosts([]);
-      setLoading(false);
-      generateHomepageStructuredData([]);
-      return undefined;
-    }
-    fetchPosts();
-    return undefined;
-  }, [feed, isAuthenticated]);
-
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async (selectedFeed = feed) => {
+    const activeRequest = ++requestId.current;
     setLoading(true);
     setFailed(false);
     try {
       const params = { limit: 12 };
-      if (feed === 'following') params.feed = 'following';
+      if (selectedFeed === 'following') params.feed = 'following';
       const response = await postsAPI.getAll(params);
+      if (activeRequest !== requestId.current) return;
       setPosts(response.data);
       updateMetaTags({
         title: `${BRAND.name} — ${BRAND.tagline}`,
@@ -47,14 +38,29 @@ const Home = () => {
       });
       generateHomepageStructuredData(response.data);
     } catch (error) {
+      if (activeRequest !== requestId.current) return;
       // eslint-disable-next-line no-console
       console.error('Failed to fetch posts:', error);
-      // The dashboard would otherwise say "no stories" about a feed that never arrived.
       setFailed(true);
     } finally {
-      setLoading(false);
+      if (activeRequest === requestId.current) setLoading(false);
     }
-  };
+  }, [feed]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      requestId.current += 1;
+      // Logged-out visitors see no stories here — only the invitation to join.
+      setPosts([]);
+      setLoading(false);
+      generateHomepageStructuredData([]);
+      return undefined;
+    }
+    fetchPosts(feed);
+    return () => {
+      requestId.current += 1;
+    };
+  }, [feed, isAuthenticated, fetchPosts]);
 
   const hero = posts[0];
   const trending = posts.slice(1, 5);
@@ -155,12 +161,12 @@ const Home = () => {
       ) : failed ? (
         <p className="empty-state">
           रचनाएँ लोड नहीं हो सकीं।{' '}
-          <button type="button" onClick={fetchPosts}>फिर कोशिश करें</button>।
+          <button type="button" onClick={() => fetchPosts(feed)}>फिर कोशिश करें</button>।
         </p>
       ) : posts.length === 0 ? (
         <div className="dash-empty">
           {feed === 'following' ? (
-            <>अभी आप किसी को फ़ॉलो नहीं करते — किसी रचना पर लेखक का नाम दबाकर <strong>फ़ॉलो करें</strong>।</>
+            <>आपकी फ़ॉलोइंग सूची अभी खाली है। <Link to="/search">रचनाएँ देखें</Link> और किसी लेखक को फ़ॉलो करें।</>
           ) : (
             'अभी कोई रचना नहीं — लिखना शुरू करें।'
           )}

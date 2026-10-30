@@ -15,6 +15,9 @@ const toBlob = (canvas, type, quality) =>
  */
 export default function ImageCropper({ file, shape, outWidth, outHeight, maxBytes, title, onCancel, onDone }) {
   const stageRef = useRef(null);
+  const dialogRef = useRef(null);
+  const cancelRef = useRef(null);
+  const openerRef = useRef(null);
   const [img, setImg] = useState(null);
   const [failed, setFailed] = useState(false);
   const [stage, setStage] = useState({ w: 0, h: 0 });
@@ -22,6 +25,20 @@ export default function ImageCropper({ file, shape, outWidth, outHeight, maxByte
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [busy, setBusy] = useState(false);
   const drag = useRef(null);
+
+  useEffect(() => {
+    openerRef.current = document.activeElement;
+    stageRef.current?.focus();
+    return () => {
+      if (openerRef.current && typeof openerRef.current.focus === 'function') {
+        openerRef.current.focus();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (failed) cancelRef.current?.focus();
+  }, [failed]);
 
   // Load the chosen photo.
   useEffect(() => {
@@ -86,6 +103,22 @@ export default function ImageCropper({ file, shape, outWidth, outHeight, maxByte
     zoomTo(scale * (e.deltaY < 0 ? 1.08 : 1 / 1.08));
   };
   const onKeyDown = (e) => {
+    if (e.key === 'Tab') {
+      const focusable = dialogRef.current?.querySelectorAll(
+        'button:not(:disabled), input:not(:disabled), [tabindex="0"]'
+      );
+      if (!focusable || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && (document.activeElement === first || !dialogRef.current.contains(document.activeElement))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (document.activeElement === last || !dialogRef.current.contains(document.activeElement))) {
+        e.preventDefault();
+        first.focus();
+      }
+      return;
+    }
     const step = 12;
     const moves = { ArrowLeft: [step, 0], ArrowRight: [-step, 0], ArrowUp: [0, step], ArrowDown: [0, -step] };
     if (moves[e.key]) {
@@ -130,9 +163,16 @@ export default function ImageCropper({ file, shape, outWidth, outHeight, maxByte
   };
 
   return (
-    <div className="crop-overlay" role="dialog" aria-modal="true" aria-label={title} onKeyDown={onKeyDown}>
+    <div
+      className="crop-overlay"
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="crop-dialog-title"
+      onKeyDown={onKeyDown}
+    >
       <div className="crop-card">
-        <h3>{title}</h3>
+        <h3 id="crop-dialog-title">{title}</h3>
         {failed ? (
           <p className="crop-error">यह चित्र खोला नहीं जा सका। कृपया कोई दूसरा चित्र चुनें।</p>
         ) : (
@@ -175,7 +215,7 @@ export default function ImageCropper({ file, shape, outWidth, outHeight, maxByte
           </>
         )}
         <div className="crop-actions">
-          <button type="button" className="crop-cancel" onClick={onCancel}>रहने दें</button>
+          <button ref={cancelRef} type="button" className="crop-cancel" onClick={onCancel}>रहने दें</button>
           {!failed && (
             <button type="button" className="crop-ok" onClick={finish} disabled={!img || busy}>
               {busy ? 'तैयार हो रहा है…' : 'यही रखें'}
