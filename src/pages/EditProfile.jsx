@@ -52,11 +52,14 @@ const EditProfile = () => {
   const [draft, setDraft] = useState(null);
   const [snapshot, setSnapshot] = useState('');
   const [posts, setPosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [postsFailed, setPostsFailed] = useState(false);
   const [images, setImages] = useState(noImages);
   const [cropping, setCropping] = useState(null); // { kind, file }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const avatarInput = useRef(null);
   const coverInput = useRef(null);
 
@@ -67,12 +70,13 @@ const EditProfile = () => {
   useEffect(() => {
     if (!user) return undefined;
     let cancelled = false;
+    setLoadError(false);
+    setPosts([]);
+    setPostsLoading(true);
+    setPostsFailed(false);
     (async () => {
       try {
-        const [profileRes, postsRes] = await Promise.all([
-          usersAPI.getById(user.id),
-          postsAPI.getByUser(user.id, { published: 1 }),
-        ]);
+        const profileRes = await usersAPI.getById(user.id);
         if (cancelled) return;
         const p = profileRes.data;
         const start = {
@@ -88,9 +92,16 @@ const EditProfile = () => {
           pinned: p.pinned_post_ids || [],
         };
         setOriginal(p);
-        setPosts(postsRes.data);
         setDraft(start);
         setSnapshot(JSON.stringify(start));
+        try {
+          const postsRes = await postsAPI.getByUser(user.id, { published: 1 });
+          if (!cancelled) setPosts(postsRes.data);
+        } catch (err) {
+          if (!cancelled) setPostsFailed(true);
+        } finally {
+          if (!cancelled) setPostsLoading(false);
+        }
       } catch (err) {
         if (!cancelled) setLoadError(true);
       }
@@ -98,7 +109,7 @@ const EditProfile = () => {
     return () => {
       cancelled = true;
     };
-  }, [user && user.id]);
+  }, [user && user.id, loadAttempt]);
 
   const dirty =
     !!draft &&
@@ -246,7 +257,17 @@ const EditProfile = () => {
   }, [original, draft, images]);
 
   if (loadError) {
-    return <div className="page-loading">प्रोफ़ाइल लोड नहीं हो सकी। पृष्ठ दोबारा लोड करें।</div>;
+    return (
+      <div className="page-loading">
+        <p>प्रोफ़ाइल लोड नहीं हो सकी।</p>
+        <button type="button" className="landing-cta" onClick={() => {
+          setLoadError(false);
+          setLoadAttempt((attempt) => attempt + 1);
+        }}>
+          फिर कोशिश करें
+        </button>
+      </div>
+    );
   }
   if (!draft || !preview) return <div className="page-loading">लोड हो रहा है…</div>;
 
@@ -439,7 +460,29 @@ const EditProfile = () => {
           <section className="ep-card">
             <h2>चुनिंदा रचनाएँ <em>{draft.pinned.length}/{LIMITS.pins}</em></h2>
             <p className="ep-help">आपकी सबसे अच्छी रचनाएँ, जो प्रोफ़ाइल पर सबसे ऊपर दिखेंगी।</p>
-            {posts.length === 0 ? (
+            {postsLoading ? (
+              <p className="ep-help">रचनाएँ लोड हो रही हैं…</p>
+            ) : postsFailed ? (
+              <p className="ep-help">
+                रचनाएँ लोड नहीं हो सकीं।{' '}
+                <button type="button" className="ep-btn" onClick={async () => {
+                  setPostsLoading(true);
+                  setPostsFailed(false);
+                  try {
+                    const response = await postsAPI.getByUser(user.id, { published: 1 });
+                    setPosts(response.data);
+                  } catch (err) {
+                    // eslint-disable-next-line no-console
+                    console.error('Failed to fetch profile editor posts:', err);
+                    setPostsFailed(true);
+                  } finally {
+                    setPostsLoading(false);
+                  }
+                }}>
+                  फिर कोशिश करें
+                </button>
+              </p>
+            ) : posts.length === 0 ? (
               <p className="ep-help">अभी कोई प्रकाशित रचना नहीं। <Link to="/new-story">लिखना शुरू करें</Link></p>
             ) : (
               <ul className="ep-posts">

@@ -69,6 +69,16 @@
   padding: 40px;
 }
 
+.dash-empty a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.dash-empty a:hover {
+  text-decoration: underline;
+}
+
 /* ---- Bento grid: hero 60% / trending 40%, unequal bottom row ---- */
 
 .bento {
