@@ -228,11 +228,18 @@
 
 .story-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   padding: 24px 0;
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
+}
+
+/* The bar before the story: tighter, and spaced away from the byline and the text below it. */
+.story-actions-start {
+  padding: 14px 0;
+  margin: 8px 0 28px;
 }
 
 .clap-button,

@@ -11,6 +11,7 @@ import { createFollowAlong } from '../utils/followAlong';
 import useFocusScroll from '../utils/useFocusScroll';
 import { useAccentStyle } from '../utils/accent';
 import useTextSelection from '../utils/useTextSelection';
+import { useShare } from '../components/ShareSheet';
 import {
   MAX_HIGHLIGHT, anchorFromRange, applyMarks, clearMarks, elementAt, indexBody, locate,
 } from '../utils/textAnchors';
@@ -71,7 +72,16 @@ const PostView = () => {
   // In-app confirmation instead of window.confirm: { kind: 'post'|'comment', id, text }
   const [confirmBox, setConfirmBox] = useState(null);
   const [actionError, setActionError] = useState('');
-  const [shareState, setShareState] = useState('idle'); // idle | copied
+  // The link carries per-story preview tags to chat apps and crawlers, then sends readers on here.
+  const postAuthor = post && post.author ? post.author.full_name || post.author.username : '';
+  const { share, sheet: shareSheet } = useShare({
+    url: `${window.location.origin}/api/share/post/${encodeURIComponent(slug)}`,
+    title: post ? post.title : '',
+    text: post
+      ? `“${post.title}”${postAuthor ? ` — ${postAuthor} की रचना` : ''}, लेखनी पर पढ़ें`
+      : '',
+    heading: 'यह रचना साझा करें',
+  });
   const [comments, setComments] = useState([]);
   // Older threads the reader can still pull in, and how many rows the server has given.
   const [commentsOlder, setCommentsOlder] = useState(false);
@@ -262,29 +272,6 @@ const PostView = () => {
       } finally {
         setConfirmBox(null);
       }
-    }
-  };
-
-  const handleShare = async () => {
-    // Share link serves per-story preview tags to crawlers, then redirects readers here.
-    const url = `${window.location.origin}/api/share/post/${encodeURIComponent(slug)}`;
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(url);
-      } else {
-        const field = document.createElement('textarea');
-        field.value = url;
-        field.style.position = 'fixed';
-        field.style.opacity = '0';
-        document.body.appendChild(field);
-        field.select();
-        document.execCommand('copy');
-        document.body.removeChild(field);
-      }
-      setShareState('copied');
-      window.setTimeout(() => setShareState('idle'), 2000);
-    } catch (error) {
-      setActionError('कड़ी कॉपी नहीं हो सकी।');
     }
   };
 
@@ -808,6 +795,48 @@ const PostView = () => {
   const authorName = post.author.full_name || post.author.username;
   const isAuthor = user && user.id === post.author_id;
 
+  // Clap, save, share and listen: shown before the story and again after it, so a reader can act
+  // without scrolling. Both bars drive the same state, so they always agree.
+  const renderActions = (place) => (
+    <div className={`story-actions story-actions-${place}`}>
+      <button type="button" className="clap-button" onClick={handleClap} disabled={clapping}>
+        👏
+        <span>{post.clap_count || 0}</span>
+      </button>
+      <button
+        type="button"
+        className={`bookmark-button ${post.bookmarked ? 'saved' : ''}`}
+        onClick={handleBookmark}
+        title={post.bookmarked ? 'पढ़ने की सूची से हटाएँ' : 'पढ़ने की सूची में सहेजें'}
+      >
+        {post.bookmarked ? 'सहेजा गया ✓' : 'सहेजें'}
+      </button>
+      {post.published !== 0 && (
+        <button
+          type="button"
+          className="share-button"
+          onClick={share}
+          title="इस रचना को साझा करें"
+          aria-haspopup="dialog"
+        >
+          साझा करें
+        </button>
+      )}
+      {!post.is_preview && (
+        <button
+          type="button"
+          className={`listen-button ${speaking ? 'speaking' : ''}`}
+          onClick={toggleListen}
+        >
+          {speaking ? '⏹ रोकें' : preparing ? `⏳ आवाज़ तैयार हो रही है…${prepared ? ` ${prepared}%` : ''} (रद्द करें)` : '▶ सुनें'}
+        </button>
+      )}
+      {(post.my_claps || 0) > 0 && (
+        <span className="my-claps">आपकी तालियाँ: {post.my_claps}/50</span>
+      )}
+    </div>
+  );
+
   // One response (or one answer) with its author line, quoted passage, text and actions.
   const renderResponse = (comment) => (
     <div id={`response-${comment.id}`} className="response-item">
@@ -896,6 +925,8 @@ const PostView = () => {
           )}
         </div>
 
+        {renderActions('start')}
+
         {post.cover_image && (
           <img
             className="story-cover zoomable"
@@ -951,40 +982,7 @@ const PostView = () => {
           </div>
         )}
 
-        <div className="story-actions">
-          <button type="button" className="clap-button" onClick={handleClap} disabled={clapping}>
-            👏
-            <span>{post.clap_count || 0}</span>
-          </button>
-          <button
-            type="button"
-            className={`bookmark-button ${post.bookmarked ? 'saved' : ''}`}
-            onClick={handleBookmark}
-            title={post.bookmarked ? 'पढ़ने की सूची से हटाएँ' : 'पढ़ने की सूची में सहेजें'}
-          >
-            {post.bookmarked ? 'सहेजा गया ✓' : 'सहेजें'}
-          </button>
-          <button
-            type="button"
-            className="share-button"
-            onClick={handleShare}
-            title="इस रचना की कड़ी कॉपी करें"
-          >
-            {shareState === 'copied' ? 'कॉपी हुआ ✓' : 'साझा करें'}
-          </button>
-          {!post.is_preview && (
-            <button
-              type="button"
-              className={`listen-button ${speaking ? 'speaking' : ''}`}
-              onClick={toggleListen}
-            >
-              {speaking ? '⏹ रोकें' : preparing ? `⏳ आवाज़ तैयार हो रही है…${prepared ? ` ${prepared}%` : ''} (रद्द करें)` : '▶ सुनें'}
-            </button>
-          )}
-          {(post.my_claps || 0) > 0 && (
-            <span className="my-claps">आपकी तालियाँ: {post.my_claps}/50</span>
-          )}
-        </div>
+        {renderActions('end')}
       </article>
 
       <MoreStories currentId={post.id} />
@@ -1178,6 +1176,8 @@ const PostView = () => {
           </div>
         </div>
       )}
+
+      {shareSheet}
 
       {actionError && (
         <div className="action-toast" role="alert">

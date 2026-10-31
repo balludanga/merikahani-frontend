@@ -8,6 +8,7 @@ import { useAccentStyle } from '../utils/accent';
 import { topicLabel } from '../brand';
 import ProfileHeader from '../components/ProfileHeader';
 import ProfileLibrary from '../components/ProfileLibrary';
+import { useShare } from '../components/ShareSheet';
 import './UserProfile.css';
 
 const TABS = [
@@ -53,6 +54,13 @@ const UserProfile = () => {
     setNoticeBad(bad);
   };
   const accentStyle = useAccentStyle(profile && profile.accent);
+  const profileName = profile ? profile.full_name || profile.username : '';
+  const { share: shareProfile, sheet: shareSheet } = useShare({
+    url: `${window.location.origin}/user/${userId}`,
+    title: profileName,
+    text: `${profileName} की रचनाएँ लेखनी पर पढ़ें`,
+    heading: 'यह प्रोफ़ाइल साझा करें',
+  });
 
   useEffect(() => {
     fetchProfile();
@@ -132,16 +140,6 @@ const UserProfile = () => {
     }
   };
 
-  const copyLink = async () => {
-    const url = `${window.location.origin}/user/${userId}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      say('प्रोफ़ाइल की कड़ी कॉपी हो गई ✓');
-    } catch (error) {
-      say(url);
-    }
-  };
-
   if (loading) {
     return <div className="page-loading">लोड हो रहा है…</div>;
   }
@@ -181,7 +179,7 @@ const UserProfile = () => {
           {profile.is_following ? 'फ़ॉलो हो रहे हैं ✓' : 'फ़ॉलो करें'}
         </button>
       )}
-      <button type="button" className="profile-share" onClick={copyLink} title="प्रोफ़ाइल की कड़ी कॉपी करें" aria-label="प्रोफ़ाइल की कड़ी कॉपी करें">
+      <button type="button" className="profile-share" onClick={shareProfile} title="प्रोफ़ाइल साझा करें" aria-label="प्रोफ़ाइल साझा करें" aria-haspopup="dialog">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <circle cx="18" cy="5" r="2.6" /><circle cx="6" cy="12" r="2.6" /><circle cx="18" cy="19" r="2.6" />
           <path d="M8.3 10.7l7.4-4.2M8.3 13.3l7.4 4.2" />
@@ -249,6 +247,8 @@ const UserProfile = () => {
         </div>
         )}
       </div>
+
+      {shareSheet}
 
       {notice && (
         <div className={`profile-notice ${noticeBad ? 'bad' : ''}`} role={noticeBad ? 'alert' : 'status'}>
