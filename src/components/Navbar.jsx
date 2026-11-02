@@ -128,6 +128,7 @@ const Navbar = ({ landing }) => {
                     <Link to="/stories" onClick={() => setMenuOpen(false)}>मेरी रचनाएँ</Link>
                     <Link to="/bookmarks" onClick={() => setMenuOpen(false)}>पढ़ने की सूची</Link>
                     <Link to="/highlights" onClick={() => setMenuOpen(false)}>मेरी हाइलाइट</Link>
+                    {user.is_admin && <Link to="/review" onClick={() => setMenuOpen(false)}>रचनाओं की समीक्षा</Link>}
                     <button type="button" onClick={handleLogout}>साइन आउट</button>
                   </div>
                 )}

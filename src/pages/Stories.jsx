@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import { updateMetaTags } from '../utils/seo';
 import { formatDate } from '../utils/format';
 import StoryCard from '../components/StoryCard';
+import { STATE_LABELS } from '../utils/review';
+import '../components/Review.css';
 import './Home.css';
 
 const Stories = () => {
@@ -91,6 +93,11 @@ const Stories = () => {
             <article key={post.id} className="draft-row">
               <div>
                 <h2>{post.title}</h2>
+                {post.moderation_state && post.moderation_state !== 'none' && (
+                  <Link to={`/post/${post.slug}`} className={`review-state ${post.moderation_state}`}>
+                    {STATE_LABELS[post.moderation_state]} — टिप्पणियाँ देखें
+                  </Link>
+                )}{' '}
                 <span className="draft-meta">
                   पिछला बदलाव: {formatDate(post.updated_at)}
                 </span>

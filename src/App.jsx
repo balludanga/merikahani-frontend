@@ -21,6 +21,7 @@ const Stories = lazy(() => import('./pages/Stories'));
 const Search = lazy(() => import('./pages/Search'));
 const Bookmarks = lazy(() => import('./pages/Bookmarks'));
 const Highlights = lazy(() => import('./pages/Highlights'));
+const Review = lazy(() => import('./pages/Review'));
 const Ops = lazy(() => import('./pages/Ops'));
 
 // The owner's status page lives at an address only the owner knows, set at build time in
@@ -102,6 +103,7 @@ const AppContent = () => {
           <Route path="/stories" element={<Stories />} />
           <Route path="/bookmarks" element={<Bookmarks />} />
           <Route path="/highlights" element={<Highlights />} />
+          <Route path="/review" element={<Review />} />
           {OPS_ROUTE && <Route path={OPS_ROUTE} element={<Ops />} />}
           <Route path="/search" element={<Search />} />
           <Route path="/topic/:topic" element={<Search />} />
