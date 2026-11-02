@@ -124,7 +124,13 @@ export const AuthProvider = ({ children }) => {
       if (res.ok && data.access_token) {
         localStorage.setItem('token', data.access_token);
         setToken(data.access_token);
-        
+        // The answer already carries the account: use it now, like the email sign-in does, so the
+        // reader is not held on the login page for a second /auth/me round trip.
+        if (data.user) {
+          setUser(data.user);
+          setLoading(false);
+        }
+
         // Track Google login event
         trackEvent('login', {
           method: 'google'

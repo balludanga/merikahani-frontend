@@ -56,12 +56,27 @@ const Login = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate(redirectTo);
+      // replace: the back button must not return to a sign-in page the reader has finished with.
+      navigate(redirectTo, { replace: true });
     }
   }, [isAuthenticated, navigate, redirectTo]);
 
   const tokenClientRef = useRef(null);
+  // True from the moment Google hands back its answer until we either leave this page (signed in)
+  // or show why it failed. It is NOT cleared on success, so the page never falls back to looking
+  // like an untouched sign-in form during the wait.
   const [googleBusy, setGoogleBusy] = useState(false);
+  const [slowGoogle, setSlowGoogle] = useState(false);
+
+  // The server can be asleep (free hosting): after a few seconds say so instead of looking stuck.
+  useEffect(() => {
+    if (!googleBusy) {
+      setSlowGoogle(false);
+      return undefined;
+    }
+    const timer = setTimeout(() => setSlowGoogle(true), 6000);
+    return () => clearTimeout(timer);
+  }, [googleBusy]);
 
   // Pop-up sign-in: started directly by the button tap, so it works on phones where
   // Google's One Tap prompt is often not shown at all.
@@ -82,8 +97,10 @@ const Login = () => {
           }
           setGoogleBusy(true);
           const result = await handleGoogleAccessToken(response.access_token);
-          setGoogleBusy(false);
-          if (!result.success) setError(result.error);
+          if (!result.success) {
+            setGoogleBusy(false);
+            setError(result.error);
+          }
         },
         error_callback: (err) => {
           // Closing the window is the user's own choice, not an error.
@@ -116,6 +133,7 @@ const Login = () => {
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    if (googleBusy) return;
     setError('');
     setSubmitting(true);
     const result = isRegister
@@ -129,7 +147,14 @@ const Login = () => {
 
   return (
     <div className="auth-page">
-      <div className="auth-container">
+      <div className={`auth-container ${googleBusy ? 'is-busy' : ''}`} aria-busy={googleBusy}>
+        {googleBusy && (
+          <div className="auth-progress" role="status" aria-live="polite">
+            <span className="auth-spinner" aria-hidden="true" />
+            <strong>गूगल (Google) से साइन इन हो रहा है…</strong>
+            <span>{slowGoogle ? 'सर्वर को जागने में थोड़ा समय लग रहा है, कृपया रुकें।' : 'कृपया रुकें।'}</span>
+          </div>
+        )}
         <h1 className="auth-title">{isRegister ? 'लेखनी पर लिखना शुरू करें' : `${BRAND.name} में साइन इन`}</h1>
         <p className="auth-subtitle">हिंदी में अपनी रचनाएँ प्रकाशित करें। लेख कृत्रिम बुद्धिमत्ता से नहीं लिखे जाते।</p>
         <button
