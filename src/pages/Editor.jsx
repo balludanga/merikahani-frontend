@@ -4,7 +4,7 @@ import ReactQuill from 'react-quill';
 import Quill from 'quill';
 import 'react-quill/dist/quill.bubble.css';
 import { useAuth } from '../context/AuthContext';
-import { postsAPI, uploadsAPI } from '../services/api';
+import { postsAPI, reviewsAPI, uploadsAPI } from '../services/api';
 import { transliterateLastWord, dandaOnDoubleSpace } from '../utils/transliterate';
 import { initials } from '../utils/format';
 import { updateMetaTags, resetMetaTags } from '../utils/seo';
@@ -13,6 +13,9 @@ import '../utils/quillHindi';
 import { BRAND, TOPICS } from '../brand';
 import './Editor.css';
 import { mediaUrl } from '../utils/media';
+import { findNoteInText, STATE_LABELS } from '../utils/review';
+import ReviewNoteList from '../components/ReviewNoteList';
+import '../components/Review.css';
 
 const EMPTY_DOC = '<p><br></p>';
 
@@ -238,6 +241,11 @@ const Editor = () => {
   const [uploading, setUploading] = useState(false);
   // Lightweight in-editor notice replaces jarring native alert() popups.
   const [toast, setToast] = useState('');
+  // A reviewer sent this story back: where it stands, the notes the writer was sent, and the
+  // side panel that lists them next to the text.
+  const [modState, setModState] = useState('none');
+  const [reviewNotes, setReviewNotes] = useState([]);
+  const [notesOpen, setNotesOpen] = useState(false);
   const toastTimer = useRef(null);
   const notify = (message) => {
     setToast(message);
@@ -326,6 +334,17 @@ const Editor = () => {
       };
       setFormData(loaded);
       savedSig.current = signatureOf(loaded);
+      const state = post.moderation_state || 'none';
+      setModState(state);
+      if (state !== 'none') {
+        try {
+          const review = await reviewsAPI.forPost(post.id);
+          setReviewNotes(review.data.notes);
+          setNotesOpen(review.data.notes.some((note) => note.status === 'open'));
+        } catch (error) {
+          // The notes are a help, not a requirement: the story itself still opens.
+        }
+      }
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to fetch post:', error);
@@ -729,6 +748,43 @@ const Editor = () => {
     });
   };
 
+  // ---- Reviewer's notes ---------------------------------------------------------------------
+  const setNoteStatus = async (note, status) => {
+    try {
+      const response = await reviewsAPI.setStatus(note.id, status);
+      setReviewNotes((prev) => prev.map((n) => (n.id === note.id ? response.data : n)));
+    } catch (error) {
+      notify('टिप्पणी की स्थिति बदली नहीं जा सकी।');
+    }
+  };
+
+  const jumpToNote = (note) => {
+    const editor = getEditor();
+    if (!editor) return;
+    const at = findNoteInText(editor.getText(), note);
+    if (!at) {
+      notify('यह अंश अब पाठ में नहीं मिला।');
+      return;
+    }
+    editor.focus();
+    editor.setSelection(at.start, at.end - at.start, 'user');
+    if (editor.scrollIntoView) editor.scrollIntoView();
+  };
+
+  // Put the reviewer's suggested wording in place of the flagged passage.
+  const applyNote = (note) => {
+    const editor = getEditor();
+    if (!editor || !note.suggestion) return;
+    const at = findNoteInText(editor.getText(), note);
+    if (!at) {
+      notify('यह अंश अब पाठ में नहीं मिला — कृपया हाथ से बदलें।');
+      return;
+    }
+    editor.deleteText(at.start, at.end - at.start, 'user');
+    editor.insertText(at.start, note.suggestion, 'user');
+    setNoteStatus(note, 'fixed');
+  };
+
   const buildPayload = (published) => ({
     title: formData.title,
     subtitle: formData.subtitle,
@@ -933,8 +989,18 @@ const Editor = () => {
               ड्राफ्ट में बदलें
             </button>
           )}
+          {modState !== 'none' && (
+            <button
+              type="button"
+              className={`editor-draft${notesOpen ? ' on' : ''}`}
+              onClick={() => setNotesOpen((open) => !open)}
+              aria-expanded={notesOpen}
+            >
+              समीक्षा की टिप्पणियाँ ({reviewNotes.filter((n) => n.status === 'open').length})
+            </button>
+          )}
           <button type="button" className="editor-publish" onClick={() => setShowPublish(true)}>
-            प्रकाशित करें
+            {modState === 'none' ? 'प्रकाशित करें' : 'समीक्षा के लिए भेजें'}
           </button>
           {/* Secondary tools live behind a ⋯ so the bar stays quiet. */}
           <div className="editor-bar-menu" ref={barMenuRef}>
@@ -990,6 +1056,42 @@ const Editor = () => {
           )}
         </div>
       </header>
+
+      {modState !== 'none' && (
+        <div className={`editor-review-banner ${modState}`} role="status">
+          <strong>
+            {modState === 'changes_requested'
+              ? 'समीक्षकों ने इस रचना में बदलाव माँगे हैं।'
+              : 'यह रचना समीक्षा के लिए भेजी जा चुकी है।'}
+          </strong>{' '}
+          <span>
+            {modState === 'changes_requested'
+              ? 'सुधार करें, फिर ऊपर “समीक्षा के लिए भेजें” दबाएँ। तब तक यह जनता को नहीं दिखेगी।'
+              : 'आप चाहें तो और सुधार कर सकते हैं; स्वीकृति के बाद यह फिर प्रकाशित होगी।'}
+          </span>
+        </div>
+      )}
+
+      {modState !== 'none' && notesOpen && (
+        <aside className="editor-review-drawer" aria-label="समीक्षा की टिप्पणियाँ">
+          <div className="editor-review-drawer-head">
+            <strong>समीक्षा की टिप्पणियाँ</strong>
+            <span className={`review-state ${modState}`}>{STATE_LABELS[modState]}</span>
+            <button type="button" className="review-x" onClick={() => setNotesOpen(false)} aria-label="बंद करें">×</button>
+          </div>
+          {reviewNotes.length === 0 ? (
+            <p className="review-hint">इस बार कोई अंश-टिप्पणी नहीं है — समीक्षकों का संदेश रचना के पृष्ठ पर देखें।</p>
+          ) : (
+            <ReviewNoteList
+              notes={reviewNotes}
+              missing={new Set(reviewNotes.filter((n) => !findNoteInText(formData.content, n)).map((n) => n.id))}
+              onJump={jumpToNote}
+              onApply={applyNote}
+              onToggleFixed={(note) => setNoteStatus(note, note.status === 'fixed' ? 'open' : 'fixed')}
+            />
+          )}
+        </aside>
+      )}
 
       <form
         className={`editor-sheet${bodyFocused ? ' is-writing' : ''}`}
@@ -1222,7 +1324,13 @@ const Editor = () => {
       {showPublish && (
         <div className="publish-modal" role="dialog" aria-labelledby="publish-title">
           <div className="publish-card">
-            <h2 id="publish-title">प्रकाशित करने की तैयारी</h2>
+            <h2 id="publish-title">{modState === 'none' ? 'प्रकाशित करने की तैयारी' : 'समीक्षा के लिए भेजने की तैयारी'}</h2>
+            {modState !== 'none' && (
+              <p className="review-hint">
+                रचना समीक्षकों के पास जाएगी और स्वीकृत होते ही उसी पते पर फिर से प्रकाशित हो जाएगी।
+                तब तक यह जनता को नहीं दिखेगी।
+              </p>
+            )}
             <label>
               विषय
               <select
@@ -1290,7 +1398,9 @@ const Editor = () => {
             <div className="publish-actions">
               <button type="button" className="editor-draft" onClick={() => setShowPublish(false)}>रद्द</button>
               <button type="button" className="editor-publish" onClick={() => save(1)} disabled={saving}>
-                {saving ? 'प्रकाशित हो रहा है…' : 'अभी प्रकाशित करें'}
+                {saving
+                  ? modState === 'none' ? 'प्रकाशित हो रहा है…' : 'भेज रहे हैं…'
+                  : modState === 'none' ? 'अभी प्रकाशित करें' : 'समीक्षा के लिए भेजें'}
               </button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { commentsAPI, followsAPI, postsAPI, usersAPI, bookmarksAPI, highlightsAPI } from '../services/api';
+import { commentsAPI, followsAPI, postsAPI, usersAPI, bookmarksAPI, highlightsAPI, reviewsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { updateMetaTags, generateStructuredData, resetMetaTags } from '../utils/seo';
 import { formatDate, readingMinutes, initials } from '../utils/format';
@@ -18,6 +18,9 @@ import {
 import FocusHeader from '../components/FocusHeader';
 import HindiTextarea, { useHinglish } from '../components/HindiTextarea';
 import PassageComposer from '../components/PassageComposer';
+import ReviewPanel from '../components/ReviewPanel';
+import ReviewNoteComposer from '../components/ReviewNoteComposer';
+import { categoryLabel, noteMarkId, isNoteMarkId } from '../utils/review';
 import Lightbox from '../components/Lightbox';
 import MoreStories from '../components/MoreStories';
 import { NotFound } from '../components/NotFound';
@@ -112,6 +115,13 @@ const PostView = () => {
   const [composer, setComposer] = useState(null);
   const [notice, setNotice] = useState('');
   const [hinglish, toggleHinglish, finishHinglish] = useHinglish();
+  // Editorial review: a reviewer's notes (all of them) or, for the writer, the notes they were sent.
+  const [review, setReview] = useState(null);
+  // { range, quote, anchor } while a reviewer writes a note; { note, quote } while one is edited.
+  const [noteComposer, setNoteComposer] = useState(null);
+  // Notes whose passage can no longer be found in the story text.
+  const [missingNotes, setMissingNotes] = useState(() => new Set());
+  const isReviewer = !!(user && user.is_admin);
   const bodyRef = useRef(null);
   const audioRef = useRef(null);
   // The word-by-word highlight that follows the narration (see utils/followAlong.js).
@@ -556,6 +566,85 @@ const PostView = () => {
     setComposer({ range, quote, start: anchor ? anchor.start : null });
   };
 
+  // ---- Editorial review ------------------------------------------------------------------
+  // The reviewer's notes, or (for the writer) the notes sent to them. Loaded once the story is
+  // on screen; nobody else has any, so nobody else asks.
+  const reviewViewer = post && user && (user.is_admin || (user.id === post.author_id && post.moderation_state !== 'none'));
+  useEffect(() => {
+    if (!post || !reviewViewer) {
+      setReview(null);
+      return undefined;
+    }
+    let cancelled = false;
+    reviewsAPI
+      .forPost(post.id)
+      .then((response) => {
+        if (!cancelled) setReview(response.data);
+      })
+      .catch(() => {
+        if (!cancelled) setReview(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [post && post.id, !!reviewViewer, post && post.moderation_state]);
+
+  const handleNoteSelection = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || sel.rangeCount === 0 || !bodyRef.current) return;
+    const anchor = anchorFromRange(indexBody(bodyRef.current), sel.getRangeAt(0).cloneRange());
+    if (!anchor) return;
+    if (anchor.text.length > MAX_HIGHLIGHT) {
+      setActionError('इतना लंबा अंश चुना है। कृपया छोटा अंश चुनें।');
+      return;
+    }
+    sel.removeAllRanges();
+    setSelectionMenu(null);
+    setNoteComposer({ quote: anchor.text, anchor });
+  };
+
+  const submitNote = async ({ category, comment, suggestion }) => {
+    try {
+      if (noteComposer.note) {
+        const response = await reviewsAPI.editNote(noteComposer.note.id, { category, comment, suggestion });
+        setReview((prev) => ({ ...prev, notes: prev.notes.map((n) => (n.id === response.data.id ? response.data : n)) }));
+      } else {
+        const { anchor } = noteComposer;
+        const response = await reviewsAPI.addNote(post.id, {
+          text: anchor.text,
+          start: anchor.start,
+          prefix: anchor.prefix,
+          suffix: anchor.suffix,
+          category,
+          comment,
+          suggestion: suggestion || null,
+        });
+        setReview((prev) => {
+          const base = prev || { post, reviewer: true, rounds: [], notes: [] };
+          return { ...base, notes: [...base.notes, response.data] };
+        });
+      }
+      setNoteComposer(null);
+    } catch (error) {
+      setActionError(error.response?.data?.detail && typeof error.response.data.detail === 'string'
+        ? error.response.data.detail
+        : 'टिप्पणी सहेजी नहीं जा सकी।');
+      throw error;
+    }
+  };
+
+  const jumpToNote = (note) => {
+    if (!bodyRef.current) return;
+    const index = indexBody(bodyRef.current);
+    const at = locate(index, note);
+    const found = at < 0 ? null : elementAt(index, at, at + note.text.length);
+    if (!found) return;
+    const block = found.closest('p, li, blockquote, h1, h2, h3, h4, h5, h6') || found;
+    block.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    block.classList.add('passage-flash');
+    window.setTimeout(() => block.classList.remove('passage-flash'), 2400);
+  };
+
   const submitPassageResponse = async (content) => {
     try {
       const response = await commentsAPI.create({
@@ -614,6 +703,17 @@ const PostView = () => {
     const sel = window.getSelection();
     if (!mark || (sel && !sel.isCollapsed)) return;
     const ids = mark.dataset.hl.split(',').map(Number);
+    const flagged = ids.filter(isNoteMarkId);
+    if (flagged.length) {
+      // A passage a reviewer flagged: go to its note.
+      const card = document.getElementById(`review-note-${-flagged[0]}`);
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.classList.add('flash');
+        window.setTimeout(() => card.classList.remove('flash'), 2400);
+      }
+      return;
+    }
     setHlInfo({ x: e.clientX, y: e.clientY, ids });
   };
 
@@ -664,31 +764,54 @@ const PostView = () => {
     };
   }, [post && post.id, isAuthenticated]);
 
-  // Paint the highlights onto the story. This runs when the body is really on
-  // screen (`loading` is false), not just when the post data arrives.
+  // Paint the highlights and review notes onto the story. This runs when the body is really on
+  // screen (`loading` is false), not just when the post data arrives. Notes take negative ids so a
+  // mark can tell them from a reader's highlight (see utils/review.js).
   useEffect(() => {
     const root = bodyRef.current;
     if (loading || !post || !root) return;
     clearMarks(root);
-    if (!highlights.length) return;
+    const notes = review ? review.notes : [];
+    if (!highlights.length && !notes.length) {
+      setMissingNotes((prev) => (prev.size ? new Set() : prev));
+      return;
+    }
     const index = indexBody(root);
     const byId = new Map(highlights.map((item) => [item.id, item]));
+    const noteById = new Map(notes.map((note) => [noteMarkId(note), note]));
     const myId = user ? user.id : null;
     const spans = [];
+    const gone = new Set();
     highlights.forEach((item) => {
       const start = locate(index, item);
       if (start >= 0) spans.push({ id: item.id, start, end: start + item.text.length });
     });
+    notes.forEach((note) => {
+      const start = locate(index, note);
+      if (start >= 0) spans.push({ id: noteMarkId(note), start, end: start + note.text.length });
+      else gone.add(note.id);
+    });
+    setMissingNotes((prev) => (prev.size === gone.size && [...gone].every((id) => prev.has(id)) ? prev : gone));
     applyMarks(index, spans, (ids) => {
-      const found = ids.map((id) => byId.get(id));
+      const found = ids.filter((id) => !isNoteMarkId(id)).map((id) => byId.get(id));
+      const flagged = ids.filter(isNoteMarkId).map((id) => noteById.get(id));
       const mine = found.some((item) => item.user_id === myId);
       const others = new Set(found.filter((item) => item.user_id !== myId).map((item) => item.user_id));
-      const className = [mine && 'hl-mine', others.size && `hl-others hl-n${Math.min(others.size, 3)}`]
+      const className = [
+        mine && 'hl-mine',
+        others.size && `hl-others hl-n${Math.min(others.size, 3)}`,
+        flagged.length && 'rv-note',
+        flagged.length && flagged.every((note) => note.draft) && 'rv-draft',
+        flagged.length && flagged.every((note) => note.status === 'fixed') && 'rv-fixed',
+      ]
         .filter(Boolean)
         .join(' ');
-      return { className, title: whoHighlighted(found, myId) };
+      const title = flagged.length
+        ? `समीक्षा — ${categoryLabel(flagged[0].category)}: ${flagged[0].comment}`
+        : whoHighlighted(found, myId);
+      return { className, title };
     });
-  }, [highlights, post, loading, user && user.id]);
+  }, [highlights, review, post, loading, user && user.id]);
 
   // Mark where responses about a passage sit: a small bubble with a count at the end of
   // the paragraph that holds the passage. It is drawn by CSS (no text of its own), so it
@@ -925,6 +1048,23 @@ const PostView = () => {
           )}
         </div>
 
+        {(isReviewer || (review && post.moderation_state !== 'none')) && (
+          <ReviewPanel
+            post={post}
+            review={review}
+            reviewer={isReviewer}
+            missing={missingNotes}
+            hinglish={hinglish}
+            onToggleHinglish={toggleHinglish}
+            finish={finishHinglish}
+            onJump={jumpToNote}
+            onEditNote={(note) => setNoteComposer({ note, quote: note.text })}
+            onChange={setReview}
+            onPostChange={(changes) => setPost((prev) => ({ ...prev, ...changes }))}
+            onProblem={setActionError}
+          />
+        )}
+
         {renderActions('start')}
 
         {post.cover_image && (
@@ -1010,6 +1150,28 @@ const PostView = () => {
               />
             </svg>
           </button>
+          {isReviewer && (
+            <>
+              <span className="selection-menu-sep" aria-hidden="true" />
+              <button
+                type="button"
+                onClick={handleNoteSelection}
+                title="समीक्षा टिप्पणी जोड़ें"
+                aria-label="समीक्षा टिप्पणी जोड़ें"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M5 3.5h14v14H12l-4.5 3.5v-3.5H5zM9 8.5h6M9 12h4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </>
+          )}
           <span className="selection-menu-sep" aria-hidden="true" />
           <button
             type="button"
@@ -1060,6 +1222,18 @@ const PostView = () => {
           </div>
         );
       })()}
+
+      {noteComposer && (
+        <ReviewNoteComposer
+          quote={noteComposer.quote}
+          initial={noteComposer.note || null}
+          hinglish={hinglish}
+          onToggleHinglish={toggleHinglish}
+          finish={finishHinglish}
+          onSubmit={submitNote}
+          onClose={() => setNoteComposer(null)}
+        />
+      )}
 
       {composer && (
         <PassageComposer

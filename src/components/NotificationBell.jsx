@@ -11,6 +11,12 @@ function sentence(item) {
   const who = item.actor.full_name || item.actor.username;
   if (item.kind === 'follow') return { who, rest: 'ने आपको फ़ॉलो करना शुरू किया' };
   const title = `“${item.post.title}”`;
+  // Reviewers speak for the platform, not as a named person; the sentence has no "who".
+  if (item.kind === 'review_changes') {
+    return { who: 'समीक्षा टीम', rest: `ने आपकी रचना ${title} में बदलाव माँगे हैं${item.count > 0 ? ` (${item.count} टिप्पणी)` : ''} — रचना तब तक जनता को नहीं दिखेगी` };
+  }
+  if (item.kind === 'review_approved') return { who: 'समीक्षा टीम', rest: `ने आपकी रचना ${title} स्वीकृत कर दी — यह फिर से प्रकाशित है` };
+  if (item.kind === 'review_resubmit') return { who, rest: `ने सुधार कर ${title} को समीक्षा के लिए फिर भेजा है` };
   if (item.kind === 'reply') return { who, rest: `ने “${item.post.title}” पर आपकी प्रतिक्रिया का जवाब दिया` };
   if (item.kind === 'comment') return { who, rest: `ने आपकी रचना ${title} पर प्रतिक्रिया दी` };
   if (item.kind === 'clap') {
@@ -33,6 +39,8 @@ function sentence(item) {
 const linkFor = (item) =>
   item.kind === 'follow'
     ? `/user/${item.actor.id}`
+    : item.kind === 'review_changes'
+    ? `/post/${encodeURIComponent(item.post.slug)}`
     : `/post/${encodeURIComponent(item.post.slug)}${(item.kind === 'comment' || item.kind === 'reply') && item.comment_id ? `#response-${item.comment_id}` : ''}`;
 
 /**

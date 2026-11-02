@@ -154,6 +154,20 @@ export const uploadsAPI = {
 
 export default api;
 
+// Editorial review. Reviewer calls answer 404 to anyone else; the writer may read the notes on their own story.
+export const reviewsAPI = {
+  forPost: (postId) => api.get(`/reviews/post/${postId}`),
+  addNote: (postId, data) => api.post(`/reviews/post/${postId}/notes`, data),
+  editNote: (noteId, data) => api.put(`/reviews/notes/${noteId}`, data),
+  removeNote: (noteId) => api.delete(`/reviews/notes/${noteId}`),
+  setStatus: (noteId, status) => api.put(`/reviews/notes/${noteId}/status`, { status }),
+  requestChanges: (postId, summary) => api.post(`/reviews/post/${postId}/request-changes`, { summary: summary || null }),
+  approve: (postId) => api.post(`/reviews/post/${postId}/approve`),
+  resubmit: (postId) => api.post(`/reviews/post/${postId}/resubmit`),
+  queue: (params) => api.get('/reviews/queue', { params }),
+  counts: () => api.get('/reviews/queue/counts'),
+};
+
 // The owner's status page. The server answers 404 to anyone who is not the admin.
 export const opsAPI = {
   overview: () => api.get('/ops/overview'),
