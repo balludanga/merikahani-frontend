@@ -1,0 +1,488 @@
+/* The review team's desk for write and earn. Builds on Review.css (shell, tabs, search) and Earn.css (buttons, fields). */
+.desk-sub {
+  margin: 20px 0 8px;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.desk-muted {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--text-3);
+}
+
+/* ---- the queue ---- */
+.desk-rows {
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.desk-row {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-card);
+}
+
+.desk-row.open {
+  padding-bottom: 14px;
+}
+
+.desk-row-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.desk-row-name {
+  font-size: 16.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.desk-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  font-size: 13.5px;
+  line-height: 1.8;
+  color: var(--text-3);
+}
+
+.desk-row > :not(.desk-row-head) {
+  margin-left: 16px;
+  margin-right: 16px;
+}
+
+.desk-profile-link {
+  margin-top: 0;
+  font-size: 14px;
+}
+
+.desk-detail {
+  display: grid;
+  gap: 12px;
+}
+
+.desk-tagline {
+  font-weight: 600;
+  line-height: 1.7;
+}
+
+.desk-bio {
+  font-size: 15px;
+  line-height: 1.85;
+  color: var(--text-2);
+}
+
+.desk-quote {
+  margin: 0;
+  padding: 6px 0 6px 14px;
+  border-left: 3px solid var(--accent);
+  font-size: 15.5px;
+  line-height: 1.85;
+  white-space: pre-wrap;
+}
+
+.desk-flags {
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 14.5px;
+  line-height: 1.8;
+}
+
+.desk-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.desk-fact {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg-soft);
+}
+
+.desk-fact dt {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-3);
+}
+
+.desk-fact dd {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.desk-stories {
+  list-style: none;
+  display: grid;
+  gap: 4px;
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.desk-decide {
+  display: grid;
+  gap: 8px;
+}
+
+.desk-decide label {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+/* ---- months ---- */
+.desk-month-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 18px;
+}
+
+.desk-month-chip {
+  display: grid;
+  gap: 0;
+  min-height: 44px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-card);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.desk-month-chip span {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-3);
+}
+
+.desk-month-chip.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.desk-pool {
+  display: grid;
+  gap: 4px;
+  max-width: 420px;
+  margin: 8px 0 16px;
+}
+
+.desk-pool label,
+.desk-pay label {
+  margin-top: 8px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.desk-pool .earn-btn {
+  justify-self: start;
+  margin-top: 8px;
+}
+
+.desk-table-wrap {
+  margin-top: 10px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.desk-table {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+  font-size: 14.5px;
+  line-height: 1.7;
+}
+
+.desk-table th,
+.desk-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.desk-table thead th {
+  background: var(--bg-soft);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.desk-table tbody th {
+  font-weight: 600;
+}
+
+.desk-table tbody th a {
+  color: var(--text);
+}
+
+.desk-table tr:last-child th,
+.desk-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.desk-table tr.held {
+  background: var(--danger-soft);
+}
+
+.desk-table td.warn {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.desk-detail-cell {
+  font-size: 13.5px;
+  color: var(--text-2);
+}
+
+.desk-leave {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0 !important;
+  cursor: pointer;
+}
+
+.desk-leave input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--danger);
+}
+
+.desk-leave-reason {
+  display: block;
+  width: 180px;
+  min-height: 36px !important;
+  margin-top: 6px;
+  font-size: 14px !important;
+}
+
+.desk-finalize {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+/* ---- payouts ---- */
+.desk-pay-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 20px;
+  padding: 14px 0 0;
+  margin: 0 16px;
+}
+
+.desk-owed {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+
+.desk-owed strong {
+  font-size: 22px;
+  line-height: 1.5;
+}
+
+.desk-due {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.desk-upi {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.desk-copy {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.desk-copy:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.desk-pay {
+  display: grid;
+  gap: 4px;
+  max-width: 420px;
+  margin-top: 12px !important;
+}
+
+.desk-history {
+  margin-top: 8px;
+}
+
+@media (max-width: 520px) {
+  .desk-owed {
+    justify-items: start;
+  }
+}
+
+/* ---- links and tabs: readable on both themes, and the two tab bars look different ---- */
+.desk-row a,
+.desk-stories a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.desk-row a:hover,
+.desk-table a:hover {
+  text-decoration: underline;
+}
+
+.desk-row a.desk-row-name,
+.desk-table tbody th a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.desk-row a.desk-row-name:hover,
+.desk-table tbody th a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.desk-table th .earn-row-held {
+  display: block;
+  font-weight: 400;
+}
+
+/* The list filter inside the "आवेदन" tab: pills, so it does not read as a second page-level tab bar. */
+.desk-views {
+  gap: 8px;
+  margin: 4px 0 14px;
+  border-bottom: 0;
+}
+
+.desk-views .review-tab {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  font-size: 14px;
+}
+
+.desk-views .review-tab.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* On a phone the table becomes one card per writer, so the amount is never off-screen. */
+@media (max-width: 640px) {
+  .desk-table-wrap {
+    overflow-x: visible;
+    border: 0;
+  }
+
+  .desk-table {
+    min-width: 0;
+    border-collapse: separate;
+  }
+
+  /* Hidden to the eye only: the labels live on each cell instead. */
+  .desk-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .desk-table,
+  .desk-table tbody,
+  .desk-table tr,
+  .desk-table th,
+  .desk-table td {
+    display: block;
+  }
+
+  .desk-table tr {
+    margin-bottom: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-card);
+  }
+
+  .desk-table tr.held {
+    background: var(--danger-soft);
+  }
+
+  .desk-table tbody th {
+    padding: 0 0 6px;
+    border: 0;
+    font-size: 16px;
+  }
+
+  .desk-table td {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 0;
+    border: 0;
+    text-align: right;
+  }
+
+  .desk-table td::before {
+    content: attr(data-label);
+    flex: none;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text-3);
+    text-align: left;
+  }
+
+  .desk-leave-reason {
+    width: 100%;
+  }
+
+  .desk-table td:last-child {
+    flex-wrap: wrap;
+  }
+}
