@@ -10,6 +10,13 @@ const POLL_MS = 60 * 1000;
 function sentence(item) {
   const who = item.actor.full_name || item.actor.username;
   if (item.kind === 'follow') return { who, rest: 'ने आपको फ़ॉलो करना शुरू किया' };
+  // Write and earn is about a person or the programme, not a story: these carry no post.
+  if (item.kind === 'partner_applied') return { who, rest: 'ने “लिखें और कमाएँ” के लिए आवेदन किया है' };
+  if (item.kind === 'partner_approved') return { who: 'समीक्षा टीम', rest: 'ने आपका आवेदन स्वीकृत कर दिया — अब आप साझेदार लेखक हैं' };
+  if (item.kind === 'partner_declined') return { who: 'समीक्षा टीम', rest: 'ने इस बार आपका “लिखें और कमाएँ” आवेदन स्वीकृत नहीं किया' };
+  if (item.kind === 'partner_revoked') return { who: 'समीक्षा टीम', rest: 'ने आपकी साझेदारी फ़िलहाल रोक दी है' };
+  if (item.kind === 'partner_eligible') return { who: 'लेखनी', rest: 'की ओर से बधाई — आप अब “लिखें और कमाएँ” के लिए आवेदन कर सकते हैं' };
+  if (item.kind === 'payout_paid') return { who: 'लेखनी', rest: 'ने आपकी कमाई का भुगतान भेज दिया है' };
   const title = `“${item.post.title}”`;
   // Reviewers speak for the platform, not as a named person; the sentence has no "who".
   if (item.kind === 'review_changes') {
@@ -35,13 +42,17 @@ function sentence(item) {
   };
 }
 
-// A follow opens the new follower's profile; a response or a reply opens the story at it; the rest open the story.
-const linkFor = (item) =>
-  item.kind === 'follow'
-    ? `/user/${item.actor.id}`
-    : item.kind === 'review_changes'
-    ? `/post/${encodeURIComponent(item.post.slug)}`
-    : `/post/${encodeURIComponent(item.post.slug)}${(item.kind === 'comment' || item.kind === 'reply') && item.comment_id ? `#response-${item.comment_id}` : ''}`;
+// A follow opens the new follower's profile; a response or a reply opens the story at it; write and
+// earn opens its own page (the reviewers' desk for a new application, the writer's page for the rest);
+// the others open the story.
+const linkFor = (item) => {
+  if (item.kind === 'follow') return `/user/${item.actor.id}`;
+  if (item.kind === 'partner_applied') return '/review/partners';
+  if (item.kind.startsWith('partner_') || item.kind === 'payout_paid') return '/earn';
+  const slug = encodeURIComponent(item.post.slug);
+  const anchor = (item.kind === 'comment' || item.kind === 'reply') && item.comment_id ? `#response-${item.comment_id}` : '';
+  return `/post/${slug}${anchor}`;
+};
 
 /**
  * Bell in the navbar: a badge with how many things are new, and a panel listing

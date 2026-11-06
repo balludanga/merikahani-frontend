@@ -173,6 +173,40 @@ export const opsAPI = {
   overview: () => api.get('/ops/overview'),
 };
 
+// Write and earn. The writer's calls need only a signed-in account; every call below the
+// "review team" line answers 404 to anyone who is not a reviewer.
+export const partnerAPI = {
+  // Public: the numbers behind the programme, for a visitor who is not signed in.
+  rules: () => api.get('/partner/rules'),
+  me: () => api.get('/partner/me'),
+  apply: (note) => api.post('/partner/apply', { note: note || null, agree: true }),
+  withdraw: () => api.delete('/partner/apply'),
+  setUpi: (upiId) => api.put('/partner/payout-account', { upi_id: upiId || null }),
+  earnings: () => api.get('/partner/earnings'),
+  // --- the review team ---
+  counts: () => api.get('/partner/queue/counts'),
+  queue: (params) => api.get('/partner/queue', { params }),
+  detail: (id) => api.get(`/partner/applications/${id}`),
+  approve: (id) => api.post(`/partner/applications/${id}/approve`),
+  decline: (id, reason) => api.post(`/partner/applications/${id}/decline`, { reason }),
+  revoke: (id, reason) => api.post(`/partner/applications/${id}/revoke`, { reason }),
+};
+
+// The owner's side of the money: each month's pool, finalizing it, and recording payouts.
+// Amounts go in as rupee strings ("1250.50") and come back as whole paise.
+export const earningsAPI = {
+  months: () => api.get('/earnings/months'),
+  month: (month, exclude) =>
+    api.get(`/earnings/months/${month}`, { params: exclude && exclude.length ? { exclude: exclude.join(',') } : {} }),
+  setPool: (month, poolRupees, maxPerPointRupees) =>
+    api.put(`/earnings/months/${month}`, { pool_rupees: poolRupees, max_per_point_rupees: maxPerPointRupees || null }),
+  finalize: (month, exclude) => api.post(`/earnings/months/${month}/finalize`, { exclude: exclude || [] }),
+  balances: () => api.get('/earnings/balances'),
+  payouts: (params) => api.get('/earnings/payouts', { params }),
+  pay: (userId, amountRupees, reference) =>
+    api.post('/earnings/payouts', { user_id: userId, amount_rupees: amountRupees, reference: reference || null }),
+};
+
 // Narrated audio of a story. Plain axios calls (not `api`) on purpose: making a story's audio
 // the first time takes a while, and that must not raise the "server is waking up" banner.
 const authHeader = () => {

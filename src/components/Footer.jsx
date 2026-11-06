@@ -7,6 +7,7 @@ const LINKS = [
   { to: '/status', label: 'स्थिति' },
   { to: '/about', label: 'परिचय' },
   { to: '/blog', label: 'ब्लॉग' },
+  { to: '/earn', label: 'लिखें और कमाएँ' },
   { to: '/rules', label: 'नियम' },
   { to: '/privacy', label: 'गोपनीयता' },
   { to: '/terms', label: 'शर्तें' },

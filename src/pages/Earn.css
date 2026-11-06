@@ -1,0 +1,417 @@
+/* Write and earn: the writer's page. Tokens only, so dark mode follows by itself. */
+.earn-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: clamp(28px, 5vh, 56px) 20px 72px;
+  display: grid;
+  gap: 18px;
+}
+
+.earn-hero {
+  margin-bottom: 4px;
+}
+
+.earn-kicker {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.earn-hero h1 {
+  margin: 6px 0 10px;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(30px, 6vw, 42px);
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.earn-hero p {
+  font-size: 17px;
+  line-height: 1.9;
+  color: var(--text-2);
+}
+
+.earn-card {
+  padding: 20px 22px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-card);
+}
+
+.earn-card h2 {
+  margin-bottom: 10px;
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.earn-welcome {
+  border-left: 4px solid var(--accent);
+}
+
+.earn-lead {
+  margin: 0 0 12px;
+  font-size: 16px;
+  line-height: 1.85;
+  color: var(--text);
+}
+
+.earn-note {
+  margin: 10px 0 0;
+  font-size: 14.5px;
+  line-height: 1.85;
+  color: var(--text-2);
+}
+
+.earn-quote {
+  margin: 0 0 14px;
+  padding: 6px 0 6px 14px;
+  border-left: 3px solid var(--border);
+  font-size: 15.5px;
+  line-height: 1.85;
+  color: var(--text-2);
+  white-space: pre-wrap;
+}
+
+.earn-problem,
+.earn-ok {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 14.5px;
+  line-height: 1.8;
+}
+
+.earn-problem {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.earn-ok {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.earn-live-region:empty {
+  display: none;
+}
+
+/* ---- buttons and fields ---- */
+.earn-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 20px;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  background: transparent;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.earn-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.earn-btn.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.earn-btn.primary:hover:not(:disabled) {
+  background: var(--accent-strong);
+  color: var(--on-accent);
+}
+
+.earn-btn.danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.earn-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.earn-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+
+.earn-input {
+  flex: 1 1 220px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 16px; /* 16px stops iOS from zooming into the field */
+}
+
+.earn-input:focus {
+  border-color: var(--accent);
+}
+
+.earn-form label,
+.earn-upi label {
+  display: block;
+  margin: 12px 0 6px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.earn-note-box {
+  margin-bottom: 4px;
+}
+
+.earn-check {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 14px 0 16px !important;
+  font-weight: 400 !important;
+  line-height: 1.8;
+  cursor: pointer;
+}
+
+.earn-check input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 6px;
+  accent-color: var(--accent);
+}
+
+.earn-upi-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* ---- requirements ---- */
+.earn-reqs {
+  list-style: none;
+  display: grid;
+  gap: 16px;
+}
+
+.earn-req-top {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 6px;
+  font-size: 15.5px;
+}
+
+.earn-req-mark {
+  color: var(--text-3);
+}
+
+.earn-req.met .earn-req-mark {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.earn-req-label {
+  flex: 1;
+  line-height: 1.7;
+}
+
+.earn-req-count {
+  font-size: 14px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.earn-bar {
+  height: 8px;
+  border-radius: 99px;
+  background: var(--bg-soft);
+  overflow: hidden;
+}
+
+.earn-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--accent);
+  transition: width 0.5s ease;
+}
+
+/* ---- how it works ---- */
+.earn-how {
+  display: grid;
+  gap: 10px;
+  padding-left: 22px;
+}
+
+.earn-how li {
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--text-2);
+}
+
+/* ---- the partner's numbers ---- */
+.earn-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.earn-stat {
+  display: grid;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--bg-soft);
+}
+
+.earn-stat-label {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+.earn-stat-value {
+  font-size: 24px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.earn-stat-hint {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-3);
+}
+
+.earn-live {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 28px;
+}
+
+.earn-points {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.earn-points strong {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 46px;
+  line-height: 1.4;
+  color: var(--accent);
+}
+
+.earn-points span {
+  font-size: 15px;
+  color: var(--text-2);
+}
+
+.earn-breakdown {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--text-2);
+}
+
+.earn-breakdown strong {
+  color: var(--text);
+}
+
+.earn-rows {
+  list-style: none;
+}
+
+.earn-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+
+.earn-row:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.earn-row-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.earn-row-sub {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text-3);
+  overflow-wrap: anywhere;
+}
+
+.earn-row-held {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--danger);
+}
+
+.earn-row-amount {
+  flex: none;
+  font-size: 17px;
+  color: var(--text);
+}
+
+@media (max-width: 520px) {
+  .earn-card {
+    padding: 16px 16px;
+  }
+
+  .earn-points strong {
+    font-size: 40px;
+  }
+}
+
+/* The shared Hindi-typing textarea carries no look of its own: each page gives it one. */
+.earn-form .hindi-field textarea,
+.desk-decide .hindi-field textarea {
+  min-height: 96px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* 16px stops iOS from zooming into the field */
+  line-height: 1.8;
+  resize: vertical;
+}
+
+.earn-form .hindi-field textarea:focus,
+.desk-decide .hindi-field textarea:focus {
+  border-color: var(--accent);
+}
+
+.earn-form .hindi-field textarea::placeholder,
+.desk-decide .hindi-field textarea::placeholder {
+  color: var(--text-3);
+}

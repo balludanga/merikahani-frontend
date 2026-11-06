@@ -128,7 +128,9 @@ const Navbar = ({ landing }) => {
                     <Link to="/stories" onClick={() => setMenuOpen(false)}>मेरी रचनाएँ</Link>
                     <Link to="/bookmarks" onClick={() => setMenuOpen(false)}>पढ़ने की सूची</Link>
                     <Link to="/highlights" onClick={() => setMenuOpen(false)}>मेरी हाइलाइट</Link>
+                    <Link to="/earn" onClick={() => setMenuOpen(false)}>लिखें और कमाएँ</Link>
                     {user.is_admin && <Link to="/review" onClick={() => setMenuOpen(false)}>रचनाओं की समीक्षा</Link>}
+                    {user.is_admin && <Link to="/review/partners" onClick={() => setMenuOpen(false)}>साझेदार लेखक</Link>}
                     <button type="button" onClick={handleLogout}>साइन आउट</button>
                   </div>
                 )}
