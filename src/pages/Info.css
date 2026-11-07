@@ -112,6 +112,8 @@
 
 .info-section {
   margin-top: 36px;
+  /* Following a link like /help#audio must leave the heading below the sticky navbar, not behind it. */
+  scroll-margin-top: calc(var(--nav-h) + 16px);
 }
 
 .info-section h2 {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { partnerAPI } from '../services/api';
+import EarnTips from './EarnTips';
 import { formatDate } from '../utils/format';
 import { apiMessage, formatRupees, isUpiLike, monthLabel } from '../utils/partner';
 
@@ -25,6 +26,7 @@ const LiveMonth = ({ live }) => (
         <li><strong>{live.highlights}</strong> हाइलाइट</li>
         <li><strong>{live.responses}</strong> प्रतिक्रियाएँ</li>
         <li><strong>{live.readers}</strong> पाठक</li>
+        {live.member_points > 0 && <li><strong>{live.member_points}</strong> अंक सदस्य पाठकों से</li>}
       </ul>
     </div>
     <p className="earn-note">
@@ -102,10 +104,12 @@ const PayoutAddress = ({ current, onSaved }) => {
 };
 
 /** A partner's whole picture: what they are owed, the month so far, every month, every payout. */
-const EarnPanel = ({ status, earnings, onStatus }) => {
+const EarnPanel = ({ status, earnings, onStatus, payments }) => {
   const rules = status.rules;
   const minimum = rules.min_payout_paise;
   const owed = earnings.balance_paise;
+  // The tips card shows once payments are on, or if tips were ever received (they stay the writer's either way).
+  const showTips = !!((payments && payments.enabled) || earnings.tips_paise > 0);
 
   return (
     <>
@@ -117,12 +121,18 @@ const EarnPanel = ({ status, earnings, onStatus }) => {
             value={formatRupees(owed)}
             hint={owed >= minimum && owed > 0 ? 'अगले भुगतान में आएगी' : `${formatRupees(minimum)} होने पर भुगतान`}
           />
-          <Stat label="अब तक की कमाई" value={formatRupees(earnings.earned_paise)} />
+          <Stat
+            label="अब तक की कमाई"
+            value={formatRupees(earnings.earned_paise)}
+            hint={earnings.tips_paise > 0 ? `कोष से ${formatRupees(earnings.pool_paise)} · समर्थन से ${formatRupees(earnings.tips_paise)}` : undefined}
+          />
           <Stat label="अब तक का भुगतान" value={formatRupees(earnings.paid_paise)} />
         </div>
       </section>
 
       {earnings.live && <LiveMonth live={earnings.live} />}
+
+      {showTips && <EarnTips payments={payments} />}
 
       <PayoutAddress current={status.payout_upi} onSaved={onStatus} />
 
@@ -137,7 +147,7 @@ const EarnPanel = ({ status, earnings, onStatus }) => {
                 <div className="earn-row-main">
                   <strong>{monthLabel(line.month)}</strong>
                   <span className="earn-row-sub">
-                    {line.points} अंक · {line.claps} तालियाँ · {line.highlights} हाइलाइट · {line.responses} प्रतिक्रियाएँ · {line.readers} पाठक
+                    {line.points} अंक{line.member_points > 0 ? ` (सदस्यों से ${line.member_points})` : ''} · {line.claps} तालियाँ · {line.highlights} हाइलाइट · {line.responses} प्रतिक्रियाएँ · {line.readers} पाठक
                   </span>
                   {line.held_reason && <span className="earn-row-held">इस महीने रोका गया: {line.held_reason}</span>}
                 </div>

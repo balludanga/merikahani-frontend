@@ -6,10 +6,12 @@ import { BRAND } from '../brand';
 import NotificationBell from './NotificationBell';
 import { mediaUrl } from '../utils/media';
 import { initials } from '../utils/format';
+import { usePaymentsConfig } from '../utils/payments';
 import './Navbar.css';
 
 const Navbar = ({ landing }) => {
   const { user, logout, isAuthenticated } = useAuth();
+  const payments = usePaymentsConfig(); // null until known; membership is offered only when the site takes payments
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -129,6 +131,9 @@ const Navbar = ({ landing }) => {
                     <Link to="/bookmarks" onClick={() => setMenuOpen(false)}>पढ़ने की सूची</Link>
                     <Link to="/highlights" onClick={() => setMenuOpen(false)}>मेरी हाइलाइट</Link>
                     <Link to="/earn" onClick={() => setMenuOpen(false)}>लिखें और कमाएँ</Link>
+                    {payments && payments.enabled && payments.membership && (
+                      <Link to="/member" onClick={() => setMenuOpen(false)}>सदस्यता</Link>
+                    )}
                     {user.is_admin && <Link to="/review" onClick={() => setMenuOpen(false)}>रचनाओं की समीक्षा</Link>}
                     {user.is_admin && <Link to="/review/partners" onClick={() => setMenuOpen(false)}>साझेदार लेखक</Link>}
                     <button type="button" onClick={handleLogout}>साइन आउट</button>

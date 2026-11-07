@@ -198,13 +198,49 @@ export const earningsAPI = {
   months: () => api.get('/earnings/months'),
   month: (month, exclude) =>
     api.get(`/earnings/months/${month}`, { params: exclude && exclude.length ? { exclude: exclude.join(',') } : {} }),
-  setPool: (month, poolRupees, maxPerPointRupees) =>
-    api.put(`/earnings/months/${month}`, { pool_rupees: poolRupees, max_per_point_rupees: maxPerPointRupees || null }),
+  // Empty weights mean "the site-wide setting". A non-member weight of 0 is a real value (only members count).
+  setPool: (month, poolRupees, maxPerPointRupees, memberWeight, nonmemberWeight) =>
+    api.put(`/earnings/months/${month}`, {
+      pool_rupees: poolRupees,
+      max_per_point_rupees: maxPerPointRupees || null,
+      member_weight: memberWeight || null,
+      nonmember_weight: nonmemberWeight === '' || nonmemberWeight == null ? null : nonmemberWeight,
+    }),
   finalize: (month, exclude) => api.post(`/earnings/months/${month}/finalize`, { exclude: exclude || [] }),
   balances: () => api.get('/earnings/balances'),
   payouts: (params) => api.get('/earnings/payouts', { params }),
   pay: (userId, amountRupees, reference) =>
     api.post('/earnings/payouts', { user_id: userId, amount_rupees: amountRupees, reference: reference || null }),
+};
+
+// Money from readers. With no payment provider connected, `config` says so and the app shows nothing about it.
+export const paymentsAPI = {
+  config: () => api.get('/payments/config'),
+  tipTarget: (writerId) => api.get(`/payments/tips/target/${writerId}`),
+  startTip: (body) => api.post('/payments/tips', body),
+  order: (publicId) => api.get(`/payments/orders/${publicId}`),
+  tipsReceived: () => api.get('/payments/tips/received'),
+  setAcceptsTips: (accepts) => api.put('/payments/tips/settings', { accepts_tips: accepts }),
+  // The offline pretend provider's buttons (development only; the server refuses them anywhere else).
+  sandbox: (publicId, action) => api.post(`/payments/sandbox/${publicId}/${action}`),
+};
+
+export const membershipAPI = {
+  me: () => api.get('/membership/me'),
+  checkout: (plan, autoRenew) => api.post('/membership/checkout', { plan, auto_renew: autoRenew }),
+  cancel: () => api.post('/membership/cancel'),
+  setBadge: (show) => api.put('/membership/badge', { show }),
+};
+
+// The owner's money pages. The server answers 404 to everyone who is not the owner, reviewers included.
+export const ownerAPI = {
+  profit: (month) => api.get(`/owner/profit/${month}`),
+  choose: (month, body) => api.put(`/owner/profit/${month}`, body),
+  apply: (month) => api.post(`/owner/profit/${month}/apply`),
+  books: (month) => api.get('/owner/books', { params: month ? { month } : {} }),
+  addEntry: (body) => api.post('/owner/books/entries', body),
+  reverse: (id) => api.post(`/owner/books/${id}/reverse`),
+  payments: () => api.get('/owner/payments'),
 };
 
 // Narrated audio of a story. Plain axios calls (not `api`) on purpose: making a story's audio

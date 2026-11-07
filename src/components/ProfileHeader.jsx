@@ -57,6 +57,7 @@ const ProfileHeader = ({ profile, actions, compact = false }) => {
         </div>
 
         <h1 className="ph-name">{name}</h1>
+        {profile.is_member && <p className="ph-member"><span aria-hidden="true">✦</span> लेखनी सदस्य</p>}
         {profile.tagline && <p className="ph-tagline">{profile.tagline}</p>}
         {profile.status_line && (
           <p className="ph-status"><span>इन दिनों</span> {profile.status_line}</p>

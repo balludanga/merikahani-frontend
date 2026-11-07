@@ -6,7 +6,8 @@ import HindiTextarea, { useHinglish } from '../components/HindiTextarea';
 import EarnPanel from '../components/EarnPanel';
 import { updateMetaTags, resetMetaTags } from '../utils/seo';
 import { formatDate, timeAgo } from '../utils/format';
-import { apiMessage, daysUntil, formatRupees, progressPercent } from '../utils/partner';
+import { apiMessage, daysUntil, formatRupees, progressPercent, weightsSentence } from '../utils/partner';
+import { feePercent, usePaymentsConfig } from '../utils/payments';
 import './Earn.css';
 
 const Requirement = ({ label, have, need, met }) => (
@@ -43,36 +44,47 @@ const Requirements = ({ status }) => (
   </section>
 );
 
-const HowItWorks = ({ rules }) => (
-  <section className="earn-card" aria-labelledby="earn-how">
-    <h2 id="earn-how">यह कैसे काम करता है</h2>
-    <ol className="earn-how">
-      <li>
-        हर महीने लेखनी एक कोष तय करती है। उसे साझेदार लेखकों में उनके अंकों के अनुपात में बाँटा जाता है — जिसके अंक
-        ज़्यादा, उसका हिस्सा ज़्यादा।
-      </li>
-      <li>
-        अंक पाठकों के जुड़ाव से बनते हैं: किसी पाठक की किसी रचना पर पहली ताली {rules.clap_points} अंक; हर हाइलाइट{' '}
-        {rules.highlight_points} अंक (एक पाठक से एक रचना पर महीने में अधिकतम {rules.max_highlights}); हर प्रतिक्रिया या
-        जवाब {rules.response_points} अंक (अधिकतम {rules.max_responses})।
-      </li>
-      <li>
-        केवल असली जुड़ाव गिना जाता है: आपकी अपनी ताली, हाइलाइट और जवाब नहीं, और उन पाठकों के नहीं जिनका खाता{' '}
-        {rules.reader_min_age_days} दिन से कम पुराना हो। साझेदार बनने से पहले का और अप्रकाशित रचनाओं का जुड़ाव भी
-        नहीं गिना जाता।
-      </li>
-      <li>
-        महीना बीतने पर समीक्षा टीम हिसाब पक्का करती है। बकाया राशि {formatRupees(rules.min_payout_paise)} या उससे ज़्यादा
-        हो तो यूपीआई (UPI) से भेजी जाती है; कम हो तो अगले महीने में जुड़ जाती है।
-      </li>
-      <li>
-        कोष की राशि हर महीने अलग हो सकती है, और किसी महीने शून्य भी — इसलिए कमाई का कोई तय वादा नहीं है। नकली खातों से
-        जुड़ाव मिलने पर साझेदारी रोकी जा सकती है।
-      </li>
-      <li>फ़ॉलोअर्स की शर्त केवल आवेदन के समय देखी जाती है।</li>
-    </ol>
-  </section>
-);
+const HowItWorks = ({ rules, payments }) => {
+  const weights = weightsSentence(rules);
+  const tips = payments && payments.enabled ? payments.tips : null;
+  return (
+    <section className="earn-card" aria-labelledby="earn-how">
+      <h2 id="earn-how">यह कैसे काम करता है</h2>
+      <ol className="earn-how">
+        <li>
+          हर महीने लेखनी एक कोष तय करती है। उसे साझेदार लेखकों में उनके अंकों के अनुपात में बाँटा जाता है — जिसके अंक
+          ज़्यादा, उसका हिस्सा ज़्यादा।
+        </li>
+        <li>
+          अंक पाठकों के जुड़ाव से बनते हैं: किसी पाठक की किसी रचना पर पहली ताली {rules.clap_points} अंक; हर हाइलाइट{' '}
+          {rules.highlight_points} अंक (एक पाठक से एक रचना पर महीने में अधिकतम {rules.max_highlights}); हर प्रतिक्रिया या
+          जवाब {rules.response_points} अंक (अधिकतम {rules.max_responses})।
+        </li>
+        <li>
+          केवल असली जुड़ाव गिना जाता है: आपकी अपनी ताली, हाइलाइट और जवाब नहीं, और उन पाठकों के नहीं जिनका खाता{' '}
+          {rules.reader_min_age_days} दिन से कम पुराना हो। साझेदार बनने से पहले का और अप्रकाशित रचनाओं का जुड़ाव भी
+          नहीं गिना जाता।
+        </li>
+        <li>
+          महीना बीतने पर समीक्षा टीम हिसाब पक्का करती है। बकाया राशि {formatRupees(rules.min_payout_paise)} या उससे ज़्यादा
+          हो तो यूपीआई (UPI) से भेजी जाती है; कम हो तो अगले महीने में जुड़ जाती है।
+        </li>
+        <li>
+          कोष की राशि हर महीने अलग हो सकती है, और किसी महीने शून्य भी — इसलिए कमाई का कोई तय वादा नहीं है। नकली खातों से
+          जुड़ाव मिलने पर साझेदारी रोकी जा सकती है।
+        </li>
+        {weights && <li>{weights}</li>}
+        {tips && (
+          <li>
+            पाठक आपकी रचनाओं पर सीधे समर्थन भी भेज सकते हैं। लेखनी हर समर्थन का {feePercent(tips.site_fee_bps)} रखती है (भुगतान के
+            खर्च और साइट चलाने के लिए); बाकी आपकी बकाया राशि में जुड़ जाता है। समर्थन लेना आप कभी भी बंद कर सकते हैं।
+          </li>
+        )}
+        <li>फ़ॉलोअर्स की शर्त केवल आवेदन के समय देखी जाती है।</li>
+      </ol>
+    </section>
+  );
+};
 
 const ApplyForm = ({ lead, busy, onSubmit }) => {
   const [note, setNote] = useState('');
@@ -124,6 +136,7 @@ const Earn = () => {
   const [problem, setProblem] = useState('');
   const [notice, setNotice] = useState('');
   const [confirmWithdraw, setConfirmWithdraw] = useState(false);
+  const payments = usePaymentsConfig();
 
   useEffect(() => {
     updateMetaTags({
@@ -217,7 +230,7 @@ const Earn = () => {
             <Link to="/login?redirect=%2Fearn" className="earn-btn primary">साइन इन करें</Link>
           </section>
         )}
-        {rules && <HowItWorks rules={rules} />}
+        {rules && <HowItWorks rules={rules} payments={payments} />}
       </div>
     );
   }
@@ -325,14 +338,14 @@ const Earn = () => {
         </section>
       )}
 
-      {wasPartner && earnings && <EarnPanel status={status} earnings={earnings} onStatus={setStatus} />}
+      {wasPartner && earnings && <EarnPanel status={status} earnings={earnings} onStatus={setStatus} payments={payments} />}
       {wasPartner && !earnings && (
         <p className="empty-state">
           कमाई का हिसाब लोड नहीं हो सका। <button type="button" onClick={load}>फिर कोशिश करें</button>
         </p>
       )}
 
-      {rules && <HowItWorks rules={rules} />}
+      {rules && <HowItWorks rules={rules} payments={payments} />}
     </div>
   );
 };

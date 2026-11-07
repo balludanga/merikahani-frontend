@@ -23,6 +23,7 @@ const Bookmarks = lazy(() => import('./pages/Bookmarks'));
 const Highlights = lazy(() => import('./pages/Highlights'));
 const Review = lazy(() => import('./pages/Review'));
 const Earn = lazy(() => import('./pages/Earn'));
+const Member = lazy(() => import('./pages/Member'));
 const PartnerDesk = lazy(() => import('./pages/PartnerDesk'));
 const Ops = lazy(() => import('./pages/Ops'));
 
@@ -108,6 +109,7 @@ const AppContent = () => {
           <Route path="/review" element={<Review />} />
           <Route path="/review/partners" element={<PartnerDesk />} />
           <Route path="/earn" element={<Earn />} />
+          <Route path="/member" element={<Member />} />
           {OPS_ROUTE && <Route path={OPS_ROUTE} element={<Ops />} />}
           <Route path="/search" element={<Search />} />
           <Route path="/topic/:topic" element={<Search />} />

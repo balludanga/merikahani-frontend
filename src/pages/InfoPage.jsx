@@ -43,9 +43,36 @@ const InfoPage = ({ page }) => {
   }, [page, doc]);
 
   useEffect(() => {
-    if (!location.hash) return;
-    const target = document.getElementById(location.hash.slice(1));
-    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!location.hash) return undefined;
+    const id = location.hash.slice(1);
+    // An instant jump, like a plain link: a smooth scroll still animating when the page re-flows is
+    // overtaken by the correction below and lands in the wrong place.
+    const goToSection = () => {
+      const target = document.getElementById(id);
+      if (target) target.scrollIntoView({ behavior: 'auto', block: 'start' });
+    };
+    goToSection();
+
+    // Web fonts arrive after the first paint and re-flow the page, which moves the heading we just
+    // scrolled to. For a few seconds, land on it again whenever a font finishes loading - unless
+    // the reader has already taken over the scrolling.
+    const opened = Date.now();
+    let readerMoved = false;
+    const takeOver = () => { readerMoved = true; };
+    const settle = () => {
+      if (!readerMoved && Date.now() - opened < 4000) goToSection();
+    };
+    window.addEventListener('wheel', takeOver, { passive: true });
+    window.addEventListener('touchmove', takeOver, { passive: true });
+    window.addEventListener('keydown', takeOver);
+    const fonts = document.fonts;
+    if (fonts && fonts.addEventListener) fonts.addEventListener('loadingdone', settle);
+    return () => {
+      window.removeEventListener('wheel', takeOver);
+      window.removeEventListener('touchmove', takeOver);
+      window.removeEventListener('keydown', takeOver);
+      if (fonts && fonts.removeEventListener) fonts.removeEventListener('loadingdone', settle);
+    };
   }, [page, location.hash]);
 
   if (!doc) return null;

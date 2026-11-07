@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { notificationsAPI } from '../services/api';
 import { initials, timeAgo } from '../utils/format';
+import { formatRupees } from '../utils/partner';
 import './NotificationBell.css';
 
 const POLL_MS = 60 * 1000;
@@ -17,6 +18,8 @@ function sentence(item) {
   if (item.kind === 'partner_revoked') return { who: 'समीक्षा टीम', rest: 'ने आपकी साझेदारी फ़िलहाल रोक दी है' };
   if (item.kind === 'partner_eligible') return { who: 'लेखनी', rest: 'की ओर से बधाई — आप अब “लिखें और कमाएँ” के लिए आवेदन कर सकते हैं' };
   if (item.kind === 'payout_paid') return { who: 'लेखनी', rest: 'ने आपकी कमाई का भुगतान भेज दिया है' };
+  // A tip: the site tells you (so a sender who asked to stay unnamed stays unnamed); `count` is your share in paise.
+  if (item.kind === 'tip') return { who: 'लेखनी', rest: `की ओर से — आपको ${formatRupees(item.count)} का समर्थन मिला` };
   const title = `“${item.post.title}”`;
   // Reviewers speak for the platform, not as a named person; the sentence has no "who".
   if (item.kind === 'review_changes') {
@@ -48,7 +51,7 @@ function sentence(item) {
 const linkFor = (item) => {
   if (item.kind === 'follow') return `/user/${item.actor.id}`;
   if (item.kind === 'partner_applied') return '/review/partners';
-  if (item.kind.startsWith('partner_') || item.kind === 'payout_paid') return '/earn';
+  if (item.kind.startsWith('partner_') || item.kind === 'payout_paid' || item.kind === 'tip') return '/earn';
   const slug = encodeURIComponent(item.post.slug);
   const anchor = (item.kind === 'comment' || item.kind === 'reply') && item.comment_id ? `#response-${item.comment_id}` : '';
   return `/post/${slug}${anchor}`;

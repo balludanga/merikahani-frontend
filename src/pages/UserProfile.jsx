@@ -9,6 +9,7 @@ import { topicLabel } from '../brand';
 import ProfileHeader from '../components/ProfileHeader';
 import ProfileLibrary from '../components/ProfileLibrary';
 import { useShare } from '../components/ShareSheet';
+import TipButton from '../components/TipButton';
 import './UserProfile.css';
 
 const TABS = [
@@ -171,13 +172,16 @@ const UserProfile = () => {
       {isSelf ? (
         <Link to="/settings/profile" className="follow-btn profile-follow">प्रोफ़ाइल सजाएँ</Link>
       ) : (
-        <button
-          type="button"
-          className={`follow-btn profile-follow ${profile.is_following ? 'following' : ''}`}
-          onClick={handleFollow}
-        >
-          {profile.is_following ? 'फ़ॉलो हो रहे हैं ✓' : 'फ़ॉलो करें'}
-        </button>
+        <>
+          <TipButton writerId={profile.id} writerName={profile.full_name || profile.username} className="tip-btn profile-follow" />
+          <button
+            type="button"
+            className={`follow-btn profile-follow ${profile.is_following ? 'following' : ''}`}
+            onClick={handleFollow}
+          >
+            {profile.is_following ? 'फ़ॉलो हो रहे हैं ✓' : 'फ़ॉलो करें'}
+          </button>
+        </>
       )}
       <button type="button" className="profile-share" onClick={shareProfile} title="प्रोफ़ाइल साझा करें" aria-label="प्रोफ़ाइल साझा करें" aria-haspopup="dialog">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

@@ -15,6 +15,8 @@ const MonthPanel = ({ month, onChanged }) => {
   const [failed, setFailed] = useState(false);
   const [pool, setPool] = useState('');
   const [cap, setCap] = useState('');
+  const [memberWeight, setMemberWeight] = useState('1');
+  const [otherWeight, setOtherWeight] = useState('1');
   const [left, setLeft] = useState({}); // user id -> the reason typed so far
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState('');
@@ -43,6 +45,8 @@ const MonthPanel = ({ month, onChanged }) => {
     filled.current = true;
     setPool(detail.pool_paise ? paiseToRupeeText(detail.pool_paise) : '');
     setCap(detail.max_per_point_paise ? paiseToRupeeText(detail.max_per_point_paise) : '');
+    setMemberWeight(String(detail.member_weight));
+    setOtherWeight(String(detail.nonmember_weight));
   }, [detail]);
 
   const savePool = async (event) => {
@@ -59,9 +63,15 @@ const MonthPanel = ({ month, onChanged }) => {
       setProblem('प्रति अंक अधिकतम राशि सही नहीं है — जैसे 5 या 2.50');
       return;
     }
+    const member = Number(memberWeight);
+    const other = Number(otherWeight);
+    if (!Number.isInteger(member) || member < 1 || member > 10 || !Number.isInteger(other) || other < 0 || other > 10 || otherWeight.trim() === '') {
+      setProblem('वज़न पूरी संख्या होना चाहिए — सदस्य का 1 से 10, दूसरों का 0 से 10');
+      return;
+    }
     setBusy(true);
     try {
-      await earningsAPI.setPool(month, paiseToRupeeText(poolPaise), capPaise ? paiseToRupeeText(capPaise) : null);
+      await earningsAPI.setPool(month, paiseToRupeeText(poolPaise), capPaise ? paiseToRupeeText(capPaise) : null, member, other);
       await load();
       setNotice('कोष सहेज लिया गया ✓');
       onChanged();
@@ -142,12 +152,42 @@ const MonthPanel = ({ month, onChanged }) => {
             शुरुआत में साझेदार कम होते हैं, इसलिए सीमा लगाना ठीक रहता है — वरना एक-दो तालियों पर पूरा कोष एक लेखक को चला
             जाएगा। सीमा से जो राशि बचती है वह किसी और को नहीं बाँटी जाती।
           </p>
+          <label htmlFor="desk-weight-member">सदस्य पाठक की प्रतिक्रिया का वज़न (1 से 10)</label>
+          <input
+            id="desk-weight-member"
+            className="earn-input"
+            inputMode="numeric"
+            autoComplete="off"
+            dir="ltr"
+            value={memberWeight}
+            onChange={(e) => setMemberWeight(e.target.value)}
+          />
+          <label htmlFor="desk-weight-other">दूसरे पाठकों का वज़न (0 से 10)</label>
+          <input
+            id="desk-weight-other"
+            className="earn-input"
+            inputMode="numeric"
+            autoComplete="off"
+            dir="ltr"
+            value={otherWeight}
+            onChange={(e) => setOtherWeight(e.target.value)}
+          />
+          <p className="earn-note">
+            सदस्य पाठक वह है जिसकी सदस्यता उस प्रतिक्रिया के समय चालू थी। 1 और 1 का मतलब सब बराबर; 1 और 0 का मतलब केवल सदस्यों की प्रतिक्रियाएँ
+            गिनी जाएँगी। लेखकों को यह नियम “लिखें और कमाएँ” पन्ने पर दिखता है, इसलिए इसे महीना शुरू होने से पहले तय रखें।
+          </p>
           <button type="submit" className="earn-btn" disabled={busy}>कोष सहेजें और देखें</button>
         </form>
       )}
 
       {problem && <p className="earn-problem" role="alert">{problem}</p>}
       {notice && <p className="earn-ok" role="status">{notice}</p>}
+      {!detail.finalized && detail.pool_paise > 0 && detail.rows.length > 0 && detail.rows.every((row) => row.points === 0) && (
+        <p className="earn-problem" role="status">
+          इस महीने अभी किसी लेखक को कोई अंक नहीं मिला, इसलिए कोष किसी को नहीं बँटेगा
+          {detail.nonmember_weight === 0 ? ' (अभी केवल सदस्य पाठकों की प्रतिक्रियाएँ गिनी जा रही हैं)' : ''}।
+        </p>
+      )}
 
       {detail.rows.length === 0 ? (
         <p className="empty-state">इस महीने कोई साझेदार लेखक नहीं था।</p>
@@ -185,7 +225,10 @@ const MonthPanel = ({ month, onChanged }) => {
                         </Link>
                         {row.held_reason && <span className="earn-row-held">रोका गया: {row.held_reason}</span>}
                       </th>
-                      <td data-label="अंक">{row.points}</td>
+                      <td data-label="अंक">
+                        {row.points}
+                        {row.member_points > 0 && <span className="desk-muted"> · सदस्यों से {row.member_points}</span>}
+                      </td>
                       <td className="desk-detail-cell" data-label="ब्योरा">
                         {row.claps} ताली · {row.highlights} हाइलाइट · {row.responses} प्रतिक्रिया
                       </td>

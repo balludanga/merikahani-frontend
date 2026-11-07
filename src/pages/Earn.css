@@ -362,6 +362,10 @@
   min-width: 0;
 }
 
+.earn-row-sub a {
+  color: var(--accent);
+}
+
 .earn-row-sub {
   font-size: 13.5px;
   line-height: 1.7;
