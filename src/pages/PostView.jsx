@@ -23,6 +23,7 @@ import ReviewNoteComposer from '../components/ReviewNoteComposer';
 import { categoryLabel, noteMarkId, isNoteMarkId } from '../utils/review';
 import Lightbox from '../components/Lightbox';
 import MoreStories from '../components/MoreStories';
+import TipButton from '../components/TipButton';
 import { NotFound } from '../components/NotFound';
 import './PostView.css';
 import { mediaUrl } from '../utils/media';
@@ -1038,13 +1039,16 @@ const PostView = () => {
               </button>
             </div>
           ) : (
-            <button
-              type="button"
-              className={`follow-btn ${isFollowing ? 'following' : ''}`}
-              onClick={handleFollow}
-            >
-              {isFollowing ? 'फ़ॉलो हो रहे हैं ✓' : 'फ़ॉलो करें'}
-            </button>
+            <div className="story-byline-actions">
+              <TipButton writerId={post.author_id} writerName={authorName} post={{ id: post.id, title: post.title }} />
+              <button
+                type="button"
+                className={`follow-btn ${isFollowing ? 'following' : ''}`}
+                onClick={handleFollow}
+              >
+                {isFollowing ? 'फ़ॉलो हो रहे हैं ✓' : 'फ़ॉलो करें'}
+              </button>
+            </div>
           )}
         </div>
 

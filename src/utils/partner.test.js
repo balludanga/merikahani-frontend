@@ -8,6 +8,7 @@ import {
   progressPercent,
   rupeesToPaise,
   signalFlags,
+  weightsSentence,
 } from './partner';
 
 describe('formatRupees', () => {
@@ -159,5 +160,32 @@ describe('signalFlags', () => {
     expect(signalFlags({ ...calm, followers: 0 })).toEqual([]);
     expect(signalFlags(null)).toEqual([]);
     expect(signalFlags(undefined)).toEqual([]);
+  });
+});
+
+describe('weightsSentence', () => {
+  it('says nothing while every reader counts the same, so no rule is described that is not in force', () => {
+    expect(weightsSentence({ member_weight: 1, nonmember_weight: 1 })).toBeNull();
+    expect(weightsSentence({ member_weight: 3, nonmember_weight: 3 })).toBeNull();
+    expect(weightsSentence(null)).toBeNull();
+    expect(weightsSentence({})).toBeNull();
+  });
+
+  it('says when only members count', () => {
+    expect(weightsSentence({ member_weight: 1, nonmember_weight: 0 })).toBe(
+      'इस महीने केवल लेखनी के सदस्य पाठकों का जुड़ाव अंकों में गिना जा रहा है।'
+    );
+  });
+
+  it('says how much more a member counts for', () => {
+    const text = weightsSentence({ member_weight: 3, nonmember_weight: 1 });
+    expect(text).toContain('3 गुना');
+    expect(text).toContain('1 गुना');
+  });
+
+  it('follows the Devanagari-only rule', () => {
+    for (const rules of [{ member_weight: 1, nonmember_weight: 0 }, { member_weight: 2, nonmember_weight: 1 }]) {
+      expect(/[A-Za-z]/.test(weightsSentence(rules))).toBe(false);
+    }
   });
 });

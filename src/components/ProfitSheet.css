@@ -1,0 +1,143 @@
+/* The owner's monthly sheet: plain ledger lines, nothing decorative. */
+.sheet-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 18px;
+}
+
+.sheet-picker .earn-input {
+  width: auto;
+  min-width: 190px;
+}
+
+.sheet {
+  display: grid;
+  gap: 18px;
+}
+
+.sheet-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.sheet-block {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-card);
+}
+
+.sheet-lines {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  font-size: 15px;
+}
+
+.sheet-lines li,
+.sheet-entries li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  line-height: 1.7;
+}
+
+.sheet-lines.aside {
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--bg-soft);
+  color: var(--text-2);
+}
+
+.sheet-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 16px;
+}
+
+.sheet-total.big {
+  font-size: 20px;
+}
+
+.sheet-total.loss strong {
+  color: var(--danger);
+}
+
+.sheet-suggestion {
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+}
+
+.sheet-txns {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.sheet-txns > li {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.sheet-txns > li.undone {
+  opacity: 0.6;
+}
+
+.sheet-txn-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+
+.sheet-txn-head .earn-btn {
+  margin-left: auto;
+  min-height: 32px;
+  padding: 2px 14px;
+  font-size: 13px;
+}
+
+.sheet-entries {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.sheet-tag {
+  padding: 0 8px;
+  border-radius: 99px;
+  background: var(--bg-soft);
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.sheet select.earn-input,
+.sheet-picker select.earn-input {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.sheet textarea.earn-input {
+  resize: vertical;
+}
+
+@media (max-width: 520px) {
+  .sheet-block {
+    padding: 12px;
+  }
+}

@@ -229,3 +229,18 @@
     font-size: 28px;
   }
 }
+
+/* A reader who supports the site with a membership (their choice to show it). */
+.ph-member {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 3px 12px;
+  border-radius: 99px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.6;
+}

@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import PartnerApplications from '../components/PartnerApplications';
 import PartnerMonths from '../components/PartnerMonths';
 import PartnerPayouts from '../components/PartnerPayouts';
+import ProfitSheet from '../components/ProfitSheet';
+import OwnerPayments from '../components/OwnerPayments';
 import { updateMetaTags, resetMetaTags } from '../utils/seo';
 import '../components/Review.css';
 import './Earn.css';
@@ -15,13 +17,20 @@ const TABS = [
   ['payouts', 'भुगतान'],
 ];
 
+// Only the owner sees these two, and the server refuses everyone else too.
+const OWNER_TABS = [
+  ['profit', 'लाभ-हानि'],
+  ['online', 'ऑनलाइन भुगतान'],
+];
+
 /** The review team's desk for write and earn: who applied, each month's pool, who is owed what. */
 const PartnerDesk = () => {
   const { user, loading: authLoading } = useAuth();
   const [params, setParams] = useSearchParams();
   const requested = params.get('tab');
-  const tab = TABS.some(([key]) => key === requested) ? requested : 'applications';
   const isReviewer = !!(user && user.is_admin);
+  const tabs = user && user.is_owner ? [...TABS, ...OWNER_TABS] : TABS;
+  const tab = tabs.some(([key]) => key === requested) ? requested : 'applications';
 
   useEffect(() => {
     updateMetaTags({ title: 'साझेदार लेखक', type: 'website', noindex: true });
@@ -40,7 +49,7 @@ const PartnerDesk = () => {
       </p>
 
       <div className="review-tabs" role="tablist" aria-label="साझेदार लेखकों का काम">
-        {TABS.map(([key, label]) => (
+        {tabs.map(([key, label]) => (
           <button
             key={key}
             type="button"
@@ -57,6 +66,8 @@ const PartnerDesk = () => {
       {tab === 'applications' && <PartnerApplications />}
       {tab === 'months' && <PartnerMonths />}
       {tab === 'payouts' && <PartnerPayouts />}
+      {tab === 'profit' && <ProfitSheet />}
+      {tab === 'online' && <OwnerPayments />}
     </div>
   );
 };

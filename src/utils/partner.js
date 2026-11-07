@@ -106,3 +106,13 @@ export const signalFlags = (signals) => {
 
 // One reader giving nearly all of a writer's points is the thing to look at before finalizing.
 export const LOPSIDED_PERCENT = 70;
+
+// What a reader's reaction is worth this month, in words for the Earn page. Nothing when everyone's counts the same
+// (so the page never describes a rule that is not in force).
+export const weightsSentence = (rules) => {
+  const member = Number(rules && rules.member_weight);
+  const other = Number(rules && rules.nonmember_weight);
+  if (!(member >= 1) || !(other >= 0) || member === other) return null;
+  if (other === 0) return 'इस महीने केवल लेखनी के सदस्य पाठकों का जुड़ाव अंकों में गिना जा रहा है।';
+  return `इस महीने लेखनी के सदस्य पाठकों की हर प्रतिक्रिया ${member} गुना अंक देती है, और दूसरे पाठकों की ${other} गुना।`;
+};

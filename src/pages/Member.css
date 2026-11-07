@@ -1,0 +1,51 @@
+/* Membership: two plan cards side by side, one per row on a phone. The rest reuses the Earn page's look. */
+.member-plans {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+}
+
+.member-plan {
+  padding: 18px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-soft);
+  text-align: center;
+}
+
+.member-plan h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-2);
+}
+
+.member-price {
+  margin: 6px 0 0;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.member-length {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: var(--text-3);
+}
+
+.member-perks {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 12px;
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--text-2);
+}
+
+.member-perks strong {
+  color: var(--text);
+}
