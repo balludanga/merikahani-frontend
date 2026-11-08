@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { BRAND } from '../brand';
 import { updateMetaTags, resetMetaTags } from '../utils/seo';
 import { USERNAME_OK, USERNAME_RULE } from '../utils/authErrors';
+import { safeRedirect } from '../utils/redirect';
 import './Auth.css';
 
 // Google refuses sign-in inside the in-app browsers of social apps (disallowed_useragent).
@@ -18,11 +19,8 @@ const Login = () => {
   const [searchParams] = useSearchParams();
   const isRegister = location.pathname === '/register';
   // After signing in, send readers back to the story they came from.
-  const rawRedirect = searchParams.get('redirect');
-  const redirectTo =
-    rawRedirect && rawRedirect.startsWith('/') && !rawRedirect.startsWith('//')
-      ? rawRedirect
-      : '/';
+  // The address comes from the link, so it is resolved and checked: only a path on this site is kept.
+  const redirectTo = safeRedirect(searchParams.get('redirect'));
   const [form, setForm] = useState({ email: '', password: '', username: '', full_name: '' });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);

@@ -1,8 +1,11 @@
 // Safe environment-reader for browser and build environments.
 // Some bundlers define `process.env` at build time; in other environments
-// `process` may be undefined. This helper safely returns values from either
-// `process.env` (when available) or `window.__env` (optional runtime injection),
-// otherwise returns the provided fallback.
+// `process` may be undefined. This helper returns the value baked in at build time,
+// otherwise the provided fallback.
+//
+// It used to also read `window.__env` ("optional runtime injection"). Nothing set that, and a
+// page-level foothold could have used it to repoint the API address, so it is gone: every value
+// comes from the build, and a change means a rebuild.
 
 export function getEnv(name, fallback = undefined) {
   try {
@@ -11,10 +14,6 @@ export function getEnv(name, fallback = undefined) {
     }
   } catch (e) {
     // ignore
-  }
-
-  if (typeof window !== 'undefined' && window.__env && window.__env[name] !== undefined) {
-    return window.__env[name];
   }
 
   return fallback;
