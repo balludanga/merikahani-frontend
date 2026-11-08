@@ -2,16 +2,10 @@ import React, { createContext, useState, useEffect, useContext, useCallback } fr
 import { authAPI } from '../services/api';
 import { trackEvent } from '../utils/analytics';
 import { getEnv } from '../utils/env';
+import { errorText } from '../utils/authErrors';
 
 const AuthContext = createContext();
 
-// FastAPI sends `detail` as a string for our errors but as an array of objects
-// for validation errors (422); rendering that array would crash the page.
-const errorText = (error, fallback) => {
-  const detail = error.response?.data?.detail;
-  if (error.response?.status === 422) return 'दर्ज की गई जानकारी सही नहीं है। पासवर्ड कम से कम ८ अक्षरों का रखें।';
-  return typeof detail === 'string' && detail ? detail : fallback;
-};
 
 export const useAuth = () => {
   const context = useContext(AuthContext);

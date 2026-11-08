@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { useAuth } from '../context/AuthContext';
 import { BRAND } from '../brand';
 import { updateMetaTags, resetMetaTags } from '../utils/seo';
+import { USERNAME_OK, USERNAME_RULE } from '../utils/authErrors';
 import './Auth.css';
 
 // Google refuses sign-in inside the in-app browsers of social apps (disallowed_useragent).
@@ -135,9 +136,15 @@ const Login = () => {
     e.preventDefault();
     if (googleBusy) return;
     setError('');
+    // A phone keyboard often leaves a space after the last word; that is not part of the name.
+    const username = form.username.trim();
+    if (isRegister && !USERNAME_OK.test(username)) {
+      setError(USERNAME_RULE);
+      return;
+    }
     setSubmitting(true);
     const result = isRegister
-      ? await register(form.email, form.password, form.username, form.full_name)
+      ? await register(form.email, form.password, username, form.full_name.trim())
       : await login(form.email, form.password);
     setSubmitting(false);
     if (!result.success) {
@@ -185,8 +192,12 @@ const Login = () => {
                   value={form.username}
                   onChange={(e) => setForm({ ...form, username: e.target.value })}
                   autoComplete="username"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   required
                 />
+                <small className="auth-hint">३ से ३० अक्षर: अक्षर, अंक, _ या . — खाली जगह या - नहीं</small>
               </label>
             </>
           )}

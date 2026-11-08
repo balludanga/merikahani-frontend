@@ -119,6 +119,13 @@
   border-color: var(--accent);
 }
 
+.auth-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
 .auth-form input:focus-visible {
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
