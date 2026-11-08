@@ -11,57 +11,9 @@
  * Capital T/D/N give the retroflex ट/ड/ण series.
  */
 
-const WORDS = {
-  // pronouns
-  main: 'मैं', hum: 'हम', tum: 'तुम', aap: 'आप', ye: 'ये', yeh: 'यह',
-  wo: 'वो', woh: 'वह', vo: 'वो', is: 'इस', us: 'उस', in: 'इन', un: 'उन',
-  itna: 'इतना', itni: 'इतनी', jitna: 'जितना', apna: 'अपना', apni: 'अपनी',
-  // common verbs & particles
-  hai: 'है', hain: 'हैं', tha: 'था', the: 'थे', thi: 'थी', thin: 'थीं',
-  hua: 'हुआ', hue: 'हुए', hui: 'हुई', hota: 'होता', hoti: 'होती', hote: 'होते',
-  hona: 'होना', kar: 'कर', karna: 'करना', karne: 'करने', karti: 'करती',
-  karta: 'करता', karte: 'करते', kiya: 'किया', kiye: 'किए', karke: 'करके',
-  gaya: 'गया', gayi: 'गयी', gaye: 'गए', ja: 'जा', jao: 'जाओ', jana: 'जाना',
-  de: 'दे', dena: 'देना', diya: 'दिया', liya: 'लिया', lena: 'लेना',
-  raha: 'रहा', rahe: 'रहे', rahi: 'रही', sakta: 'सकता', sakte: 'सकते', sakti: 'सकती',
-  // postpositions & conjunctions
-  ka: 'का', ki: 'की', ke: 'के', ko: 'को', se: 'से', par: 'पर',
-  mein: 'में', me: 'में', aur: 'और', ya: 'या', lekin: 'लेकिन', magar: 'मगर',
-  kyunki: 'क्योंकि', agar: 'अगर', to: 'तो', toh: 'तो', bhi: 'भी', hi: 'ही',
-  nahi: 'नहीं', nahin: 'नहीं', na: 'ना', haan: 'हाँ', han: 'हाँ',
-  // question words & time
-  kya: 'क्या', kyu: 'क्यों', kyun: 'क्यों', kyo: 'क्यों', kab: 'कब',
-  kahan: 'कहाँ', yahan: 'यहाँ', wahan: 'वहाँ', jab: 'जब', tab: 'तब',
-  ab: 'अब', abhi: 'अभी', phir: 'फिर', fir: 'फिर', tabhi: 'तभी', jabki: 'जबकि',
-  kal: 'कल', aaj: 'आज', raat: 'रात', din: 'दिन', subah: 'सुबह', shaam: 'शाम',
-  // frequent nouns & adjectives
-  kuch: 'कुछ', sab: 'सब', sabhi: 'सभी', ek: 'एक',
-  ghar: 'घर', log: 'लोग', logon: 'लोगों', baat: 'बात', baatein: 'बातें',
-  kaam: 'काम', naam: 'नाम', dil: 'दिल', mann: 'मन', haath: 'हाथ',
-  raah: 'राह', rasta: 'रास्ता', raaste: 'रास्ते', aankh: 'आँख',
-  achha: 'अच्छा', achcha: 'अच्छा', theek: 'ठीक', bura: 'बुरा', bada: 'बड़ा',
-  chhota: 'छोटा', naya: 'नया', purana: 'पुराना', saccha: 'सच्चा', sach: 'सच',
-  kahani: 'कहानी', kahaani: 'कहानी', zindagi: 'ज़िंदगी', duniya: 'दुनिया',
-  pyaar: 'प्यार', pyar: 'प्यार', dard: 'दर्द', khush: 'खुश', khwaab: 'ख्वाब',
-  sapna: 'सपना', saal: 'साल', pal: 'पल', lamha: 'लम्हा', ladki: 'लड़की',
-  ladka: 'लड़का', maa: 'माँ', papa: 'पापा', bhai: 'भाई', behen: 'बहन',
-  dost: 'दोस्त', prem: 'प्रेम', vikas: 'विकास', topi: 'टोपी',
-  priya: 'प्रिया', chhoti: 'छोटी', krishna: 'कृष्ण', raja: 'राजा',
-  // words readers use when responding to a story (the rules alone mis-spell
-  // them: silent final "a", nasal before d/t, "ya" endings)
-  sundar: 'सुंदर', shukriya: 'शुक्रिया', dhanyavad: 'धन्यवाद', dhanyawad: 'धन्यवाद',
-  dhanyavaad: 'धन्यवाद', badhai: 'बधाई', badhiya: 'बढ़िया', lajawab: 'लाजवाब',
-  shandaar: 'शानदार', umda: 'उम्दा', adbhut: 'अद्भुत', behtareen: 'बेहतरीन',
-  khoobsurat: 'खूबसूरत', bhavuk: 'भावुक', marmik: 'मार्मिक', prerna: 'प्रेरणा',
-  sahmat: 'सहमत', sachmuch: 'सचमुच', pasand: 'पसंद', hindi: 'हिंदी',
-  kavita: 'कविता', rachna: 'रचना', kavi: 'कवि', lekhak: 'लेखक', shabd: 'शब्द',
-  padh: 'पढ़', padha: 'पढ़ा', padhi: 'पढ़ी', padhna: 'पढ़ना', padhkar: 'पढ़कर',
-  likha: 'लिखा', likhna: 'लिखना', lagta: 'लगता', lagna: 'लगना',
-  mera: 'मेरा', tera: 'तेरा', hamara: 'हमारा', tumhara: 'तुम्हारा',
-  aapka: 'आपका', aapko: 'आपको', tumhe: 'तुम्हें', mujhe: 'मुझे',
-  achhi: 'अच्छी', achchi: 'अच्छी', acchi: 'अच्छी', accha: 'अच्छा', achhe: 'अच्छे',
-  acche: 'अच्छे', janta: 'जनता',
-};
+import { PINS } from '../typing/pins.js';
+
+const WORDS = PINS;
 
 const CONSONANTS = {
   ksh: 'क्ष', chh: 'छ',
@@ -190,9 +142,10 @@ export function transliterateWord(word) {
  * Fires only when the caret follows a terminator (space, newline,
  * punctuation) so the current word is never converted mid-typing.
  * With `force`, the word ending exactly at the caret is converted
- * (used on blur).
+ * (used on blur). `convert` turns one Latin word into Devanagari
+ * (the live typing engine passes its word-list-backed converter).
  */
-export function transliterateLastWord(text, caret, force = false) {
+export function transliterateLastWord(text, caret, force = false, convert = transliterateWord) {
   if (typeof text !== 'string' || caret <= 0 || caret > text.length) return null;
   if (!force && /[a-zA-Z]/.test(text[caret - 1])) return null;
 
@@ -202,7 +155,7 @@ export function transliterateLastWord(text, caret, force = false) {
   if (start === end) return null;
 
   const word = text.slice(start, end);
-  const converted = transliterateWord(word);
+  const converted = convert(word);
   if (converted === word) return null;
 
   return {

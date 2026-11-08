@@ -1,0 +1,84 @@
+/* The word list under the caret while typing Hinglish (see suggestBox.js). */
+.hs-box {
+  position: fixed;
+  z-index: 2600;
+  min-width: 156px;
+  max-width: min(320px, calc(100vw - 16px));
+  padding: 6px;
+  background: var(--bg-raised, #fff);
+  border: 1px solid var(--border, #e7e4dd);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lift, 0 16px 40px rgba(39, 39, 42, 0.16));
+  font-family: var(--font-ui, system-ui, sans-serif);
+  color: var(--text, #27272a);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.hs-box[hidden] {
+  display: none;
+}
+
+.hs-head {
+  padding: 2px 8px 5px;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--text-3, #6f6d67);
+  letter-spacing: 0.02em;
+}
+
+.hs-row {
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 19px;
+  line-height: 1.45;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hs-row:hover {
+  background: var(--bg-soft, #f3f1ec);
+}
+
+.hs-row.hs-on {
+  background: var(--accent-soft, #e3f0ee);
+  color: var(--accent-strong, #0b5d57);
+  font-weight: 600;
+}
+
+/* a longer word that only begins with what was typed is drawn a little quieter */
+.hs-row.hs-more {
+  color: var(--text-2, #55534f);
+}
+
+.hs-row.hs-more.hs-on {
+  color: var(--accent-strong, #0b5d57);
+}
+
+.hs-foot {
+  margin-top: 4px;
+  padding: 5px 8px 2px;
+  border-top: 1px solid var(--border, #e7e4dd);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-3, #6f6d67);
+}
+
+/* read out by screen readers, never seen */
+.hs-sr {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .hs-row {
+    padding: 8px 12px;
+    font-size: 20px;
+  }
+}

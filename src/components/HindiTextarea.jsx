@@ -1,5 +1,7 @@
-import React, { useCallback, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react';
-import { transliterateLastWord, dandaOnDoubleSpace } from '../utils/transliterate';
+import React, { useCallback, useImperativeHandle, useRef, useState } from 'react';
+import { transliterateLastWord } from '../utils/transliterate';
+import { convertWord } from '../typing/convert';
+import { useHindiInput } from '../typing/useHindiInput';
 import './HindiTextarea.css';
 
 // Same switch the story editor uses, so one choice follows the writer around.
@@ -33,7 +35,7 @@ export function useHinglish() {
   const finish = useCallback(
     (text) => {
       if (!on) return text;
-      const done = transliterateLastWord(text, text.length, true);
+      const done = transliterateLastWord(text, text.length, true, convertWord);
       return done ? done.value : text;
     },
     [on]
@@ -42,61 +44,51 @@ export function useHinglish() {
 }
 
 /**
- * A textarea where Latin letters turn into Devanagari as you type: "kahani " becomes
- * "कहानी ", and two spaces end a sentence with "।". `value` / `onChange(text)`
- * work on plain strings; `hinglish` and `onToggle` come from `useHinglish`.
+ * A textarea where Latin letters turn into Devanagari as you type: "kahani" shows कहानी at once,
+ * with other spellings and longer words offered under the caret (see src/typing). Two spaces end a
+ * sentence with "।". `value` / `onChange(text)` work on plain strings; `hinglish` and `onToggle` come
+ * from `useHinglish`.
  */
 const HindiTextarea = React.forwardRef(function HindiTextarea(
-  { value, onChange, hinglish, onToggle, onSubmitKey, singleLine = false, hideBar = false, className = '', ...rest },
+  {
+    value,
+    onChange,
+    hinglish,
+    onToggle,
+    onSubmitKey,
+    singleLine = false,
+    hideBar = false,
+    className = '',
+    maxLength,
+    onKeyDown,
+    onBlur,
+    ...rest
+  },
   ref
 ) {
   const innerRef = useRef(null);
   useImperativeHandle(ref, () => innerRef.current);
-  // Where the caret goes once React has put the converted text in the box. It is
-  // set right after that render, before the next keystroke, so fast typing can
-  // never land a letter in the wrong place.
-  const pendingCaret = useRef(null);
-  useLayoutEffect(() => {
-    const el = innerRef.current;
-    const pending = pendingCaret.current;
-    pendingCaret.current = null;
-    if (el && pending && el.value === pending.value) {
-      el.selectionStart = el.selectionEnd = pending.caret;
-    }
-  });
 
-  const handleChange = (event) => {
-    const el = event.target;
-    let next = singleLine ? el.value.replace(/[\r\n]+/g, ' ') : el.value;
-    if (hinglish) {
-      const danda = dandaOnDoubleSpace(next, el.selectionStart);
-      const done = danda || transliterateLastWord(next, el.selectionStart);
-      if (done) {
-        next = done.value;
-        pendingCaret.current = { value: done.value, caret: done.caret };
+  const handlers = useHindiInput(innerRef, {
+    enabled: hinglish,
+    onValue: onChange,
+    maxLength,
+    singleLine,
+    onBlur,
+    onKeyDown: (event) => {
+      // A one-line field never takes a new line.
+      if (singleLine && event.key === 'Enter') {
+        event.preventDefault();
+        return;
       }
-    }
-    onChange(next);
-  };
-
-  const handleBlur = (event) => {
-    if (!hinglish) return;
-    const el = event.target;
-    const done = transliterateLastWord(el.value, el.selectionStart, true);
-    if (done) onChange(done.value);
-  };
-
-  const handleKeyDown = (event) => {
-    // A one-line field never takes a new line.
-    if (singleLine && event.key === 'Enter') {
-      event.preventDefault();
-      return;
-    }
-    if (onSubmitKey && event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-      event.preventDefault();
-      onSubmitKey();
-    }
-  };
+      if (onSubmitKey && event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        onSubmitKey();
+        return;
+      }
+      if (onKeyDown) onKeyDown(event);
+    },
+  });
 
   return (
     <div className={`hindi-field ${singleLine ? 'single' : ''} ${className}`}>
@@ -105,10 +97,10 @@ const HindiTextarea = React.forwardRef(function HindiTextarea(
         lang="hi"
         rows={singleLine ? 1 : undefined}
         value={value}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        onKeyDown={handleKeyDown}
+        maxLength={maxLength}
+        autoComplete="off"
         {...rest}
+        {...handlers}
       />
       {!hideBar && (
         <div className="hindi-field-bar">
@@ -123,7 +115,7 @@ const HindiTextarea = React.forwardRef(function HindiTextarea(
           </button>
           <span className="hindi-hint">
             {hinglish
-              ? 'हिंदी टाइपिंग चालू — (kahani) लिखें, कहानी बनेगा'
+              ? 'हिंदी टाइपिंग चालू — (kahani) लिखें, कहानी दिखेगा'
               : 'हिंदी टाइपिंग बंद'}
           </span>
         </div>

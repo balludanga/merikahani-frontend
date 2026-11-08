@@ -5,11 +5,12 @@ import Quill from 'quill';
 import 'react-quill/dist/quill.bubble.css';
 import { useAuth } from '../context/AuthContext';
 import { postsAPI, reviewsAPI, uploadsAPI } from '../services/api';
-import { transliterateLastWord, dandaOnDoubleSpace } from '../utils/transliterate';
 import { initials } from '../utils/format';
 import { updateMetaTags, resetMetaTags } from '../utils/seo';
 import { compressImage, blobToDataUrl } from '../utils/imageCompress';
-import '../utils/quillHindi';
+import '../typing/quillTyping';
+import { useHindiInput } from '../typing/useHindiInput';
+import { engine as typingEngine, setShowSuggestions, showSuggestions } from '../typing/setup';
 import { BRAND, TOPICS } from '../brand';
 import './Editor.css';
 import { mediaUrl } from '../utils/media';
@@ -283,6 +284,16 @@ const Editor = () => {
   const barMenuRef = useRef(null);
   const titleRef = useRef(null);
   const subtitleRef = useRef(null);
+  // Title and subtitle are plain boxes: the same live typing as the body, through the shared hook.
+  const setField = (field) => (value) => setFormData((prev) => ({ ...prev, [field]: value }));
+  const titleInput = useHindiInput(titleRef, { enabled: hinglishOn, onValue: setField('title') });
+  const subtitleInput = useHindiInput(subtitleRef, { enabled: hinglishOn, onValue: setField('subtitle') });
+  const [suggestOn, setSuggestOn] = useState(showSuggestions);
+  const toggleSuggest = () =>
+    setSuggestOn((prev) => {
+      setShowSuggestions(!prev);
+      return !prev;
+    });
 
   const getEditor = () => (quillRef.current ? quillRef.current.getEditor() : null);
   const mirrorKey = `lekhani_mirror_${isEdit ? id : `new_${user?.id ?? 'anon'}`}`;
@@ -673,40 +684,6 @@ const Editor = () => {
     setDialog(null);
   };
 
-  // Live Hinglish→Devanagari for the plain title/subtitle fields.
-  const handleFieldInput = (field) => (e) => {
-    const el = e.target;
-    let value = e.target.value;
-    if (hinglishOn) {
-      // Double space ends the sentence with the Hindi danda "।".
-      const danda = dandaOnDoubleSpace(value, el.selectionStart);
-      if (danda) {
-        setFormData((prev) => ({ ...prev, [field]: danda.value }));
-        requestAnimationFrame(() => {
-          el.selectionStart = el.selectionEnd = danda.caret;
-        });
-        return;
-      }
-      const result = transliterateLastWord(value, el.selectionStart);
-      if (result) {
-        value = result.value;
-        requestAnimationFrame(() => {
-          el.selectionStart = el.selectionEnd = result.caret;
-        });
-      }
-    }
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleFieldBlur = (field) => (e) => {
-    if (!hinglishOn) return;
-    const el = e.target;
-    const result = transliterateLastWord(e.target.value, el.selectionStart, true);
-    if (result) {
-      setFormData((prev) => ({ ...prev, [field]: result.value }));
-    }
-  };
-
   // The title/subtitle are single-row textareas, so they must grow to fit
   // their own text — otherwise a long title gets an internal scrollbar. Runs
   // on every change and on load (editing an existing long title).
@@ -1037,6 +1014,24 @@ const Editor = () => {
                 </button>
                 <button
                   type="button"
+                  aria-pressed={suggestOn}
+                  disabled={!hinglishOn}
+                  onClick={toggleSuggest}
+                >
+                  ▾ शब्द-सुझाव {suggestOn ? 'चालू ✓' : 'बंद'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    typingEngine.forgetEverything();
+                    setBarMenuOpen(false);
+                    notify('टाइपिंग के याद किए शब्द मिटा दिए गए।');
+                  }}
+                >
+                  ⌫ याद किए शब्द मिटाएँ
+                </button>
+                <button
+                  type="button"
                   aria-pressed={focusMode}
                   onClick={() => { setFocusMode((v) => !v); setBarMenuOpen(false); }}
                 >
@@ -1106,8 +1101,7 @@ const Editor = () => {
             placeholder="शीर्षक लिखें…"
             value={formData.title}
             lang="hi"
-            onChange={handleFieldInput('title')}
-            onBlur={handleFieldBlur('title')}
+            {...titleInput}
           />
         </div>
         {/* Subtitle reveals itself only once a title exists — the empty page
@@ -1120,8 +1114,7 @@ const Editor = () => {
             placeholder="उपशीर्षक — पाठक को एक पंक्ति में बताएँ (वैकल्पिक)"
             value={formData.subtitle}
             lang="hi"
-            onChange={handleFieldInput('subtitle')}
-            onBlur={handleFieldBlur('subtitle')}
+            {...subtitleInput}
           />
         )}
         <div className="editor-body-wrap" ref={bodyWrapRef}>
