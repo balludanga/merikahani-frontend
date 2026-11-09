@@ -115,7 +115,7 @@ const HindiTextarea = React.forwardRef(function HindiTextarea(
           </button>
           <span className="hindi-hint">
             {hinglish
-              ? 'हिंदी टाइपिंग चालू — (kahani) लिखें, कहानी दिखेगा'
+              ? 'हिंदी टाइपिंग चालू: (kahani) लिखें, कहानी दिखेगा'
               : 'हिंदी टाइपिंग बंद'}
           </span>
         </div>

@@ -13,19 +13,19 @@ function sentence(item) {
   if (item.kind === 'follow') return { who, rest: 'ने आपको फ़ॉलो करना शुरू किया' };
   // Write and earn is about a person or the programme, not a story: these carry no post.
   if (item.kind === 'partner_applied') return { who, rest: 'ने “लिखें और कमाएँ” के लिए आवेदन किया है' };
-  if (item.kind === 'partner_approved') return { who: 'समीक्षा टीम', rest: 'ने आपका आवेदन स्वीकृत कर दिया — अब आप साझेदार लेखक हैं' };
+  if (item.kind === 'partner_approved') return { who: 'समीक्षा टीम', rest: 'ने आपका आवेदन स्वीकृत कर दिया। अब आप साझेदार लेखक हैं' };
   if (item.kind === 'partner_declined') return { who: 'समीक्षा टीम', rest: 'ने इस बार आपका “लिखें और कमाएँ” आवेदन स्वीकृत नहीं किया' };
   if (item.kind === 'partner_revoked') return { who: 'समीक्षा टीम', rest: 'ने आपकी साझेदारी फ़िलहाल रोक दी है' };
-  if (item.kind === 'partner_eligible') return { who: 'लेखनी', rest: 'की ओर से बधाई — आप अब “लिखें और कमाएँ” के लिए आवेदन कर सकते हैं' };
+  if (item.kind === 'partner_eligible') return { who: 'लेखनी', rest: 'की ओर से बधाई: आप अब “लिखें और कमाएँ” के लिए आवेदन कर सकते हैं' };
   if (item.kind === 'payout_paid') return { who: 'लेखनी', rest: 'ने आपकी कमाई का भुगतान भेज दिया है' };
   // A tip: the site tells you (so a sender who asked to stay unnamed stays unnamed); `count` is your share in paise.
   if (item.kind === 'tip') return { who: 'लेखनी', rest: `की ओर से — आपको ${formatRupees(item.count)} का समर्थन मिला` };
   const title = `“${item.post.title}”`;
   // Reviewers speak for the platform, not as a named person; the sentence has no "who".
   if (item.kind === 'review_changes') {
-    return { who: 'समीक्षा टीम', rest: `ने आपकी रचना ${title} में बदलाव माँगे हैं${item.count > 0 ? ` (${item.count} टिप्पणी)` : ''} — रचना तब तक जनता को नहीं दिखेगी` };
+    return { who: 'समीक्षा टीम', rest: `ने आपकी रचना ${title} में बदलाव माँगे हैं${item.count > 0 ? ` (${item.count} टिप्पणी)` : ''}। रचना तब तक जनता को नहीं दिखेगी` };
   }
-  if (item.kind === 'review_approved') return { who: 'समीक्षा टीम', rest: `ने आपकी रचना ${title} स्वीकृत कर दी — यह फिर से प्रकाशित है` };
+  if (item.kind === 'review_approved') return { who: 'समीक्षा टीम', rest: `ने आपकी रचना ${title} स्वीकृत कर दी। यह फिर से प्रकाशित है` };
   if (item.kind === 'review_resubmit') return { who, rest: `ने सुधार कर ${title} को समीक्षा के लिए फिर भेजा है` };
   if (item.kind === 'reply') return { who, rest: `ने “${item.post.title}” पर आपकी प्रतिक्रिया का जवाब दिया` };
   if (item.kind === 'comment') return { who, rest: `ने आपकी रचना ${title} पर प्रतिक्रिया दी` };

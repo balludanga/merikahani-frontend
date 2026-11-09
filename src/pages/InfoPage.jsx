@@ -90,13 +90,13 @@ const InfoPage = ({ page }) => {
             <li>
               <span className="status-dot on" aria-hidden="true" />
               <span className="status-name">वेब ऐप</span>
-              <span className="status-note">चालू — यह पृष्ठ खुला है</span>
+              <span className="status-note">चालू: यह पृष्ठ खुला है</span>
             </li>
             <li>
               <span className={`status-dot ${services === null ? 'wait' : services ? 'on' : 'off'}`} aria-hidden="true" />
               <span className="status-name">एपीआई व डेटाबेस</span>
               <span className="status-note">
-                {services === null ? 'जाँच चल रही है…' : services ? 'चालू — ताज़ा डेटा आ रहा है' : 'जवाब नहीं मिल रहा — कुछ देर बाद दोबारा देखें'}
+                {services === null ? 'जाँच चल रही है…' : services ? 'चालू: ताज़ा डेटा आ रहा है' : 'जवाब नहीं मिल रहा। कुछ देर बाद दोबारा देखें'}
               </span>
             </li>
           </ul>

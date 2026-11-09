@@ -537,7 +537,7 @@ const Editor = () => {
         return;
       }
       const detail = error.response && error.response.data && error.response.data.detail;
-      notify(detail || 'चित्र अपलोड नहीं हो पाया — कड़ी (URL) से जोड़ सकते हैं।');
+      notify(detail || 'चित्र अपलोड नहीं हो पाया। कड़ी (URL) से जोड़ सकते हैं।');
       setDialog({ kind: 'image', range: { index }, value: '' });
     } finally {
       setUploading(false);
@@ -754,7 +754,7 @@ const Editor = () => {
     if (!editor || !note.suggestion) return;
     const at = findNoteInText(editor.getText(), note);
     if (!at) {
-      notify('यह अंश अब पाठ में नहीं मिला — कृपया हाथ से बदलें।');
+      notify('यह अंश अब पाठ में नहीं मिला। कृपया हाथ से बदलें।');
       return;
     }
     editor.deleteText(at.start, at.end - at.start, 'user');
@@ -1075,7 +1075,7 @@ const Editor = () => {
             <button type="button" className="review-x" onClick={() => setNotesOpen(false)} aria-label="बंद करें">×</button>
           </div>
           {reviewNotes.length === 0 ? (
-            <p className="review-hint">इस बार कोई अंश-टिप्पणी नहीं है — समीक्षकों का संदेश रचना के पृष्ठ पर देखें।</p>
+            <p className="review-hint">इस बार कोई अंश-टिप्पणी नहीं है। समीक्षकों का संदेश रचना के पृष्ठ पर देखें।</p>
           ) : (
             <ReviewNoteList
               notes={reviewNotes}
@@ -1111,7 +1111,7 @@ const Editor = () => {
             className="editor-subtitle"
             rows={1}
             ref={subtitleRef}
-            placeholder="उपशीर्षक — पाठक को एक पंक्ति में बताएँ (वैकल्पिक)"
+            placeholder="उपशीर्षक: पाठक को एक पंक्ति में बताएँ (वैकल्पिक)"
             value={formData.subtitle}
             lang="hi"
             {...subtitleInput}

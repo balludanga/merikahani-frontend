@@ -109,8 +109,8 @@ const Home = () => {
           <section className="landing-copy">
             <h1>{BRAND.tagline}</h1>
             <p>
-              लेखनी हिंदी लेखकों के लिए एक साफ़, लंबी-फ़ॉर्म जगह है — पढ़ें और लिखें।
-              आपकी कलम आपकी है। यहाँ लेख कृत्रिम बुद्धिमत्ता से नहीं बनते।
+              लेखनी हिंदी में लंबा लिखने और पढ़ने की जगह है। यहाँ हर रचना
+              किसी इंसान की लिखी होती है, कृत्रिम बुद्धिमत्ता की नहीं।
             </p>
             <div className="landing-actions">
               <button type="button" className="landing-cta" onClick={() => navigate('/register')}>
@@ -136,7 +136,7 @@ const Home = () => {
       <div className="dash-top">
         <div>
           <h1 className="dash-title">आज का चुनाव</h1>
-          <p className="dash-sub">सर्वश्रेष्ठ हिंदी रचनाएँ — एक ही नज़र में</p>
+          <p className="dash-sub">आज पढ़ने लायक़ हिंदी रचनाएँ</p>
         </div>
         <div className="dash-tabs">
           <button
@@ -168,7 +168,7 @@ const Home = () => {
           {feed === 'following' ? (
             <>आपकी फ़ॉलोइंग सूची अभी खाली है। <Link to="/search">रचनाएँ देखें</Link> और किसी लेखक को फ़ॉलो करें।</>
           ) : (
-            'अभी कोई रचना नहीं — लिखना शुरू करें।'
+            'अभी कोई रचना नहीं। लिखना शुरू करें।'
           )}
         </div>
       ) : (
@@ -251,7 +251,7 @@ const Home = () => {
                   )}
                   <div>
                     <h3>{spotlight.full_name || spotlight.username}</h3>
-                    <p>{spotlight.bio || 'इस लेखक की रचनाएँ पढ़ें — नई आवाज़, नई कलम।'}</p>
+                    <p>{spotlight.bio || 'इस लेखक की रचनाएँ पढ़कर देखिए।'}</p>
                   </div>
                 </div>
                 <div className="writer-foot">

@@ -653,7 +653,7 @@ const PostView = () => {
       });
       addComment(response.data);
       setComposer(null);
-      setNotice('प्रतिक्रिया जुड़ गई — यह नीचे “प्रतिक्रियाएँ” में दिखेगी।');
+      setNotice('प्रतिक्रिया जुड़ गई। यह नीचे “प्रतिक्रियाएँ” में दिखेगी।');
     } catch (error) {
       setActionError('प्रतिक्रिया सहेजी नहीं जा सकी।');
       throw error;
@@ -1101,7 +1101,7 @@ const PostView = () => {
             <div className="story-gate-card">
               <h2>पढ़ना जारी रखें</h2>
               <p>
-                इस रचना को शुरू से अंत तक पढ़ने के लिए लेखनी से जुड़ें —
+                इस रचना को शुरू से अंत तक पढ़ने के लिए लेखनी से जुड़ें।
                 पढ़ना और लिखना बिल्कुल मुफ़्त है।
               </p>
               <div className="story-gate-actions">

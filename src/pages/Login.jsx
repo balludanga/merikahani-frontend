@@ -161,7 +161,7 @@ const Login = () => {
           </div>
         )}
         <h1 className="auth-title">{isRegister ? 'लेखनी पर लिखना शुरू करें' : `${BRAND.name} में साइन इन`}</h1>
-        <p className="auth-subtitle">हिंदी में अपनी रचनाएँ प्रकाशित करें। लेख कृत्रिम बुद्धिमत्ता से नहीं लिखे जाते।</p>
+        <p className="auth-subtitle">हिंदी में अपनी रचनाएँ प्रकाशित कीजिए। यहाँ हर रचना इंसान की लिखी होती है।</p>
         <button
           type="button"
           className="auth-google"
@@ -195,7 +195,7 @@ const Login = () => {
                   spellCheck={false}
                   required
                 />
-                <small className="auth-hint">३ से ३० अक्षर: अक्षर, अंक, _ या . — खाली जगह या - नहीं</small>
+                <small className="auth-hint">३ से ३० अक्षर: अक्षर, अंक, _ या . (खाली जगह या - नहीं)</small>
               </label>
             </>
           )}

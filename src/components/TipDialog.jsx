@@ -95,7 +95,7 @@ const TipDialog = ({ writerId, writerName, post, tips, onClose }) => {
         {split && (
           <p className="pay-split" aria-live="polite">
             लेखक को <strong>{formatRupees(split.writer)}</strong> मिलेंगे। लेखनी इस समर्थन का {feePercent(tips.site_fee_bps)} (
-            {formatRupees(split.site)}) रखती है — भुगतान के खर्च और साइट चलाने के लिए।
+            {formatRupees(split.site)}) रखती है, भुगतान के खर्च और साइट चलाने के लिए।
           </p>
         )}
 

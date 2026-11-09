@@ -201,7 +201,7 @@ const CheckoutDialog = ({ started, title, summary, onSettled, onClose }) => {
       {phase === 'slow' && (
         <>
           <p className="pay-note" role="status">
-            पुष्टि में देर हो रही है। अगर आपके खाते से पैसा कट गया है तो चिंता न करें — पुष्टि होते ही यह अपने-आप दर्ज हो जाएगा।
+            पुष्टि में देर हो रही है। अगर आपके खाते से पैसा कट गया है तो चिंता न करें। पुष्टि होते ही यह अपने-आप दर्ज हो जाएगा।
           </p>
           <div className="pay-actions"><button type="button" className="pay-btn" onClick={onClose}>बंद करें</button></div>
         </>

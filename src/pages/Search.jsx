@@ -67,15 +67,15 @@ const Search = () => {
   // plain listing, /topic/:topic and /tag/:slug are, each with its own title.
   useEffect(() => {
     let title = 'सभी रचनाएँ';
-    let description = 'लेखनी पर प्रकाशित सभी हिंदी रचनाएँ — कहानी, कविता, निबंध और संस्मरण। अपनी पसंद की रचना खोजें और पढ़ें।';
+    let description = 'लेखनी पर प्रकाशित सभी हिंदी रचनाएँ: कहानी, कविता, निबंध और संस्मरण। अपनी पसंद की रचना खोजिए।';
     if (tagSlug) {
       const label = tagName || tagSlug;
       title = `#${label} टैग की रचनाएँ`;
-      description = `लेखनी पर #${label} टैग वाली हिंदी रचनाएँ पढ़ें — कहानी, कविता, निबंध और संस्मरण, सीधे लेखकों की कलम से।`;
+      description = `लेखनी पर #${label} टैग वाली हिंदी रचनाएँ।`;
     } else if (topic) {
       const label = topicLabel(topic);
       title = `${label} विषय की रचनाएँ`;
-      description = `लेखनी पर ${label} विषय की हिंदी रचनाएँ पढ़ें — नए और पुराने लेखकों की ताज़ा ${label} एक ही जगह।`;
+      description = `लेखनी पर ${label} विषय की हिंदी रचनाएँ, नए और पुराने लेखकों की।`;
     } else if (query) {
       title = `“${query}” के लिए खोज`;
       description = `लेखनी पर “${query}” के लिए खोज परिणाम।`;

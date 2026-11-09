@@ -113,8 +113,7 @@ const Stories = () => {
       <aside className="layout-aside">
         <h3 className="aside-title">नमस्ते, {user?.full_name || user?.username || 'लेखक'} 👋</h3>
         <p className="aside-note">
-          यहाँ आपकी सभी रचनाएँ हैं — प्रकाशित और ड्राफ्ट दोनों।
-          लेखनी आपके शब्दों को नहीं लिखती; आप लिखते हैं।
+          यहाँ आपकी सभी रचनाएँ हैं, प्रकाशित भी और ड्राफ्ट भी।
         </p>
       </aside>
     </div>

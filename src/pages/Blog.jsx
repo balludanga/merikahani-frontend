@@ -11,7 +11,7 @@ export const BlogIndex = () => {
     updateMetaTags({
       title: 'ब्लॉग — लेखनी कैसे इस्तेमाल करें',
       description: buildDescription(
-        'लेखनी की हर सुविधा का मार्गदर्शक लेख — शुरुआत से प्रकाशन तक, हाइलाइट से सुनने तक',
+        'लेखनी की हर चीज़ कैसे काम करती है, इसके लेख: खाता बनाने से प्रकाशित करने तक, हाइलाइट से सुनने तक',
         GUIDES.map((g) => g.title).join(', ')
       ),
       type: 'website',
@@ -25,7 +25,7 @@ export const BlogIndex = () => {
         <span className="info-kicker">ब्लॉग</span>
         <h1 className="info-title">लेखनी कैसे इस्तेमाल करें</h1>
         <p className="info-intro">
-          लेखनी की हर सुविधा का मार्गदर्शक लेख — शुरुआत से प्रकाशन तक, हाइलाइट से सुनने तक।
+          लेखनी की हर चीज़ कैसे काम करती है, इसके लेख: खाता बनाने से प्रकाशित करने तक, हाइलाइट से सुनने तक।
         </p>
         <div className="info-guide-list">
           {GUIDES.map((guide) => (

@@ -70,7 +70,7 @@ const Bookmarks = () => {
       <aside className="layout-aside">
         <h3 className="aside-title">बाद के लिए सहेजें</h3>
         <p className="aside-note">
-          जब पढ़ने का समय न हो, रचना को सहेज लें — वह यहाँ इंतज़ार करेगी।
+          जब पढ़ने का समय न हो, रचना को सहेज लें। वह यहाँ रखी रहेगी।
         </p>
       </aside>
     </div>
