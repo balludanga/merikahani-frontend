@@ -1,20 +1,8 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-    <script>
-      // Fix for React Router process.env error - must be first
-      window.process = window.process || {};
-      window.process.env = window.process.env || {};
-      window.process.env.NODE_ENV = window.process.env.NODE_ENV || 'development';
-      // Additional polyfill for global process access
-      if (typeof process === 'undefined') {
-        window.process = window.process || { env: {} };
-      }
-      // Set on globalThis for iframes
-      if (typeof globalThis !== 'undefined') {
-        globalThis.process = window.process;
-      }
-    </script>
+    <!-- Must be first. A file, not an inline script: the CSP no longer allows inline scripts. -->
+    <script src="%PUBLIC_URL%/init-process.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#FAF9F7" />
@@ -24,20 +12,8 @@
         <link rel="shortcut icon" href="/favicon.ico">
         <link rel="manifest" href="/manifest.json">
 
-    <script>
-      // Apply the saved theme before first paint to avoid a flash.
-      (function () {
-        try {
-          var stored = localStorage.getItem('lekhani_theme');
-          var theme = stored === 'dark' || stored === 'light'
-            ? stored
-            : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-          document.documentElement.setAttribute('data-theme', theme);
-        } catch (e) {
-          document.documentElement.setAttribute('data-theme', 'light');
-        }
-      })();
-    </script>
+    <!-- Applies the saved theme before first paint (no flash). Blocking on purpose; also a file for the CSP. -->
+    <script src="%PUBLIC_URL%/init-theme.js"></script>
 
     <!-- SEO Meta Tags -->
     <meta name="description" content="लेखनी (Lekhanii) हिंदी लेखकों का मुफ़्त मंच — कहानी, कविता, निबंध और संस्मरण देवनागरी में लिखें और पढ़ें। हर रचना इंसान की लिखी, कृत्रिम बुद्धिमत्ता से नहीं।">
@@ -125,7 +101,11 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Inter:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&family=Noto+Serif+Devanagari:wght@400;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Inter:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&family=Noto+Serif+Devanagari:wght@400;600;700&display=swap">
+    <!-- The fonts load without blocking the first paint: the link above fetches them early and
+         this file switches them on. (It used to be an inline onload="" attribute, which the
+         Content-Security-Policy now refuses.) -->
+    <script src="%PUBLIC_URL%/init-fonts.js" defer></script>
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Inter:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&family=Noto+Serif+Devanagari:wght@400;600;700&display=swap"></noscript>
     <title>लेखनी (Lekhanii) — हिंदी कहानी, कविता और निबंध लिखें-पढ़ें</title>
 </head>

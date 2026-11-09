@@ -1,0 +1,8 @@
+# How to report a security problem with लेखनी (Lekhanii).
+# Please report privately through the link below, not in a public issue or a social post.
+# Include what you found, where, and the steps to see it. We will reply there.
+
+Contact: https://github.com/balludanga/merikahani-backend/security/advisories/new
+Expires: 2027-10-31T00:00:00.000Z
+Preferred-Languages: hi, en
+Canonical: https://lekhanii.vercel.app/.well-known/security.txt
