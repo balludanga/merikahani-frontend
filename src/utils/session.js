@@ -3,6 +3,10 @@
 // coming back is never asked to sign in again. These two functions only read the token (the server
 // is the one that checks it); they never decide whether a sign-in is valid.
 
+// Left in sessionStorage by the "delete account" section just before it reloads the site, so the
+// notice bar can say the account is gone.
+export const ACCOUNT_DELETED_FLAG = 'lekhani:account-deleted';
+
 // Renew a token once it is this old (seconds).
 export const RENEW_AFTER_SECONDS = 24 * 60 * 60;
 

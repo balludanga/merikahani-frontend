@@ -12,6 +12,7 @@ const LINKS = [
   { to: '/rules', label: 'नियम' },
   { to: '/privacy', label: 'गोपनीयता' },
   { to: '/terms', label: 'शर्तें' },
+  { to: '/privacy#contact', label: 'संपर्क' },
   { to: '/help#audio', label: 'पाठ से वाणी' },
 ];
 

@@ -519,3 +519,47 @@
     display: none;
   }
 }
+
+/* Delete account */
+.ep-danger h2 {
+  color: var(--danger, #b42318);
+}
+
+.ep-confirm {
+  display: grid;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.ep-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ep-btn.danger {
+  border-color: var(--danger, #b42318);
+  color: var(--danger, #b42318);
+}
+
+.ep-btn.danger:hover:not(:disabled) {
+  border-color: var(--danger, #b42318);
+  color: var(--danger, #b42318);
+  background: color-mix(in srgb, var(--danger, #b42318) 8%, transparent);
+}
+
+.ep-btn.danger.solid {
+  background: var(--danger, #b42318);
+  color: #fff;
+}
+
+.ep-btn.danger.solid:hover:not(:disabled) {
+  background: var(--danger, #b42318);
+  color: #fff;
+  filter: brightness(0.92);
+}
+
+.ep-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

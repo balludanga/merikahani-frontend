@@ -88,8 +88,9 @@ describe('info pages', () => {
   });
 
   it('keeps the anchors other pages link to', () => {
-    // Footer.jsx links "पाठ से वाणी" to /help#audio.
+    // Footer.jsx links "पाठ से वाणी" to /help#audio and "संपर्क" to /privacy#contact.
     expect(SITE_PAGES.help.sections.map((section) => section.id)).toContain('audio');
+    expect(SITE_PAGES.privacy.sections.map((section) => section.id)).toContain('contact');
   });
 
   it('shows the features help readers ask about', () => {

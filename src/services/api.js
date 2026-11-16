@@ -117,6 +117,8 @@ export const usersAPI = {
   removeAvatar: () => api.delete('/users/me/avatar'),
   setCover: (data, contentType) => api.put('/users/me/cover', { data, content_type: contentType }, { timeout: 60000 }),
   removeCover: () => api.delete('/users/me/cover'),
+  // Deletes the signed-in account for good. The person types their own username to confirm.
+  deleteAccount: (confirmUsername) => api.post('/users/me/delete', { confirm_username: confirmUsername }),
 };
 
 export const followsAPI = {

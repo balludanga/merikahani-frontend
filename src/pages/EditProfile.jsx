@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { postsAPI, usersAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import DeleteAccount from '../components/DeleteAccount';
 import { accentTokens } from '../utils/accent';
 import { getTheme } from '../utils/theme';
 import { COVER_STYLES, GENRES, LIMITS, PALETTE, coverBackground } from '../utils/profileStyle';
@@ -512,6 +513,8 @@ const EditProfile = () => {
               </ul>
             )}
           </section>
+
+          <DeleteAccount />
         </div>
 
         <aside className="ep-preview" aria-label="प्रोफ़ाइल कैसी दिखेगी">

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ACCOUNT_DELETED_FLAG } from '../utils/session';
 import './SessionNotice.css';
 
 // A session ends on its own sometimes: a token lasts 30 days and is renewed whenever the
@@ -9,7 +10,23 @@ import './SessionNotice.css';
 // pretending to be signed in while every save quietly fails.
 const SessionNotice = () => {
   const [backTo, setBackTo] = useState('');
+  // Set by the "delete account" page just before it reloads the site: say the account is gone.
+  const [deleted, setDeleted] = useState(() => {
+    try {
+      const flagged = sessionStorage.getItem(ACCOUNT_DELETED_FLAG) === '1';
+      if (flagged) sessionStorage.removeItem(ACCOUNT_DELETED_FLAG);
+      return flagged;
+    } catch (error) {
+      return false;
+    }
+  });
   const timer = useRef(null);
+
+  useEffect(() => {
+    if (!deleted) return undefined;
+    const hide = setTimeout(() => setDeleted(false), 20000);
+    return () => clearTimeout(hide);
+  }, [deleted]);
 
   useEffect(() => {
     const onSignedOut = () => {
@@ -24,6 +41,21 @@ const SessionNotice = () => {
     };
   }, []);
 
+  if (deleted) {
+    return (
+      <div className="session-notice" role="status">
+        आपका खाता हटा दिया गया है। आपकी रचनाएँ और जानकारी मिटा दी गई हैं।
+        <button
+          type="button"
+          className="session-notice-close"
+          onClick={() => setDeleted(false)}
+          aria-label="सूचना बंद करें"
+        >
+          ×
+        </button>
+      </div>
+    );
+  }
   if (!backTo) return null;
   return (
     <div className="session-notice" role="status">

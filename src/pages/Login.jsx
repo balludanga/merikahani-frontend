@@ -12,7 +12,13 @@ import './Auth.css';
 const isInAppBrowser = () =>
   /FBAN|FBAV|FB_IAB|Instagram|Line\/|Snapchat|Twitter|MicroMessenger|WhatsApp|; wv\)/i.test(navigator.userAgent || '');
 
+// Sign-in is by Google only on the live site. The email-and-password form is kept for local work (the
+// backend opens its password routes only while DEBUG is on), and the production build leaves it out.
+// (Read when the page renders, not once at load: the build replaces NODE_ENV with a constant either way.)
+const emailFormAllowed = () => process.env.NODE_ENV !== 'production';
+
 const Login = () => {
+  const EMAIL_FORM = emailFormAllowed();
   const { isAuthenticated, handleGoogleAccessToken, login, register } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -82,7 +88,7 @@ const Login = () => {
   useEffect(() => {
     if (!gsiReady || !(window.google && window.google.accounts && window.google.accounts.oauth2)) return;
     // No client id (a local build without it) or a refused setup must never take
-    // the whole sign-in page down: email sign-in keeps working, Google says why.
+    // the whole sign-in page down: Google says why.
     const clientId = getEnv('REACT_APP_GOOGLE_CLIENT_ID');
     if (!clientId) return;
     try {
@@ -91,7 +97,7 @@ const Login = () => {
         scope: 'openid email profile',
         callback: async (response) => {
           if (!response || response.error || !response.access_token) {
-            setError('गूगल (Google) से साइन इन नहीं हो सका। कृपया दोबारा कोशिश करें, या ईमेल से साइन इन करें।');
+            setError('गूगल (Google) से साइन इन नहीं हो सका। कृपया दोबारा कोशिश करें।');
             return;
           }
           setGoogleBusy(true);
@@ -104,7 +110,7 @@ const Login = () => {
         error_callback: (err) => {
           // Closing the window is the user's own choice, not an error.
           if (err && err.type === 'popup_closed') return;
-          setError('गूगल (Google) की खिड़की नहीं खुल सकी। कृपया पॉप-अप (pop-up) की अनुमति दें, या ईमेल से साइन इन करें।');
+          setError('गूगल (Google) की खिड़की नहीं खुल सकी। कृपया पॉप-अप (pop-up) की अनुमति दें और दोबारा कोशिश करें।');
         },
       });
     } catch (error) {
@@ -115,11 +121,11 @@ const Login = () => {
   const onGoogleClick = () => {
     setError('');
     if (isInAppBrowser()) {
-      setError('यह ऐप का भीतरी ब्राउज़र है, जिसमें गूगल (Google) साइन इन नहीं चलता। कृपया पेज को क्रोम (Chrome) या सफ़ारी (Safari) में खोलें, या ईमेल से साइन इन करें।');
+      setError('यह ऐप का भीतरी ब्राउज़र है, जिसमें गूगल (Google) साइन इन नहीं चलता। कृपया पेज को क्रोम (Chrome) या सफ़ारी (Safari) में खोलें।');
       return;
     }
     if (!getEnv('REACT_APP_GOOGLE_CLIENT_ID')) {
-      setError('इस कंप्यूटर पर गूगल (Google) साइन इन चालू नहीं है। कृपया ईमेल से साइन इन करें।');
+      setError('इस कंप्यूटर पर गूगल (Google) साइन इन चालू नहीं है।');
       return;
     }
     if (!tokenClientRef.current) {
@@ -170,8 +176,9 @@ const Login = () => {
         >
           गूगल (Google) से जारी रखें
         </button>
-        <div className="auth-or">या</div>
         {error && <div className="auth-error" role="alert">{error}</div>}
+        {EMAIL_FORM && <div className="auth-or">केवल विकास के लिए: ईमेल से</div>}
+        {EMAIL_FORM && (
         <form className="auth-form" onSubmit={onSubmit}>
           {isRegister && (
             <>
@@ -225,13 +232,20 @@ const Login = () => {
             {submitting ? 'रुकिए…' : isRegister ? 'खाता बनाएँ' : 'साइन इन'}
           </button>
         </form>
+        )}
         <p className="auth-footer">
-          {isRegister ? (
-            <>पहले से खाता है? <Link to={`/login${location.search}`}>साइन इन</Link></>
-          ) : (
-            <>नए हैं? <Link to={`/register${location.search}`}>शुरू करें</Link></>
-          )}
+          पहले ईमेल और पासवर्ड से खाता बनाया था? उसी ईमेल वाले गूगल (Google) खाते से साइन इन कीजिए। आपकी रचनाएँ
+          और फ़ॉलोअर वहीं मिलेंगे।
         </p>
+        {EMAIL_FORM && (
+          <p className="auth-footer">
+            {isRegister ? (
+              <>पहले से खाता है? <Link to={`/login${location.search}`}>साइन इन</Link></>
+            ) : (
+              <>नए हैं? <Link to={`/register${location.search}`}>शुरू करें</Link></>
+            )}
+          </p>
+        )}
       </div>
     </div>
   );
