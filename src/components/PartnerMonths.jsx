@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { earningsAPI } from '../services/api';
 import { formatDate } from '../utils/format';
 import { LOPSIDED_PERCENT, apiMessage, formatRupees, monthLabel, paiseToRupeeText, rupeesToPaise } from '../utils/partner';
@@ -11,6 +12,9 @@ const monthState = (month) => {
 
 /** One month: its pool, what finalizing it would store, and the button that stores it. */
 const MonthPanel = ({ month, onChanged }) => {
+  // Only the owner sets a pool or finalizes a month; a reviewer reads the same table without the controls.
+  const { user } = useAuth();
+  const canEdit = !!(user && user.is_owner);
   const [detail, setDetail] = useState(null);
   const [failed, setFailed] = useState(false);
   const [pool, setPool] = useState('');
@@ -124,7 +128,11 @@ const MonthPanel = ({ month, onChanged }) => {
     <div className="desk-month">
       <h3 className="desk-sub">{monthLabel(month)} · {monthState(detail)}</h3>
 
-      {!detail.finalized && (
+      {!canEdit && !detail.finalized && (
+        <p className="desk-muted">कोष तय करना और हिसाब पक्का करना केवल मालिक का काम है; आप यहाँ पूर्वावलोकन देख सकते हैं।</p>
+      )}
+
+      {canEdit && !detail.finalized && (
         <form className="desk-pool" onSubmit={savePool}>
           <label htmlFor="desk-pool-amount">इस महीने का कोष (₹)</label>
           <input
@@ -210,7 +218,7 @@ const MonthPanel = ({ month, onChanged }) => {
                   <th scope="col">पाठक</th>
                   <th scope="col">सबसे बड़ा पाठक</th>
                   <th scope="col">राशि</th>
-                  {!detail.finalized && <th scope="col">इस बार रोकें</th>}
+                  {canEdit && !detail.finalized && <th scope="col">इस बार रोकें</th>}
                 </tr>
               </thead>
               <tbody>
@@ -237,7 +245,7 @@ const MonthPanel = ({ month, onChanged }) => {
                         {detail.finalized ? '—' : row.points > 0 ? `${row.top_reader_pct}%${lopsided ? ' ⚠' : ''}` : '—'}
                       </td>
                       <td data-label="राशि"><strong>{formatRupees(row.amount_paise)}</strong></td>
-                      {!detail.finalized && (
+                      {canEdit && !detail.finalized && (
                         <td data-label="इस बार रोकें">
                           <label className="desk-leave">
                             <input
@@ -268,7 +276,7 @@ const MonthPanel = ({ month, onChanged }) => {
         </>
       )}
 
-      {!detail.finalized && detail.rows.length > 0 && (
+      {canEdit && !detail.finalized && detail.rows.length > 0 && (
         <div className="desk-finalize">
           {!detail.ended && <p className="earn-note">महीना पूरा होने पर ही हिसाब पक्का किया जा सकता है।</p>}
           {detail.ended && detail.pool_paise === 0 && <p className="earn-note">हिसाब पक्का करने से पहले ऊपर इस महीने का कोष सहेजें।</p>}

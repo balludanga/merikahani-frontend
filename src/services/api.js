@@ -241,6 +241,13 @@ export const membershipAPI = {
 };
 
 // The owner's money pages. The server answers 404 to everyone who is not the owner, reviewers included.
+// The owner builds the review team: the owners, the reviewers fixed in the settings, and the ones added here.
+export const teamAPI = {
+  list: () => api.get('/team/reviewers'),
+  add: (email) => api.post('/team/reviewers', { email }),
+  remove: (id) => api.delete(`/team/reviewers/${id}`),
+};
+
 export const ownerAPI = {
   profit: (month) => api.get(`/owner/profit/${month}`),
   choose: (month, body) => api.put(`/owner/profit/${month}`, body),
