@@ -3,6 +3,7 @@ import { authAPI } from '../services/api';
 import { trackEvent } from '../utils/analytics';
 import { getEnv } from '../utils/env';
 import { errorText } from '../utils/authErrors';
+import { RENEW_CHECK_EVERY_MS, renewalDue } from '../utils/session';
 
 const AuthContext = createContext();
 
@@ -20,14 +21,27 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('token'));
 
-  const logout = useCallback(() => {
-    // Track logout event
-    trackEvent('logout');
-    
+  // The sign-in is over (or was never good): forget it here. Nothing is sent to the server, because
+  // it is the server that said so.
+  const clearSession = useCallback(() => {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
   }, []);
+
+  // The reader pressed "sign out". Sign-ins last weeks now, so the server is told to end this device's
+  // sign-in as well (other devices stay signed in); if it cannot be reached the reader is still signed
+  // out here.
+  const logout = useCallback(() => {
+    // Track logout event
+    trackEvent('logout');
+
+    const used = localStorage.getItem('token');
+    clearSession();
+    if (used) {
+      authAPI.logout(used).catch(() => {});
+    }
+  }, [clearSession]);
 
   const fetchUser = useCallback(async () => {
     // Network errors, timeouts and 5xx (e.g. Render cold start) must not sign
@@ -42,7 +56,7 @@ export const AuthProvider = ({ children }) => {
           return;
         } catch (error) {
           if (error.response?.status === 401) {
-            logout();
+            clearSession();
             return;
           }
           // eslint-disable-next-line no-console
@@ -54,7 +68,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [logout]);
+  }, [clearSession]);
 
   useEffect(() => {
     if (token) {
@@ -68,10 +82,46 @@ export const AuthProvider = ({ children }) => {
   // answer is the same: drop it, so no page is left showing a signed-in view that cannot
   // save anything.
   useEffect(() => {
-    const onSignedOut = () => logout();
+    const onSignedOut = () => clearSession();
     window.addEventListener('lekhani:signed-out', onSignedOut);
     return () => window.removeEventListener('lekhani:signed-out', onSignedOut);
-  }, [logout]);
+  }, [clearSession]);
+
+  // Stay signed in. A sign-in lasts weeks and is swapped for a fresh one once it is a day old: right
+  // away when the app opens, then every half hour and whenever the tab comes back to the front, so a
+  // tab left open for days keeps its sign-in too. A failed renewal (offline, the server waking up)
+  // is simply tried again at the next check; a real 401 is announced by the api layer.
+  const userId = user ? user.id : null;
+  useEffect(() => {
+    if (!userId) return undefined;
+    let running = false;
+    const renew = async () => {
+      const used = localStorage.getItem('token');
+      if (running || !used || !renewalDue(used)) return;
+      running = true;
+      try {
+        const { data } = await authAPI.refresh();
+        // Keep the new token only if the reader did not sign out or in again while it was on its way.
+        if (data && data.access_token && localStorage.getItem('token') === used) {
+          localStorage.setItem('token', data.access_token);
+        }
+      } catch (error) {
+        // Not now; the next check tries again.
+      } finally {
+        running = false;
+      }
+    };
+    renew();
+    const timer = setInterval(renew, RENEW_CHECK_EVERY_MS);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') renew();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [userId]);
 
   // Handle Google OAuth response from popup
   const handleGoogleCallback = async (response) => {

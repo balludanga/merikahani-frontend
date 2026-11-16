@@ -2,9 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import './SessionNotice.css';
 
-// A session ends on its own sometimes: tokens live 30 minutes, signing out on another
-// device invalidates them, and a password account turned Google-only retires its old
-// token. Whatever call notices first tells the reader here, so the page never keeps
+// A session ends on its own sometimes: a token lasts 30 days and is renewed whenever the
+// app is used, so it only runs out after a month away or at the 180-day limit; signing out
+// on another device invalidates it, and a password account turned Google-only retires its
+// old token. Whatever call notices first tells the reader here, so the page never keeps
 // pretending to be signed in while every save quietly fails.
 const SessionNotice = () => {
   const [backTo, setBackTo] = useState('');

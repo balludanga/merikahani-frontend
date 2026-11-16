@@ -61,9 +61,10 @@ api.interceptors.response.use(
   },
   (error) => {
     requestSettled();
-    // A 401 on a normal call means the session itself is over: the token expired (they
-    // live 30 minutes), was retired by signing out elsewhere, or the account changed how
-    // it signs in. Failing one save in silence leaves the page looking signed in.
+    // A 401 on a normal call means the session itself is over: the token expired (they last
+    // 30 days and are renewed whenever the app is used, so this means a month away or the
+    // 180-day limit), was retired by signing out elsewhere, or the account changed how it
+    // signs in. Failing one save in silence leaves the page looking signed in.
     const url = (error.config && error.config.url) || '';
     const signInCalls = ['/auth/login', '/auth/register', '/auth/google-login', '/auth/me'];
     if (
@@ -82,6 +83,11 @@ export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
   getMe: () => api.get('/auth/me'),
+  // Swap the current sign-in for a fresh one (sent with the stored token): { access_token, user }.
+  refresh: () => api.post('/auth/refresh'),
+  // Ends this device's sign-in on the server (other devices stay signed in). The token is passed
+  // in by hand because the caller removes it from storage straight away, before the request goes out.
+  logout: (token) => api.post('/auth/logout', null, { headers: { Authorization: `Bearer ${token}` } }),
 };
 
 export const postsAPI = {
