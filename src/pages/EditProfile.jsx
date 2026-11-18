@@ -11,6 +11,9 @@ import { initials } from '../utils/format';
 import HindiTextarea, { useHinglish } from '../components/HindiTextarea';
 import ImageCropper from '../components/ImageCropper';
 import ProfileHeader from '../components/ProfileHeader';
+import LanguagePicker from '../components/LanguagePicker';
+import { languageName } from '../languages/registry';
+import { setChoice, setPrimary } from '../languages/store';
 import './EditProfile.css';
 
 const AVATAR = { shape: 'circle', outWidth: 512, outHeight: 512, maxBytes: 250 * 1024, title: 'प्रोफ़ाइल की तस्वीर' };
@@ -58,6 +61,7 @@ const EditProfile = () => {
   const [images, setImages] = useState(noImages);
   const [cropping, setCropping] = useState(null); // { kind, file }
   const [saving, setSaving] = useState(false);
+  const [langPicker, setLangPicker] = useState(null); // null | 'read' | 'write'
   const [error, setError] = useState('');
   const [loadError, setLoadError] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
@@ -91,6 +95,9 @@ const EditProfile = () => {
           genres: p.genres || [],
           links: (p.links || []).map((l) => ({ label: l.label || '', url: l.url })),
           pinned: p.pinned_post_ids || [],
+          read_languages: p.read_languages || [],
+          write_languages: p.write_languages || [],
+          primary_language: p.primary_language || null,
         };
         setOriginal(p);
         setDraft(start);
@@ -224,8 +231,22 @@ const EditProfile = () => {
         genres: draft.genres,
         links,
         pinned_post_ids: draft.pinned,
+        read_languages: draft.read_languages,
+        write_languages: draft.write_languages,
+        primary_language: draft.primary_language || '',
       })).data;
-      updateUser({ full_name: saved.full_name, avatar_url: saved.avatar_url, accent: saved.accent });
+      updateUser({
+        full_name: saved.full_name,
+        avatar_url: saved.avatar_url,
+        accent: saved.accent,
+        read_languages: saved.read_languages || [],
+        write_languages: saved.write_languages || [],
+        primary_language: saved.primary_language || null,
+      });
+      // this device follows the account
+      setChoice('read', saved.read_languages || []);
+      setChoice('write', saved.write_languages || []);
+      setPrimary(saved.primary_language || null);
       setSnapshot(JSON.stringify(draft));
       setImages((prev) => {
         release(prev.avatar.preview);
@@ -251,6 +272,7 @@ const EditProfile = () => {
       accent: draft.accent,
       cover_style: draft.cover_style,
       genres: draft.genres,
+      write_languages: draft.write_languages,
       links: draft.links.filter((l) => l.url.trim()).map((l) => ({ label: l.label, url: /^[a-z]+:\/\//i.test(l.url) ? l.url : `https://${l.url}` })),
       avatar_url: images.avatar.remove ? null : images.avatar.preview || original.avatar_url,
       cover_url: images.cover.remove ? null : images.cover.preview || original.cover_url,
@@ -405,6 +427,38 @@ const EditProfile = () => {
           </section>
 
           <section className="ep-card">
+            <h2>भाषाएँ</h2>
+            <p className="ep-help">लेखनी पर हिंदी, अंग्रेज़ी और भारत की सभी 22 अनुसूचित भाषाओं में लिखा और पढ़ा जा सकता है।</p>
+            {[
+              ['write', 'आप किन भाषाओं में लिखते हैं', 'यह आपके प्रोफ़ाइल पर दिखेगा, और नई रचना इन्हीं में से पहली भाषा में शुरू होगी।'],
+              ['read', 'आप किन भाषाओं में पढ़ते हैं', 'यह सिर्फ़ आपको दिखता है। आपके पन्ने पर इन्हीं भाषाओं की रचनाएँ आएँगी। ★ वाली मुख्य भाषा है: ऐप उसी भाषा में दिखता है और उसकी रचनाएँ पहले आती हैं।'],
+            ].map(([kind, label, help]) => {
+              const chosen = draft[`${kind}_languages`];
+              return (
+                <div className="ep-langs" key={kind}>
+                  <strong>{label}</strong>
+                  <div className="ep-chips">
+                    {chosen.length === 0 ? (
+                      <span className="ep-help">{kind === 'read' ? 'सभी भाषाएँ' : 'अभी चुनी नहीं'}</span>
+                    ) : (
+                      chosen.map((code) => (
+                        <span className="ep-chip on" key={code}>
+                          {kind === 'read' && code === draft.primary_language ? '★ ' : ''}
+                          {languageName(code)}
+                        </span>
+                      ))
+                    )}
+                    <button type="button" className="ep-link-btn" onClick={() => setLangPicker(kind)}>
+                      {chosen.length === 0 ? 'चुनें' : 'बदलें'}
+                    </button>
+                  </div>
+                  <p className="ep-help">{help}</p>
+                </div>
+              );
+            })}
+          </section>
+
+          <section className="ep-card">
             <h2>आप क्या लिखते हैं <em>{draft.genres.length}/{LIMITS.genres}</em></h2>
             <div className="ep-chips">
               {GENRES.map((genre) => {
@@ -532,6 +586,24 @@ const EditProfile = () => {
           {saving ? 'सहेज रहे हैं…' : 'प्रोफ़ाइल सहेजें'}
         </button>
       </div>
+
+      {langPicker && (
+        <LanguagePicker
+          multiple
+          allowNone={langPicker === 'read'}
+          title={langPicker === 'write' ? 'आप किन भाषाओं में लिखते हैं?' : 'आप किन भाषाओं में पढ़ते हैं?'}
+          value={draft[`${langPicker}_languages`]}
+          primary={langPicker === 'read' ? draft.primary_language : undefined}
+          onChange={(codes, main) =>
+            setDraft((d) => ({
+              ...d,
+              [`${langPicker}_languages`]: codes,
+              ...(langPicker === 'read' ? { primary_language: main !== undefined ? main : d.primary_language } : null),
+            }))
+          }
+          onClose={() => setLangPicker(null)}
+        />
+      )}
 
       {cropping && (
         <ImageCropper

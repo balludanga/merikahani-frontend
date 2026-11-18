@@ -9,6 +9,7 @@
  * component on top only draws it.
  */
 import { useEffect, useRef, useState } from 'react';
+import { speechLocale } from '../languages/registry';
 import ssmlTTS from './ssmlTTS';
 import { fetchNarration, serverVoiceInfo, silentAudioUrl } from './serverVoice';
 import { SPEEDS, clearPosition, loadPosition, loadPrefs, savePosition, savePrefs } from './playerPrefs';
@@ -241,7 +242,7 @@ export function createStoryPlayer(onChange = () => {}) {
     let words = 0;
     set({ phase: 'playing', source: 'browser', time: 0, duration: 0, progress: 0, resumedFrom: 0 });
     ssmlTTS.speak(post.content || '', {
-      lang: 'hi-IN',
+      lang: speechLocale(post.language), // each story in its own language's device voice
       useSSML: false,
       title: post.title,
       onTokens: (tokens) => {

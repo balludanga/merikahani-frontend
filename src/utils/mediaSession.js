@@ -3,6 +3,8 @@
  * notification control the player (the Media Session API: Chrome, Edge, Firefox, Safari). Where the
  * browser has none of it, every call does nothing.
  */
+import { t } from '../i18n';
+
 const supported = () => typeof navigator !== 'undefined' && 'mediaSession' in navigator;
 
 const ACTIONS = ['play', 'pause', 'previoustrack', 'nexttrack', 'seekbackward', 'seekforward', 'seekto', 'stop'];
@@ -42,7 +44,7 @@ export function createMediaSession(handlers) {
         session.metadata = new window.MediaMetadata({
           title: post.title || '',
           artist: (post.author && (post.author.full_name || post.author.username)) || '',
-          album: 'लेखनी',
+          album: t('लेखनी'), // the brand in the reader's script
           artwork: [{ src: cover, sizes: '512x512' }],
         });
       } catch (error) {

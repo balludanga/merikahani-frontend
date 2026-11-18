@@ -34,7 +34,7 @@
 }
 
 .story-card-link h2 {
-  font-family: "Source Serif 4", "Noto Serif Devanagari", Georgia, serif;
+  font-family: "Source Serif 4", "Noto Serif Devanagari", var(--indic-fonts), Georgia, serif;
   font-size: 22px;
   line-height: 1.28;
   margin: 0 0 6px;

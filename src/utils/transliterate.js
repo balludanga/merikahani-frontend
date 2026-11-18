@@ -176,12 +176,12 @@ export const DANDA = '।';
  * word→"  " pattern is present, else null. Only fires after real content
  * (never after another space, the start, or an existing danda).
  */
-export function dandaOnDoubleSpace(text, caret) {
-  if (typeof text !== 'string' || caret < 2) return null;
+export function dandaOnDoubleSpace(text, caret, stop = DANDA) {
+  if (typeof text !== 'string' || caret < 2 || !stop) return null;
   if (text.slice(caret - 2, caret) !== '  ') return null;
   const before = caret >= 3 ? text[caret - 3] : '';
-  if (!before || /\s/.test(before) || before === DANDA) return null;
-  const replaceWith = `${DANDA} `;
+  if (!before || /\s/.test(before) || before === stop) return null;
+  const replaceWith = `${stop} `;
   return {
     value: text.slice(0, caret - 2) + replaceWith + text.slice(caret),
     caret: caret - 2 + replaceWith.length,

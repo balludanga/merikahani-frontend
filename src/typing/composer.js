@@ -41,8 +41,9 @@ export function assemble(result) {
   const first = known[0] || rules[0];
   if (!first) return [];
   const phonetic = known.length ? rules[0] : null;
-  // with nothing known, the other phonetic spellings are the alternatives
-  const spellings = known.length ? [] : rules.slice(1, 3);
+  // with nothing known, the other phonetic spellings are the alternatives (more of them when the
+  // engine has no word list at all: they are all it has)
+  const spellings = known.length ? [] : rules.slice(1, result.rulesOnly ? MAX_ROWS : 3);
   const rest = known
     .slice(1)
     .concat(result.complete, spellings)
@@ -60,6 +61,8 @@ export class Composer {
   constructor(host, options = {}) {
     this.host = host;
     this.engine = options.engine || sharedEngine;
+    // the character a double space writes ("।" in Hindi); null for a language that has none
+    this.stop = options.stop === undefined ? DANDA : options.stop;
     this.box = options.box || null;
     this.enabled = options.enabled || (() => true);
     this.showList = options.showList || (() => true);
@@ -73,6 +76,16 @@ export class Composer {
 
   get active() {
     return this.c !== null;
+  }
+
+  /** The writer changed language: the next word is read by another engine, and ends sentences differently. */
+  configure({ engine, stop } = {}) {
+    if (engine && engine !== this.engine) {
+      if (this.c) this.commit();
+      this.engine = engine;
+      this.last = null;
+    }
+    if (stop !== undefined) this.stop = stop;
   }
 
   destroy() {
@@ -113,15 +126,15 @@ export class Composer {
       return true;
     }
 
-    // a second space ends the sentence with the Hindi full stop
-    if (key === ' ') {
+    // a second space ends the sentence with the language's full stop (the danda, in Hindi)
+    if (key === ' ' && this.stop) {
       const caret = this.host.caret();
       if (caret !== null && caret >= 2 && this.host.canCompose(caret)) {
         const pair = this.host.text(caret - 2, caret);
-        if (pair.length === 2 && pair[1] === ' ' && !/\s/.test(pair[0]) && pair[0] !== DANDA) {
-          if (!this.host.fits(caret - 1, caret, `${DANDA} `)) return false;
+        if (pair.length === 2 && pair[1] === ' ' && !/\s/.test(pair[0]) && pair[0] !== this.stop) {
+          if (!this.host.fits(caret - 1, caret, `${this.stop} `)) return false;
           e.preventDefault();
-          this.host.replace(caret - 1, caret, `${DANDA} `);
+          this.host.replace(caret - 1, caret, `${this.stop} `);
           this.last = null;
           return true;
         }

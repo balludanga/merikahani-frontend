@@ -7,6 +7,9 @@ import Footer from '../components/Footer';
 import { updateMetaTags, generateHomepageStructuredData } from '../utils/seo';
 import { formatDate, readingMinutes, excerpt, initials } from '../utils/format';
 import StoryPlayer from '../components/StoryPlayer';
+import LanguageBar from '../components/LanguageBar';
+import { useFeedLanguages } from '../languages/useLanguages';
+import { needFonts } from '../languages/fonts';
 import './Home.css';
 import { mediaUrl } from '../utils/media';
 
@@ -19,6 +22,8 @@ const Home = () => {
   const [feed, setFeed] = useState('for-you');
   const [spotlight, setSpotlight] = useState(null);
   const requestId = useRef(0);
+  // the languages this reader chose: only those stories are fetched (none chosen = every language)
+  const { params: languageParams, lang: langKey, primary } = useFeedLanguages();
 
   const fetchPosts = useCallback(async (selectedFeed = feed) => {
     const activeRequest = ++requestId.current;
@@ -27,6 +32,7 @@ const Home = () => {
     try {
       const params = { limit: 12 };
       if (selectedFeed === 'following') params.feed = 'following';
+      Object.assign(params, languageParams); // only the chosen languages, the preferred one first
       const response = await postsAPI.getAll(params);
       if (activeRequest !== requestId.current) return;
       setPosts(response.data);
@@ -45,7 +51,7 @@ const Home = () => {
     } finally {
       if (activeRequest === requestId.current) setLoading(false);
     }
-  }, [feed]);
+  }, [feed, langKey, primary]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -61,6 +67,12 @@ const Home = () => {
       requestId.current += 1;
     };
   }, [feed, isAuthenticated, fetchPosts]);
+
+  // the fonts for the scripts of the stories on the page (Hindi's are already there)
+  const shownLanguages = [...new Set(posts.map((post) => post.language).filter((code) => code && code !== 'hi'))].join(',');
+  useEffect(() => {
+    if (shownLanguages) needFonts(shownLanguages.split(','));
+  }, [shownLanguages]);
 
   const hero = posts[0];
   const trending = posts.slice(1, 5);
@@ -136,7 +148,8 @@ const Home = () => {
       <div className="dash-top">
         <div>
           <h1 className="dash-title">आज का चुनाव</h1>
-          <p className="dash-sub">आज पढ़ने लायक़ हिंदी रचनाएँ</p>
+          <p className="dash-sub">आज पढ़ने लायक़ रचनाएँ</p>
+          <LanguageBar />
         </div>
         <div className="dash-tabs">
           <button
@@ -168,7 +181,9 @@ const Home = () => {
           {feed === 'following' ? (
             <>आपकी फ़ॉलोइंग सूची अभी खाली है। <Link to="/search">रचनाएँ देखें</Link> और किसी लेखक को फ़ॉलो करें।</>
           ) : (
-            'अभी कोई रचना नहीं। लिखना शुरू करें।'
+            langKey
+              ? 'आपकी चुनी हुई भाषाओं में अभी कोई रचना नहीं। ऊपर से भाषाएँ बदलें, या इनमें पहली रचना आप लिखें।'
+              : 'अभी कोई रचना नहीं। लिखना शुरू करें।'
           )}
         </div>
       ) : (
@@ -190,8 +205,8 @@ const Home = () => {
               <div className="hero-overlay" aria-hidden="true" />
               <div className="hero-body">
                 <span className="hero-chip">सुर्खी</span>
-                <h2 className="hero-title">{hero.title}</h2>
-                <p className="hero-excerpt">{excerpt(hero.content, 170)}</p>
+                <h2 className="hero-title" lang={hero.language} dir="auto">{hero.title}</h2>
+                <p className="hero-excerpt" lang={hero.language} dir="auto">{excerpt(hero.content, 170)}</p>
                 <div className="hero-meta">
                   {hero.author?.avatar_url ? (
                     <img src={mediaUrl(hero.author.avatar_url)} alt="" />
@@ -201,7 +216,7 @@ const Home = () => {
                     </span>
                   )}
                   <div>
-                    <strong>{hero.author?.full_name || hero.author?.username}</strong>
+                    <strong translate="no">{hero.author?.full_name || hero.author?.username}</strong>
                     <span>
                       {formatDate(hero.created_at)} · {readingMinutes(hero.content)} मिनट पढ़ें
                     </span>
@@ -224,7 +239,7 @@ const Home = () => {
                 >
                   <span className="trend-num">{`0${index + 1}`}</span>
                   <div className="trend-copy">
-                    <h4>{post.title}</h4>
+                    <h4 lang={post.language} dir="auto">{post.title}</h4>
                     <span className="trend-meta">
                       {post.author?.full_name || post.author?.username} ·{' '}
                       {readingMinutes(post.content)} मिनट
@@ -250,7 +265,7 @@ const Home = () => {
                     </span>
                   )}
                   <div>
-                    <h3>{spotlight.full_name || spotlight.username}</h3>
+                    <h3 translate="no">{spotlight.full_name || spotlight.username}</h3>
                     <p>{spotlight.bio || 'इस लेखक की रचनाएँ पढ़कर देखिए।'}</p>
                   </div>
                 </div>

@@ -18,7 +18,7 @@ const InfoPage = ({ page }) => {
   useEffect(() => {
     if (!doc) return undefined;
     updateMetaTags({
-      // Unique per page: kicker + title ("परिचय — हिंदी लेखकों का अपना मंच").
+      // Unique per page: kicker + title ("परिचय — अपनी भाषा में लिखने और पढ़ने की जगह").
       title: doc.title.includes(doc.kicker) ? doc.title : `${doc.kicker} — ${doc.title}`,
       description: buildDescription(
         doc.intro,

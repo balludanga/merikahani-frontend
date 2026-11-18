@@ -7,6 +7,8 @@ import { formatDate, readingMinutes, initials } from '../utils/format';
 import { topicLabel } from '../brand';
 import ssmlTTS from '../utils/ssmlTTS';
 import { fetchNarration, fetchTimings, serverVoiceFor, silentAudioUrl } from '../utils/serverVoice';
+import { languageName, speechLocale } from '../languages/registry';
+import { needFonts } from '../languages/fonts';
 import { createFollowAlong } from '../utils/followAlong';
 import useFocusScroll from '../utils/useFocusScroll';
 import { useAccentStyle } from '../utils/accent';
@@ -115,13 +117,20 @@ const PostView = () => {
   // The response popup for a selected passage: { range, quote } | null
   const [composer, setComposer] = useState(null);
   const [notice, setNotice] = useState('');
-  const [hinglish, toggleHinglish, finishHinglish] = useHinglish();
+  // a response is typed in the story's own language (Hindi under an English story, where the writer's switch still helps)
+  const typingLanguage = post && post.language && post.language !== 'en' ? post.language : 'hi';
+  const [hinglish, toggleHinglish, finishHinglish] = useHinglish(typingLanguage);
   // Editorial review: a reviewer's notes (all of them) or, for the writer, the notes they were sent.
   const [review, setReview] = useState(null);
   // { range, quote, anchor } while a reviewer writes a note; { note, quote } while one is edited.
   const [noteComposer, setNoteComposer] = useState(null);
   // Notes whose passage can no longer be found in the story text.
   const [missingNotes, setMissingNotes] = useState(() => new Set());
+  // a story in another script needs that script's font
+  const storyLanguage = post ? post.language : null;
+  useEffect(() => {
+    if (storyLanguage && storyLanguage !== 'hi') needFonts(storyLanguage);
+  }, [storyLanguage]);
   const isReviewer = !!(user && user.is_admin);
   const bodyRef = useRef(null);
   const audioRef = useRef(null);
@@ -376,7 +385,7 @@ const PostView = () => {
       if (followRef.current === follow) followRef.current = null;
     };
     ssmlTTS.speak(post.content, {
-      lang: 'hi-IN',
+      lang: speechLocale(post.language),
       useSSML: false,
       title: post.title,
       onTokens: ({ words, titleWords }) => follow && follow.setSpoken(words, titleWords),
@@ -388,7 +397,7 @@ const PostView = () => {
       onError: () => {
         endFollow();
         setSpeaking(false);
-        setActionError('इस उपकरण पर रचना सुनाई नहीं जा सकी। हो सकता है हिंदी आवाज़ (वॉइस) उपलब्ध न हो।');
+        setActionError(`इस उपकरण पर रचना सुनाई नहीं जा सकी। हो सकता है ${languageName(post.language)} आवाज़ (वॉइस) उपलब्ध न हो।`);
       },
     });
   };
@@ -965,7 +974,7 @@ const PostView = () => {
   const renderResponse = (comment) => (
     <div id={`response-${comment.id}`} className="response-item">
       <div className="response-head">
-        <strong>{comment.author?.full_name || comment.author?.username || 'पाठक'}</strong>
+        <strong translate="no">{comment.author?.full_name || comment.author?.username || 'पाठक'}</strong>
         <span>{formatDate(comment.created_at)}</span>
         {user && (comment.author_id === user.id || isAuthor) && (
           <button type="button" onClick={() => handleDeleteComment(comment.id)}>हटाएँ</button>
@@ -974,6 +983,7 @@ const PostView = () => {
       {comment.quote && (
         <blockquote
           className="response-quote"
+          translate="no"
           role="button"
           tabIndex={0}
           title="रचना में यह अंश देखें"
@@ -988,7 +998,7 @@ const PostView = () => {
           {comment.quote}
         </blockquote>
       )}
-      <p>{comment.content}</p>
+      <p translate="no">{comment.content}</p>
       <button type="button" className="response-reply" onClick={() => openReply(comment)}>जवाब दें</button>
     </div>
   );
@@ -1008,8 +1018,8 @@ const PostView = () => {
       <FocusHeader post={post} hidden={hidden} saved={!!post.bookmarked} onBookmark={handleBookmark} />
 
       <article className="story-article">
-        <h1>{post.title}</h1>
-        {post.subtitle && <p className="story-dek">{post.subtitle}</p>}
+        <h1 lang={post.language} dir="auto">{post.title}</h1>
+        {post.subtitle && <p className="story-dek" lang={post.language} dir="auto">{post.subtitle}</p>}
 
         <div className="story-byline">
           <Link to={`/user/${post.author.id}`} className="story-author">
@@ -1019,7 +1029,7 @@ const PostView = () => {
               <span className="avatar-lg">{initials(authorName)}</span>
             )}
             <div>
-              <strong>{authorName}</strong>
+              <strong translate="no">{authorName}</strong>
               <div className="story-byline-meta">
                 {formatDate(post.created_at)} · {readingMinutes(post.content)} मिनट पढ़ें
                 {post.topic && <> · {topicLabel(post.topic)}</>}
@@ -1084,6 +1094,7 @@ const PostView = () => {
           className="story-body"
           key={post.id}
           ref={bodyRef}
+          lang={post.language}
           onClick={handleBodyClick}
         >
           {post.content_html ? (
@@ -1119,7 +1130,7 @@ const PostView = () => {
         {tagLinks.length > 0 && (
           <div className="story-tags">
             {tagLinks.map((tag) => (
-              <Link key={tag.slug} to={`/tag/${encodeURIComponent(tag.slug)}`} className="tag-chip">
+              <Link key={tag.slug} to={`/tag/${encodeURIComponent(tag.slug)}`} className="tag-chip" translate="no">
                 #{tag.name}
               </Link>
             ))}
@@ -1244,6 +1255,7 @@ const PostView = () => {
           range={composer.range}
           quote={composer.quote}
           hinglish={hinglish}
+          language={typingLanguage}
           onToggleHinglish={toggleHinglish}
           finish={finishHinglish}
           onSubmit={submitPassageResponse}
@@ -1265,6 +1277,7 @@ const PostView = () => {
               value={commentText}
               onChange={setCommentText}
               hinglish={hinglish}
+              language={typingLanguage}
               onToggle={toggleHinglish}
               onSubmitKey={handleCommentSubmit}
               placeholder="अपनी प्रतिक्रिया लिखें…"
@@ -1300,6 +1313,7 @@ const PostView = () => {
                       value={replyText}
                       onChange={setReplyText}
                       hinglish={hinglish}
+                      language={typingLanguage}
                       onToggle={toggleHinglish}
                       onSubmitKey={handleReplySubmit}
                       placeholder={`${replyTo.name} को जवाब लिखें…`}

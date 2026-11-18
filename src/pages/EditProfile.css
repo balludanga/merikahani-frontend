@@ -563,3 +563,17 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+
+.ep-langs {
+  margin-top: 14px;
+}
+
+.ep-langs strong {
+  font-weight: 600;
+}
+
+.ep-langs .ep-chips {
+  margin-top: 6px;
+  align-items: center;
+}

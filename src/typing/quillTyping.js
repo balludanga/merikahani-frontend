@@ -13,7 +13,7 @@ import Quill from 'quill';
 import { Composer } from './composer.js';
 import { convertWord } from './convert.js';
 import { QuillHost } from './quillHost.js';
-import { engine, loadLexicon, showSuggestions } from './setup.js';
+import { engine as hindiEngine, loadLexicon, showSuggestions } from './setup.js';
 import { sharedBox } from './suggestBox.js';
 
 const Module = Quill.import('core/module');
@@ -25,16 +25,37 @@ class HindiTyping extends Module {
   constructor(quill, options = {}) {
     super(quill, options);
     this.isEnabled = options.isEnabled || (() => true);
+    // the language being written: { engine, stop, prepare }; Hindi unless the editor says otherwise
+    const plain = () => ({ engine: hindiEngine, stop: DANDA, prepare: loadLexicon });
+    this.getTyping = () => (options.getTyping && options.getTyping()) || plain();
     const host = new QuillHost(quill);
     const composer = new Composer(host, { box: sharedBox(), enabled: this.isEnabled, showList: showSuggestions });
     this.host = host;
     this.composer = composer;
+    this.lastEngine = null;
+    const typing = () => {
+      const now = this.getTyping();
+      if (now.engine !== this.lastEngine) {
+        this.lastEngine = now.engine;
+        if (now.engine) {
+          if (now.prepare) now.prepare();
+          // the words already in this story belong to the new engine too
+          setTimeout(() => now.engine.setStoryText(quill.getText()), 0);
+        }
+      }
+      if (now.engine) composer.configure({ engine: now.engine, stop: now.stop });
+      return now;
+    };
+    this.typing = typing;
 
     quill.root.setAttribute('aria-autocomplete', 'list');
     quill.root.setAttribute('aria-haspopup', 'listbox');
 
     // capture phase: run before Quill's own key bindings, which skip a key that has been handled
-    quill.root.addEventListener('keydown', (e) => composer.keydown(e), true);
+    quill.root.addEventListener('keydown', (e) => {
+      typing();
+      return composer.keydown(e);
+    }, true);
     quill.root.addEventListener('beforeinput', (e) => composer.guardInput(e), true);
     quill.root.addEventListener('mousedown', () => composer.interrupted());
     quill.root.addEventListener('blur', () => composer.interrupted());
@@ -45,7 +66,10 @@ class HindiTyping extends Module {
     });
 
     // the words already in the story are offered first (a character's name, a place)
-    const readStory = () => engine.setStoryText(quill.getText());
+    const readStory = () => {
+      const now = this.getTyping();
+      if (now.engine) now.engine.setStoryText(quill.getText());
+    };
     let timer = null;
     quill.on('text-change', (delta, old, source) => {
       if (source === 'api' && !host.busy) {
@@ -56,7 +80,7 @@ class HindiTyping extends Module {
       if (source === 'user' && this.isEnabled()) this.convertLater(quill, delta);
     });
     setTimeout(readStory, 300);
-    if (this.isEnabled()) setTimeout(loadLexicon, 200);
+    if (this.isEnabled()) setTimeout(typing, 200);
   }
 
   /**
@@ -85,15 +109,16 @@ class HindiTyping extends Module {
     });
     if (caret === null || caret < 1) return;
 
-    // two spaces end the sentence with the Hindi full stop
-    if (caret >= 2 && quill.getText(caret - 2, 2) === '  ') {
+    const { engine, stop } = this.typing();
+    // two spaces end the sentence with the language's full stop (the danda, in Hindi)
+    if (stop && caret >= 2 && quill.getText(caret - 2, 2) === '  ') {
       const before = caret >= 3 ? quill.getText(caret - 3, 1) : '';
-      if (before && !/\s/.test(before) && before !== DANDA) {
+      if (before && !/\s/.test(before) && before !== stop) {
         const fmt = quill.getFormat(caret - 2, 2);
         if (!(fmt.code || fmt.link || this.host.inCodeBlock(caret - 1))) {
           this.host.change(() => {
             quill.deleteText(caret - 2, 2, 'api');
-            quill.insertText(caret - 2, `${DANDA} `, 'api');
+            quill.insertText(caret - 2, `${stop} `, 'api');
           });
           this.caretLater(quill, caret);
           return;
@@ -118,7 +143,7 @@ class HindiTyping extends Module {
     const around = quill.getText(Math.max(0, wordStart - 6), Math.min(6, wordStart));
     if (around.indexOf('://') !== -1 || around.endsWith('@') || around.endsWith('.')) return;
 
-    const converted = convertWord(word);
+    const converted = convertWord(word, engine);
     if (converted === word) return;
     this.host.change(() => {
       quill.deleteText(wordStart, word.length, 'api');

@@ -4,6 +4,8 @@ import { reviewsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { updateMetaTags, resetMetaTags } from '../utils/seo';
 import { timeAgo } from '../utils/format';
+import { LANGUAGES, languageLabel, languageName } from '../languages/registry';
+import { needFonts } from '../languages/fonts';
 import '../components/Review.css';
 
 const TABS = [
@@ -23,6 +25,8 @@ const Review = () => {
   const { user, loading: authLoading } = useAuth();
   const [view, setView] = useState('resubmitted');
   const [query, setQuery] = useState('');
+  // reviewers read the stories of the languages they know: the list can be narrowed to one
+  const [language, setLanguage] = useState('');
   const [rows, setRows] = useState(null); // null = loading
   const [failed, setFailed] = useState(false);
   const [counts, setCounts] = useState({ resubmitted: 0, changes_requested: 0 });
@@ -38,7 +42,11 @@ const Review = () => {
     setFailed(false);
     try {
       const [list, count] = await Promise.all([
-        reviewsAPI.queue({ view, q: view === 'live' ? query.trim() || undefined : undefined }),
+        reviewsAPI.queue({
+          view,
+          q: view === 'live' ? query.trim() || undefined : undefined,
+          lang: language || undefined,
+        }),
         reviewsAPI.counts(),
       ]);
       setRows(list.data);
@@ -47,7 +55,7 @@ const Review = () => {
       setFailed(true);
       setRows([]);
     }
-  }, [view, query]);
+  }, [view, query, language]);
 
   // Typing in the search box waits a moment so each keystroke is not a request.
   useEffect(() => {
@@ -97,6 +105,16 @@ const Review = () => {
         />
       )}
 
+      <label className="review-lang">
+        भाषा{' '}
+        <select value={language} onChange={(e) => setLanguage(e.target.value)} onFocus={() => needFonts(LANGUAGES.map((l) => l.code))}>
+          <option value="">सभी भाषाएँ</option>
+          {LANGUAGES.map((l) => (
+            <option key={l.code} value={l.code}>{languageLabel(l.code)}</option>
+          ))}
+        </select>
+      </label>
+
       {rows === null && <p className="review-hint">लोड हो रहा है…</p>}
       {failed && (
         <p className="empty-state">
@@ -109,9 +127,10 @@ const Review = () => {
           {rows.map((row) => (
             <li key={row.id} className="review-row">
               <Link to={`/post/${encodeURIComponent(row.slug)}`}>
-                <div className="review-row-title">{row.title}</div>
+                <div className="review-row-title" lang={row.language} dir="auto">{row.title}</div>
                 <div className="review-row-meta">
                   <span>{row.author.full_name || row.author.username}</span>
+                  {row.language && row.language !== 'hi' && <span>{languageName(row.language)}</span>}
                   <span>{timeAgo(row.updated_at)}</span>
                   {row.draft_notes > 0 && <span>{row.draft_notes} मसौदा टिप्पणी</span>}
                   {row.open_notes > 0 && <span>{row.open_notes} टिप्पणी बाकी</span>}

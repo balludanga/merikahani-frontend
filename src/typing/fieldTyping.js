@@ -13,9 +13,10 @@ import { sharedBox } from './suggestBox.js';
 import { TextareaHost } from './textareaHost.js';
 import { loadLexicon, showSuggestions } from './setup.js';
 
-export function useFieldTyping(ref, { enabled, apply, maxLength }) {
-  const live = useRef({ enabled, apply, maxLength });
-  live.current = { enabled, apply, maxLength };
+export function useFieldTyping(ref, { enabled, apply, maxLength, typing }) {
+  // `typing` is { engine, stop, prepare } for the language being written; Hindi when it is left out
+  const live = useRef({ enabled, apply, maxLength, typing });
+  live.current = { enabled, apply, maxLength, typing };
   const parts = useRef(null);
 
   const get = useCallback(() => {
@@ -27,6 +28,7 @@ export function useFieldTyping(ref, { enabled, apply, maxLength }) {
         maxLength: () => live.current.maxLength,
       });
       const composer = new Composer(host, {
+        ...(live.current.typing ? { engine: live.current.typing.engine, stop: live.current.typing.stop } : null),
         box: sharedBox(),
         enabled: () => !!live.current.enabled,
         showList: showSuggestions,
@@ -39,9 +41,12 @@ export function useFieldTyping(ref, { enabled, apply, maxLength }) {
     return parts.current;
   }, [ref]);
 
+  const prepare = typing && typing.prepare;
   useEffect(() => {
-    if (enabled) loadLexicon();
-  }, [enabled]);
+    if (!enabled) return;
+    if (prepare) prepare();
+    else loadLexicon();
+  }, [enabled, prepare]);
 
   useEffect(
     () => () => {
@@ -59,6 +64,8 @@ export function useFieldTyping(ref, { enabled, apply, maxLength }) {
       const p = get();
       if (!p) return false;
       p.host.sync();
+      const current = live.current.typing;
+      if (current) p.composer.configure({ engine: current.engine, stop: current.stop });
       return p.composer.keydown(event.nativeEvent || event);
     },
     [get]

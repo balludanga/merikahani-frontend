@@ -36,7 +36,7 @@ function place(range, height) {
  * open), `onClose`.
  */
 export default function PassageComposer({
-  range, quote, hinglish, onToggleHinglish, finish, onSubmit, onClose,
+  range, quote, hinglish, onToggleHinglish, finish, onSubmit, onClose, language = 'hi',
 }) {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -142,6 +142,7 @@ export default function PassageComposer({
         value={text}
         onChange={setText}
         hinglish={hinglish}
+        language={language}
         onToggle={onToggleHinglish}
         onSubmitKey={submit}
         placeholder="आपको यह अंश कैसा लगा?"

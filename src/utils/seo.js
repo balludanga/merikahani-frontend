@@ -1,6 +1,7 @@
 // SEO Utility Functions
 
 import { asUtcDate } from './format';
+import { t } from '../i18n';
 
 // Tags we manage. Their original values come from public/index.html; they are
 // snapshotted once so resetMetaTags() can restore the exact defaults.
@@ -129,7 +130,8 @@ export const updateMetaTags = ({ title, description, keywords, image, url, type 
   const pageUrl = url || currentPageUrl();
 
   if (title) {
-    document.title = `${title} - लेखनी`;
+    // an interface title is translated piece by piece ("परिचय — ..."); a story's own title stays as written
+    document.title = `${String(title).split(' — ').map((piece) => t(piece)).join(' — ')} - ${t('लेखनी')}`;
   }
 
   const metaTags = [
@@ -314,7 +316,7 @@ export const generateHomepageStructuredData = (posts) => {
     url: `${origin}/`,
     name: 'लेखनी',
     alternateName: ['Lekhanii', 'Lekhani', 'लेखनी हिंदी'],
-    description: 'हिंदी लेखकों का अपना मंच — कहानी, कविता, निबंध और संस्मरण',
+    description: 'लेखकों का अपना मंच: हिंदी, अंग्रेज़ी और भारत की सभी भाषाओं में कहानी, कविता, निबंध और संस्मरण',
     inLanguage: 'hi',
     potentialAction: {
       '@type': 'SearchAction',

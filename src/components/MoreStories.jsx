@@ -1,21 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { postsAPI } from '../services/api';
+import { useFeedLanguages } from '../languages/useLanguages';
 import './MoreStories.css';
 
 const COUNT = 6;
 
 /**
  * "और रचनाएँ" - the latest other stories, as plain links under a story.
- * The server-rendered page that search crawlers get shows the same list.
+ * Only the reader's languages. The server-rendered page that search crawlers get shows the plain latest list.
  */
 const MoreStories = ({ currentId }) => {
   const [posts, setPosts] = useState([]);
+  // the stories offered under this one are in the languages the reader chose, their preferred one first
+  const { params, lang, primary } = useFeedLanguages();
 
   useEffect(() => {
     let cancelled = false;
     postsAPI
-      .getAll({ limit: COUNT + 1 })
+      .getAll({ limit: COUNT + 1, ...params })
       .then((response) => {
         if (!cancelled) setPosts(response.data.filter((post) => post.id !== currentId).slice(0, COUNT));
       })
@@ -25,7 +28,7 @@ const MoreStories = ({ currentId }) => {
     return () => {
       cancelled = true;
     };
-  }, [currentId]);
+  }, [currentId, lang, primary]);
 
   if (!posts.length) return null;
 

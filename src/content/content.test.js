@@ -1,8 +1,9 @@
 import { SITE_PAGES, NARRATION_TIER, NARRATION_TIER_NOTES, PAYMENTS_COPY, PAYMENTS_LIVE } from './sitePages';
 import { GUIDES } from './guides';
 
-// The public pages are written by hand, in Hindi, for the whole site. These checks hold them to the
-// project's rules so a long edit cannot quietly break one.
+// The public pages are written by hand, in Hindi (the source language; other languages are catalogs in
+// src/i18n). These checks hold the Hindi text to its style rules (Latin letters only inside brackets and so
+// on) so a long edit cannot quietly break one.
 
 const HI_MONTHS = [
   'जनवरी', 'फ़रवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त',

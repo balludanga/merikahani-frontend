@@ -10,11 +10,14 @@
  * already written the Hindi, and any Latin word still in the text is there on purpose (Esc, pasted
  * English, an address).
  */
-import { engine } from './engine.js';
+import { engine as hindiEngine } from './engine.js';
 
-/** The best Devanagari for a word typed in Latin letters (the word itself if there is nothing). */
-export function convertWord(word) {
-  if (!word || !/^[A-Za-z]+$/.test(word)) return word;
+/**
+ * The best word in the language's script for a word typed in Latin letters (the word itself if there
+ * is nothing). `engine` is the Hindi one unless the editor is writing another language.
+ */
+export function convertWord(word, engine = hindiEngine) {
+  if (!word || !/^[A-Za-z]+$/.test(word) || !engine) return word;
   if (engine.liveKeys) return word;
   const result = engine.suggest(word);
   const best = result.convert[0];

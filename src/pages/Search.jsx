@@ -4,6 +4,7 @@ import { postsAPI, tagsAPI } from '../services/api';
 import { updateMetaTags, resetMetaTags } from '../utils/seo';
 import { TOPICS, topicLabel } from '../brand';
 import StoryCard from '../components/StoryCard';
+import { useFeedLanguages } from '../languages/useLanguages';
 import './Home.css';
 
 const Search = () => {
@@ -19,6 +20,10 @@ const Search = () => {
   const [failed, setFailed] = useState(false);
   const [tagName, setTagName] = useState('');
   const requestId = useRef(0);
+  // search, a topic and a tag page follow the reader's languages too, unless they ask to see everything
+  const { params: languageParams, lang, primary, active } = useFeedLanguages();
+  const [allLanguages, setAllLanguages] = useState(false);
+  const scope = allLanguages ? {} : languageParams;
 
   const fetchResults = useCallback(async () => {
     const activeRequest = ++requestId.current;
@@ -27,12 +32,13 @@ const Search = () => {
     try {
       let response;
       if (tagSlug) {
-        response = await tagsAPI.posts(tagSlug, { limit: 30 });
+        response = await tagsAPI.posts(tagSlug, { limit: 30, ...scope });
       } else {
         response = await postsAPI.getAll({
           limit: 30,
           q: query || undefined,
           topic: topic || undefined,
+          ...scope,
         });
       }
       if (activeRequest !== requestId.current) return;
@@ -53,7 +59,7 @@ const Search = () => {
     } finally {
       if (activeRequest === requestId.current) setLoading(false);
     }
-  }, [query, tagSlug, topic]);
+  }, [query, tagSlug, topic, lang, primary, allLanguages]);
 
   useEffect(() => {
     fetchResults();
@@ -111,6 +117,14 @@ const Search = () => {
     <div className="layout">
       <div className="layout-main">
         <h1 className="list-heading">{heading}</h1>
+        {active && (
+          <p className="lang-scope">
+            {allLanguages ? 'सभी भाषाओं के नतीजे' : 'आपकी चुनी हुई भाषाओं के नतीजे'}{' '}
+            <button type="button" onClick={() => setAllLanguages((v) => !v)}>
+              {allLanguages ? 'अपनी भाषाओं तक सीमित करें' : 'सभी भाषाओं में देखें'}
+            </button>
+          </p>
+        )}
         {loading ? (
           <div className="page-loading">लोड हो रहा है…</div>
         ) : failed ? (

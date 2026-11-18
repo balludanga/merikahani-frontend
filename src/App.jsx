@@ -8,6 +8,8 @@ import PostView from './pages/PostView';
 import { NotFound } from './components/NotFound';
 import SlowServerNotice from './components/SlowServerNotice';
 import SessionNotice from './components/SessionNotice';
+import { LanguageSync } from './languages/useLanguages';
+import UiLanguage from './i18n/UiLanguage';
 import { pageview } from './utils/analytics';
 import { getEnv } from './utils/env';
 import './App.css';
@@ -91,6 +93,8 @@ const AppContent = () => {
       <ScrollToTop />
       <SlowServerNotice />
       <SessionNotice />
+      <LanguageSync />
+      <UiLanguage />
       {/* Reading pages manage their own distraction-free header */}
       {!isEditor && !isReading && <Navbar landing={isLanding} />}
       <Suspense fallback={<div className="page-loading" role="status">लोड हो रहा है…</div>}>

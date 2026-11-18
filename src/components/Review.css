@@ -528,3 +528,20 @@ mark.text-highlight.rv-note.rv-fixed {
   flex-shrink: 0;
   white-space: nowrap;
 }
+
+
+.review-lang {
+  display: inline-block;
+  margin: 8px 0 12px;
+  color: var(--text-2);
+  font-size: 0.9rem;
+}
+
+.review-lang select {
+  font: inherit;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text);
+}

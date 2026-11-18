@@ -41,8 +41,17 @@ const MAX_TYPED = 28;
 const EMPTY = Object.freeze({ typed: '', convert: [], complete: [], top: '' });
 
 export class Engine {
-  constructor(rank = {}) {
+  /**
+   * @param rank      overrides for RANK
+   * @param options   profile: the reading conventions of a language other than Hindi (profiles.js);
+   *                  pins: false leaves out the everyday Hindi spellings (nahi, mein, hai)
+   */
+  constructor(rank = {}, options = {}) {
     this.rank = { ...RANK, ...rank };
+    this.profile = options.profile || null;
+    this.usePins = options.pins !== false;
+    // how many spellings the rules alone may offer (an engine with no word list has nothing else to offer)
+    this.literals = options.literals || 4;
     this.main = EMPTY_LAYER;
     this.mine = EMPTY_LAYER;
     this.story = EMPTY_LAYER;
@@ -177,7 +186,7 @@ export class Engine {
 
   // ---- asking ----------------------------------------------------------------------------------------
   suggest(raw) {
-    const typed = normalizeTyped(raw);
+    const typed = normalizeTyped(raw, this.profile ? this.profile.caps : undefined);
     if (!typed) return EMPTY;
     this.rebuild();
     const hit = this.cache.get(typed);
@@ -200,10 +209,10 @@ export class Engine {
       if (score > old.score) found.set(text, { text, score, kind });
     };
 
-    const literal = literalReadings(typed, 4);
+    const literal = literalReadings(typed, this.literals, this.profile);
     literal.forEach((l, i) => add(l.text, -R.cost * l.cost - R.literal - i * 0.05, 'rule'));
 
-    const pinned = PINS[typed.toLowerCase()];
+    const pinned = this.usePins ? PINS[typed.toLowerCase()] : null;
     if (pinned) add(pinned, R.pin, 'pin');
 
     if (typed.length <= MAX_TYPED) {
@@ -233,7 +242,7 @@ export class Engine {
     if (!layer.size) return;
     const R = this.rank;
     const { keys, surfaces, weights } = layer;
-    const states = search(typed, layer, R.width);
+    const states = search(typed, layer, R.width, this.profile);
     let scanned = 0;
     for (const s of states) {
       const base = -R.cost * s.cost;

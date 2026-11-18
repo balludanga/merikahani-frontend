@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useNavigationType } from 'react-router-dom';
 import ReactQuill from 'react-quill';
 import Quill from 'quill';
@@ -10,7 +10,21 @@ import { updateMetaTags, resetMetaTags } from '../utils/seo';
 import { compressImage, blobToDataUrl } from '../utils/imageCompress';
 import '../typing/quillTyping';
 import { useHindiInput } from '../typing/useHindiInput';
-import { engine as typingEngine, setShowSuggestions, showSuggestions } from '../typing/setup';
+import { setShowSuggestions, showSuggestions } from '../typing/setup';
+import {
+  chooseScript,
+  chosenScript,
+  engineFor,
+  prepareTyping,
+  sentenceStop,
+  typingKind,
+  typingScripts,
+} from '../typing/engines';
+import LanguagePicker from '../components/LanguagePicker';
+import { SCRIPT_NAMES, languageName } from '../languages/registry';
+import { needFonts } from '../languages/fonts';
+import { suggestLanguage } from '../languages/detect';
+import { rememberWriteLanguage, startingLanguage } from '../languages/store';
 import { BRAND, TOPICS } from '../brand';
 import './Editor.css';
 import { mediaUrl } from '../utils/media';
@@ -103,7 +117,8 @@ const matchTableLine = (node, delta) => delta.insert('\n');
 
 // Module-level bridges: Quill config must stay referentially stable, while
 // these let the editor instance reach live React state (mode, dialogs).
-const hindiMode = { on: true };
+// `typing` is { engine, stop, prepare } for the story's language (set below on every render)
+const hindiMode = { on: true, typing: null };
 const editorHooks = {};
 
 const MODULES = {
@@ -125,7 +140,7 @@ const MODULES = {
       },
     },
   },
-  hindiTransliteration: { isEnabled: () => hindiMode.on },
+  hindiTransliteration: { isEnabled: () => hindiMode.on, getTyping: () => hindiMode.typing },
   clipboard: {
     matchVisual: false,
     matchers: [['table', matchTableLine]],
@@ -214,7 +229,8 @@ const emptyCells = (rows, cols) =>
 
 // What counts as "the piece as last saved on the server": the fields that carry the
 // writing. Compared against the current form to know whether there is unsaved work.
-const signatureOf = (form) => `${form.title || ''}\u0000${form.content || ''}\u0000${form.content_html || ''}`;
+const signatureOf = (form) =>
+  `${form.title || ''}\u0000${form.content || ''}\u0000${form.content_html || ''}\u0000${form.language || ''}`;
 
 const Editor = () => {
   const { id } = useParams();
@@ -256,7 +272,7 @@ const Editor = () => {
   const [hinglishOn, setHinglishOn] = useState(
     () => localStorage.getItem('lekhani_hinglish') !== 'off'
   );
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(() => ({
     title: '',
     subtitle: '',
     content: '',
@@ -264,8 +280,9 @@ const Editor = () => {
     cover_image: '',
     topic: '',
     tags: '',
+    language: startingLanguage(),
     published: 0,
-  });
+  }));
   const quillRef = useRef(null);
   const autoTimer = useRef(null);
   const autosaveInFlight = useRef(false);
@@ -286,8 +303,21 @@ const Editor = () => {
   const subtitleRef = useRef(null);
   // Title and subtitle are plain boxes: the same live typing as the body, through the shared hook.
   const setField = (field) => (value) => setFormData((prev) => ({ ...prev, [field]: value }));
-  const titleInput = useHindiInput(titleRef, { enabled: hinglishOn, onValue: setField('title') });
-  const subtitleInput = useHindiInput(subtitleRef, { enabled: hinglishOn, onValue: setField('subtitle') });
+  const language = formData.language;
+  const [scriptVersion, setScriptVersion] = useState(0);
+  const script = useMemo(() => chosenScript(language), [language, scriptVersion]);
+  const typingNeeded = typingKind(language) !== 'none'; // English is typed as it is
+  const typingOn = hinglishOn && typingNeeded;
+  // the engine, sentence end and word list of this language; the same object until the language changes
+  const typing = useMemo(
+    () => ({ engine: engineFor(language, script), stop: sentenceStop(language), prepare: () => prepareTyping(language) }),
+    [language, script]
+  );
+  const titleInput = useHindiInput(titleRef, { enabled: typingOn, onValue: setField('title'), typing });
+  const subtitleInput = useHindiInput(subtitleRef, { enabled: typingOn, onValue: setField('subtitle'), typing });
+  const [langOpen, setLangOpen] = useState(false);
+  const [hintDismissed, setHintDismissed] = useState(null);
+  const languageHint = suggestLanguage(formData.content, language);
   const [suggestOn, setSuggestOn] = useState(showSuggestions);
   const toggleSuggest = () =>
     setSuggestOn((prev) => {
@@ -298,9 +328,15 @@ const Editor = () => {
   const getEditor = () => (quillRef.current ? quillRef.current.getEditor() : null);
   const mirrorKey = `lekhani_mirror_${isEdit ? id : `new_${user?.id ?? 'anon'}`}`;
 
+  hindiMode.on = typingOn;
+  hindiMode.typing = typing;
+
+  // the story's language: its font, and the language the browser checks spelling in
   useEffect(() => {
-    hindiMode.on = hinglishOn;
-  }, [hinglishOn]);
+    if (language !== 'hi') needFonts(language);
+    const quill = getEditor();
+    if (quill) quill.root.setAttribute('lang', language);
+  }, [language, loading]);
 
   useEffect(() => () => clearTimeout(toastTimer.current), []);
 
@@ -341,6 +377,7 @@ const Editor = () => {
         cover_image: post.cover_image || '',
         topic: post.topic || '',
         tags: (post.tags || []).join(', '),
+        language: post.language || 'hi',
         published: post.published || 0,
       };
       setFormData(loaded);
@@ -717,6 +754,18 @@ const Editor = () => {
     }));
   };
 
+  const changeLanguage = (code) => {
+    setFormData((prev) => ({ ...prev, language: code }));
+    rememberWriteLanguage(code);
+    setHintDismissed(null);
+  };
+
+  const changeScript = (next) => {
+    chooseScript(language, next);
+    setScriptVersion((v) => v + 1);
+    setBarMenuOpen(false);
+  };
+
   const toggleHinglish = () => {
     setHinglishOn((prev) => {
       const next = !prev;
@@ -774,6 +823,7 @@ const Editor = () => {
       .map((tag) => tag.trim())
       .filter(Boolean)
       .slice(0, 5),
+    language: formData.language,
     published,
   });
 
@@ -955,6 +1005,25 @@ const Editor = () => {
                       : ''}
           </span>
         </div>
+        <div className="editor-bar-lang">
+          <button
+            type="button"
+            className="editor-lang"
+            onClick={() => setLangOpen(true)}
+            title="इस रचना की भाषा"
+            aria-label={`रचना की भाषा: ${languageName(language)}। बदलने के लिए दबाएँ`}
+          >
+            {languageName(language)} ▾
+          </button>
+          {languageHint && hintDismissed !== languageHint && (
+            <span className="editor-lang-hint" role="status">
+              <button type="button" onClick={() => changeLanguage(languageHint)}>
+                यह {languageName(languageHint)} लगती है: भाषा बदलें
+              </button>
+              <button type="button" aria-label="सुझाव हटाएँ" onClick={() => setHintDismissed(languageHint)}>×</button>
+            </span>
+          )}
+        </div>
         <div className="editor-bar-actions">
           {isEdit && formData.published === 1 && (
             <button
@@ -1007,15 +1076,35 @@ const Editor = () => {
                 </button>
                 <button
                   type="button"
-                  aria-pressed={hinglishOn}
+                  aria-pressed={typingOn}
+                  disabled={!typingNeeded}
                   onClick={toggleHinglish}
+                  title={typingNeeded ? undefined : 'अंग्रेज़ी में अलग टाइपिंग की ज़रूरत नहीं'}
                 >
-                  अ अंग्रेज़ी→देवनागरी {hinglishOn ? 'चालू ✓' : 'बंद'}
+                  {typingNeeded
+                    ? `अ अंग्रेज़ी→${languageName(language)} ${hinglishOn ? 'चालू ✓' : 'बंद'}`
+                    : 'अ अंग्रेज़ी में सीधे लिखें'}
                 </button>
+                {typingNeeded && typingScripts(language).length > 1 && (
+                  <div className="bar-script" role="group" aria-label="लिपि">
+                    <span>लिपि</span>
+                    {typingScripts(language).map((name) => (
+                      <button
+                        key={name}
+                        type="button"
+                        aria-pressed={script === name}
+                        className={script === name ? 'on' : ''}
+                        onClick={() => changeScript(name)}
+                      >
+                        {SCRIPT_NAMES[name] || name}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <button
                   type="button"
                   aria-pressed={suggestOn}
-                  disabled={!hinglishOn}
+                  disabled={!typingOn}
                   onClick={toggleSuggest}
                 >
                   ▾ शब्द-सुझाव {suggestOn ? 'चालू ✓' : 'बंद'}
@@ -1023,7 +1112,7 @@ const Editor = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    typingEngine.forgetEverything();
+                    if (typing.engine) typing.engine.forgetEverything();
                     setBarMenuOpen(false);
                     notify('टाइपिंग के याद किए शब्द मिटा दिए गए।');
                   }}
@@ -1100,7 +1189,8 @@ const Editor = () => {
             ref={titleRef}
             placeholder="शीर्षक लिखें…"
             value={formData.title}
-            lang="hi"
+            lang={language}
+            dir="auto"
             {...titleInput}
           />
         </div>
@@ -1113,7 +1203,8 @@ const Editor = () => {
             ref={subtitleRef}
             placeholder="उपशीर्षक: पाठक को एक पंक्ति में बताएँ (वैकल्पिक)"
             value={formData.subtitle}
-            lang="hi"
+            lang={language}
+            dir="auto"
             {...subtitleInput}
           />
         )}
@@ -1312,6 +1403,16 @@ const Editor = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {langOpen && (
+        <LanguagePicker
+          title="यह रचना किस भाषा में है?"
+          hint="सही भाषा चुनने से पाठक इसे अपनी भाषा में पा सकेंगे, और टाइपिंग उसी लिपि में होगी।"
+          value={[language]}
+          onChange={([code]) => changeLanguage(code)}
+          onClose={() => setLangOpen(false)}
+        />
       )}
 
       {showPublish && (

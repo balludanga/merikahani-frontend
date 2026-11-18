@@ -14,7 +14,7 @@ import { dandaOnDoubleSpace, transliterateLastWord } from '../utils/transliterat
 import { convertWord } from './convert.js';
 import { useFieldTyping } from './fieldTyping.js';
 
-export function useHindiInput(ref, { enabled, onValue, maxLength, singleLine = false, onKeyDown, onBlur }) {
+export function useHindiInput(ref, { enabled, onValue, maxLength, singleLine = false, onKeyDown, onBlur, typing }) {
   // Where the caret goes once React has put the new text in the box. It is set right after that
   // render, before the next key press, so fast typing can never land a letter in the wrong place.
   const pending = useRef(null);
@@ -29,9 +29,14 @@ export function useHindiInput(ref, { enabled, onValue, maxLength, singleLine = f
 
   const clean = (text) => (singleLine ? text.replace(/[\r\n]+/g, ' ') : text);
 
-  const typing = useFieldTyping(ref, {
+  // the engine and sentence end of the language being written; Hindi unless the editor says otherwise
+  const stop = typing ? typing.stop : undefined;
+  const readWord = (word) => convertWord(word, typing ? typing.engine : undefined);
+
+  const field = useFieldTyping(ref, {
     enabled,
     maxLength,
+    typing,
     apply: (value, caret) => {
       const next = clean(value);
       pending.current = { value: next, caret: Math.min(caret, next.length) };
@@ -40,11 +45,13 @@ export function useHindiInput(ref, { enabled, onValue, maxLength, singleLine = f
   });
 
   const handleChange = (event) => {
-    typing.interrupt();
+    field.interrupt();
     const el = event.target;
     let next = clean(el.value);
     if (enabled) {
-      const done = dandaOnDoubleSpace(next, el.selectionStart) || transliterateLastWord(next, el.selectionStart, false, convertWord);
+      const done =
+        (stop === null ? null : dandaOnDoubleSpace(next, el.selectionStart, stop)) ||
+        transliterateLastWord(next, el.selectionStart, false, readWord);
       if (done) {
         next = done.value;
         pending.current = { value: done.value, caret: done.caret };
@@ -54,19 +61,19 @@ export function useHindiInput(ref, { enabled, onValue, maxLength, singleLine = f
   };
 
   const handleBlur = (event) => {
-    typing.interrupt();
+    field.interrupt();
     if (enabled) {
       const el = event.target;
-      const done = transliterateLastWord(el.value, el.selectionStart, true, convertWord);
+      const done = transliterateLastWord(el.value, el.selectionStart, true, readWord);
       if (done) onValue(done.value);
     }
     if (onBlur) onBlur(event);
   };
 
   const handleKeyDown = (event) => {
-    if (typing.onKeyDown(event)) return;
+    if (field.onKeyDown(event)) return;
     if (onKeyDown) onKeyDown(event);
   };
 
-  return { onChange: handleChange, onBlur: handleBlur, onKeyDown: handleKeyDown, onMouseDown: typing.onMouseDown };
+  return { onChange: handleChange, onBlur: handleBlur, onKeyDown: handleKeyDown, onMouseDown: field.onMouseDown };
 }

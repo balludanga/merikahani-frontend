@@ -63,8 +63,8 @@ const ProfileLibrary = ({ tab }) => {
       <div className="user-posts-list">
         {items.map((post) => (
           <Link key={post.id} to={`/post/${post.slug}`} className="user-post-item">
-            <h3>{post.title}</h3>
-            {post.subtitle && <p className="post-subtitle">{post.subtitle}</p>}
+            <h3 translate="no">{post.title}</h3>
+            {post.subtitle && <p className="post-subtitle" translate="no">{post.subtitle}</p>}
             <span className="post-date">
               {post.author && <>{post.author.full_name || post.author.username} · </>}
               {formatDate(post.created_at)}
@@ -101,9 +101,9 @@ const ProfileLibrary = ({ tab }) => {
       )}
       {groups.map(({ post, rows }) => (
         <section key={post.id} className="library-group">
-          <h3><Link to={`/post/${post.slug}`}>{post.title}</Link></h3>
+          <h3 translate="no"><Link to={`/post/${post.slug}`}>{post.title}</Link></h3>
           {rows.map((row) => (
-            <blockquote key={row.id} className="library-passage">
+            <blockquote key={row.id} className="library-passage" translate="no">
               <p>
                 <Link to={`/post/${encodeURIComponent(post.slug)}#passage-${row.id}`} title="कहानी में यह अंश देखें">{row.text}</Link>
               </p>

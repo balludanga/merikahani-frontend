@@ -590,3 +590,20 @@
 .join-signin:hover {
   text-decoration: underline;
 }
+
+
+/* "results in the languages you chose · show all" above a list */
+.lang-scope {
+  margin: 0 0 12px;
+  color: var(--text-3);
+  font-size: 0.85rem;
+}
+
+.lang-scope button {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+  padding: 0 4px;
+}

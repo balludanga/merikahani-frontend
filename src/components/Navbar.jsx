@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { getTheme, toggleTheme } from '../utils/theme';
 import { BRAND } from '../brand';
 import NotificationBell from './NotificationBell';
+import LanguagePicker from './LanguagePicker';
+import { useLanguages } from '../languages/useLanguages';
 import { mediaUrl } from '../utils/media';
 import { initials } from '../utils/format';
 import { usePaymentsConfig } from '../utils/payments';
@@ -15,6 +17,9 @@ const Navbar = ({ landing }) => {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
+  const { read, primary, setReading, setMainLanguage } = useLanguages();
+  const [mainOpen, setMainOpen] = useState(false);
   const [theme, setThemeState] = useState(getTheme());
   const menuRef = useRef(null);
 
@@ -83,6 +88,18 @@ const Navbar = ({ landing }) => {
           <button
             type="button"
             className="navbar-theme"
+            onClick={() => setMainOpen(true)}
+            aria-label="भाषा चुनें"
+            title="भाषा चुनें"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className="navbar-theme"
             onClick={switchTheme}
             aria-label={theme === 'dark' ? 'सफ़ेद मोड चालू करें' : 'डार्क मोड चालू करें'}
             title={theme === 'dark' ? 'सफ़ेद मोड' : 'डार्क मोड'}
@@ -130,6 +147,7 @@ const Navbar = ({ landing }) => {
                     <Link to="/stories" onClick={() => setMenuOpen(false)}>मेरी रचनाएँ</Link>
                     <Link to="/bookmarks" onClick={() => setMenuOpen(false)}>पढ़ने की सूची</Link>
                     <Link to="/highlights" onClick={() => setMenuOpen(false)}>मेरी हाइलाइट</Link>
+                    <button type="button" onClick={() => { setMenuOpen(false); setLangOpen(true); }}>पढ़ने की भाषाएँ</button>
                     <Link to="/earn" onClick={() => setMenuOpen(false)}>लिखें और कमाएँ</Link>
                     {payments && payments.enabled && payments.membership && (
                       <Link to="/member" onClick={() => setMenuOpen(false)}>सदस्यता</Link>
@@ -149,6 +167,27 @@ const Navbar = ({ landing }) => {
           )}
         </div>
       </div>
+      {langOpen && (
+        <LanguagePicker
+          multiple
+          allowNone
+          title="आप किन भाषाओं में पढ़ते हैं?"
+          hint="चुनी हुई भाषाओं की रचनाएँ ही आपके पन्ने पर आएँगी। कई चुनें तो एक को मुख्य भाषा बनाइए: ऐप उसी भाषा में दिखेगा और उसकी रचनाएँ पहले आएँगी। कुछ न चुनें तो सभी भाषाओं की रचनाएँ दिखेंगी।"
+          value={read}
+          primary={primary}
+          onChange={setReading}
+          onClose={() => setLangOpen(false)}
+        />
+      )}
+      {mainOpen && (
+        <LanguagePicker
+          title="आपकी मुख्य भाषा"
+          hint="ऐप इसी भाषा में दिखेगा (जिन भाषाओं का अनुवाद तैयार है उनमें; बाकी में अंग्रेज़ी या हिंदी), और इस भाषा की रचनाएँ पहले आएँगी।"
+          value={primary ? [primary] : []}
+          onChange={([code]) => setMainLanguage(code)}
+          onClose={() => setMainOpen(false)}
+        />
+      )}
     </header>
   );
 };

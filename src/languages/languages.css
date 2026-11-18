@@ -1,0 +1,303 @@
+/* ---- The picker sheet, the feed's language bar and the language chips ---- */
+.lang-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(20, 20, 22, 0.5);
+}
+
+.lang-sheet {
+  width: min(480px, 100%);
+  max-height: min(640px, 92vh);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-lift);
+  padding: 18px 18px 14px;
+}
+
+.lang-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.lang-head h2 {
+  font-size: 1.15rem;
+  line-height: 1.5;
+}
+
+.lang-close {
+  border: 0;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 8px;
+}
+
+.lang-hint {
+  margin-top: 4px;
+  color: var(--text-2);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.lang-search {
+  margin: 12px 0 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.lang-list {
+  list-style: none;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+  margin: 0 -6px;
+  padding: 0 6px;
+}
+
+.lang-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lang-item .lang-row {
+  flex: 1;
+  min-width: 0;
+}
+
+.lang-star {
+  flex: none;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 3px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.lang-star.on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+.lang-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: start;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 10px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.lang-row:hover,
+.lang-row:focus-visible {
+  background: var(--bg-soft);
+}
+
+.lang-row.on {
+  background: var(--accent-soft);
+}
+
+.lang-mark {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  color: var(--on-accent);
+}
+
+.lang-row.on .lang-mark {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.lang-name {
+  font-family: var(--font-ui);
+  line-height: 1.7;
+}
+
+.lang-none {
+  padding: 16px 8px;
+  color: var(--text-2);
+}
+
+.lang-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.lang-count {
+  margin-inline-start: auto;
+  color: var(--text-3);
+  font-size: 0.85rem;
+}
+
+.lang-link {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.lang-link:disabled {
+  color: var(--text-3);
+  cursor: default;
+}
+
+.lang-done {
+  border: 0;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  padding: 8px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+/* the line of chosen languages above a feed */
+.lang-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-top: 8px;
+}
+
+.lang-bar-label {
+  color: var(--text-3);
+  font-size: 0.85rem;
+}
+
+.lang-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 0.85rem;
+  line-height: 1.7;
+}
+
+.lang-chip.all {
+  background: var(--bg-soft);
+  color: var(--text-2);
+}
+
+.lang-chip button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 0 0 2px;
+}
+
+.lang-change {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+/* a story's language, shown on its card */
+.story-lang {
+  color: var(--text-2);
+  font-size: 0.8rem;
+}
+
+/* ---- Text in any script ----
+   Each paragraph takes the direction of its own first strong letter (Urdu runs right to left, the
+   rest left to right), so one story can mix them. The Noto families are in --indic-fonts (App.css). */
+.story-body p,
+.story-body li,
+.story-body blockquote,
+.story-body h1,
+.story-body h2,
+.story-body h3,
+.story-body h4,
+.ql-editor p,
+.ql-editor li,
+.ql-editor blockquote,
+.ql-editor h1,
+.ql-editor h2,
+.ql-editor h3,
+.ql-editor h4,
+.editor-title,
+.editor-subtitle,
+.story-card h2,
+.story-card p {
+  unicode-bidi: plaintext;
+  text-align: start;
+}
+
+/* the scripts with tall or stacked signs need more room between lines than Latin or Devanagari */
+:lang(bn), :lang(as), :lang(gu), :lang(pa), :lang(or), :lang(ta), :lang(te), :lang(kn), :lang(ml),
+:lang(ur), :lang(ks), :lang(sd), :lang(sat), :lang(mni) {
+  line-height: 1.9;
+}
+
+:lang(ml), :lang(kn), :lang(te), :lang(or) {
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+h1:lang(bn), h1:lang(as), h1:lang(gu), h1:lang(pa), h1:lang(or), h1:lang(ta), h1:lang(te), h1:lang(kn),
+h1:lang(ml), h1:lang(ur), h1:lang(ks), h1:lang(sd), h1:lang(sat), h1:lang(mni) {
+  line-height: 1.55;
+}
+
+/* Perso-Arabic text reads better a little larger */
+.story-body:lang(ur), .story-body:lang(ks), .story-body:lang(sd), .ql-editor:lang(ur), .ql-editor:lang(ks), .ql-editor:lang(sd) {
+  font-size: 1.08em;
+}
+
+.lang-chip.main {
+  background: var(--accent);
+  color: var(--on-accent);
+}

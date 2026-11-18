@@ -1,13 +1,20 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { formatDate, readingMinutes, excerpt, initials } from '../utils/format';
 import { topicLabel } from '../brand';
+import { languageName } from '../languages/registry';
+import { needFonts } from '../languages/fonts';
 import './StoryCard.css';
 import { mediaUrl } from '../utils/media';
 
 const StoryCard = ({ post }) => {
   const authorName = post.author?.full_name || post.author?.username || 'लेखक';
   const mins = readingMinutes(post.content);
+  const language = post.language || 'hi';
+  // a story in another script needs that script's font (fetched once, only when such a story shows)
+  useEffect(() => {
+    if (language !== 'hi') needFonts(language);
+  }, [language]);
 
   return (
     <article className="story-card">
@@ -18,18 +25,24 @@ const StoryCard = ({ post }) => {
           ) : (
             <span className="avatar-sm avatar-fallback">{initials(authorName)}</span>
           )}
-          <span>{authorName}</span>
+          <span translate="no">{authorName}</span>
         </Link>
         <Link to={`/post/${post.slug}`} className="story-card-link">
-          <h2>{post.title}</h2>
+          <h2 lang={language} dir="auto">{post.title}</h2>
           {(post.subtitle || post.content) && (
-            <p>{post.subtitle || excerpt(post.content)}</p>
+            <p lang={language} dir="auto">{post.subtitle || excerpt(post.content)}</p>
           )}
         </Link>
         <div className="story-card-meta">
           <span>{formatDate(post.created_at)}</span>
           <span>·</span>
           <span>{mins} मिनट</span>
+          {language !== 'hi' && (
+            <>
+              <span>·</span>
+              <span className="story-lang">{languageName(language)}</span>
+            </>
+          )}
           {post.topic && (
             <>
               <span>·</span>
@@ -50,6 +63,7 @@ const StoryCard = ({ post }) => {
                 key={name}
                 to={`/tag/${encodeURIComponent((post.tag_slugs || [])[index] || name)}`}
                 className="tag-chip"
+                translate="no"
               >
                 #{name}
               </Link>

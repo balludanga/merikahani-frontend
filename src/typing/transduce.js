@@ -55,13 +55,13 @@ const VOWEL_TWO = new Set(VOWEL_PAIRS);
  * N asks for the retroflex sound (Taali = टाली); every other capital is just a capital. A word typed
  * entirely in capitals is shouting, not a string of retroflex marks.
  */
-export function normalizeTyped(raw) {
+export function normalizeTyped(raw, caps = 'TDN') {
   const letters = String(raw == null ? '' : raw).replace(/[^A-Za-z]/g, '');
   if (letters.length > 1 && letters === letters.toUpperCase()) return letters.toLowerCase();
   let out = '';
   for (let i = 0; i < letters.length; i += 1) {
     const ch = letters[i];
-    out += ch === 'T' || ch === 'D' || ch === 'N' ? ch : ch.toLowerCase();
+    out += caps.indexOf(ch) !== -1 ? ch : ch.toLowerCase();
   }
   return out;
 }
@@ -87,8 +87,8 @@ export function prefixRange(keys, from, to, prefix) {
 }
 
 // ---- the moves out of one state -------------------------------------------------------------------------------
-function consonantReadings(tok, atWordStart) {
-  const alts = CONSONANTS[tok];
+function consonantReadings(tok, atWordStart, table = CONSONANTS) {
+  const alts = table[tok];
   if (!alts) return null;
   // A capital T/D/N at the start of a word is as likely to be a Name's capital as a retroflex mark.
   if (atWordStart && (tok === 'T' || tok === 'D' || tok === 'N' || tok === 'Th' || tok === 'Dh')) {
@@ -97,11 +97,14 @@ function consonantReadings(tok, atWordStart) {
   return alts;
 }
 
-function pushVowel(list, text, len, extra, st, atEnd, nextCh) {
-  const table = st === CONS ? MATRA : INDEPENDENT;
+function pushVowel(list, text, len, extra, st, atEnd, nextCh, profile = null) {
+  const table = st === CONS ? (profile ? profile.matra : MATRA) : profile ? profile.independent : INDEPENDENT;
   let alts = table[text];
   if (!alts) return;
-  if (st === CONS && atEnd) {
+  if (st === CONS && atEnd && profile && profile.final && profile.final[text]) {
+    // a language that reads a lone a, i or u at the end as the short vowel (see profiles.js)
+    alts = profile.final[text];
+  } else if (st === CONS && atEnd) {
     // a plain a or i typed last: the long sound is far likelier (mera, hota, kahani)
     if (text === 'a') {
       alts = [
@@ -133,26 +136,28 @@ function pushVowel(list, text, len, extra, st, atEnd, nextCh) {
   }
 }
 
-export function movesFrom(q, i, st, lv, pl, ia) {
+export function movesFrom(q, i, st, lv, pl, ia, profile = null) {
   const list = [];
+  const consonants = profile ? profile.consonants : CONSONANTS;
+  const splittable = profile ? profile.splittable : SPLITTABLE;
   const n = q.length;
   const ch = q[i];
 
   if (isVowelLetter(ch)) {
     const two = q.substr(i, 2);
     if (two.length === 2 && VOWEL_TWO.has(two)) {
-      pushVowel(list, two, 2, 0, st, i + 2 === n, q[i + 2]);
+      pushVowel(list, two, 2, 0, st, i + 2 === n, q[i + 2], profile);
       // "ai" and "au" can also be two vowels in a row (kai = कई)
-      if (SPLITTABLE_VOWELS.has(two)) pushVowel(list, ch, 1, VOWEL_SPLIT_COST, st, false, q[i + 1]);
+      if (SPLITTABLE_VOWELS.has(two)) pushVowel(list, ch, 1, VOWEL_SPLIT_COST, st, false, q[i + 1], profile);
     } else {
-      pushVowel(list, ch, 1, 0, st, i + 1 === n, q[i + 1]);
+      pushVowel(list, ch, 1, 0, st, i + 1 === n, q[i + 1], profile);
     }
     return list;
   }
 
   // "ri" and "ru" are the vowel ऋ / ृ (krishna, rishi; mrutyu, drushti); "r" + "i" is read as well, below.
   if (ch === 'r' && (q[i + 1] === 'i' || q[i + 1] === 'u')) {
-    const table = st === CONS ? MATRA.ri : INDEPENDENT.ri;
+    const table = st === CONS ? (profile ? profile.matra : MATRA).ri : (profile ? profile.independent : INDEPENDENT).ri;
     const extra = q[i + 1] === 'u' ? 0.3 : 0;
     for (const a of table) list.push({ len: 2, k: a.k, s: a.s, c: a.c + extra, st: VOW, lv: 0, pl: '', ia: 0 });
   }
@@ -162,10 +167,10 @@ export function movesFrom(q, i, st, lv, pl, ia) {
   for (let len = 3; len >= 1; len -= 1) {
     if (i + len > n) continue;
     const tok = q.substr(i, len);
-    const alts = consonantReadings(tok, i === 0);
+    const alts = consonantReadings(tok, i === 0, consonants);
     if (!alts) continue;
     if (!longest) longest = len;
-    const split = len < longest && SPLITTABLE.has(q.substr(i, longest)) ? DIGRAPH_SPLIT_COST : 0;
+    const split = len < longest && splittable.has(q.substr(i, longest)) ? DIGRAPH_SPLIT_COST : 0;
     const nextCh = q[i + len];
     for (const a of alts) {
       const tokLower = tok.toLowerCase();
@@ -232,7 +237,7 @@ export function movesFrom(q, i, st, lv, pl, ia) {
  * Returns states { out, surf, cost, st, lo, hi }: with a `layer`, `out` is the key spelling and
  * [lo, hi) are the words that start with it; without one, `surf` is the spelling to show.
  */
-export function search(q, layer, width = 120) {
+export function search(q, layer, width = 120, profile = null) {
   const n = q.length;
   const guided = !!layer;
   const frontier = Array.from({ length: n + 1 }, () => new Map());
@@ -245,7 +250,7 @@ export function search(q, layer, width = 120) {
       const id = `${i}|${s.st}|${s.lv}|${s.pl}|${s.ia}`;
       let list = memo.get(id);
       if (!list) {
-        list = movesFrom(q, i, s.st, s.lv, s.pl, s.ia);
+        list = movesFrom(q, i, s.st, s.lv, s.pl, s.ia, profile);
         memo.set(id, list);
       }
       for (const m of list) {
@@ -275,10 +280,10 @@ export function search(q, layer, width = 120) {
  * The spellings the rules alone give, cheapest first: [{ text, cost }] (no word list involved).
  * The first is the "literal" reading used for names and anything the list does not know.
  */
-export function literalReadings(raw, limit = 4) {
-  const q = normalizeTyped(raw);
+export function literalReadings(raw, limit = 4, profile = null) {
+  const q = normalizeTyped(raw, profile ? profile.caps : undefined);
   if (!q) return [];
-  const states = search(q, null, 40);
+  const states = search(q, null, 40, profile);
   const seen = new Set();
   const out = [];
   for (const s of states) {

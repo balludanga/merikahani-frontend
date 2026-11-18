@@ -1,7 +1,9 @@
-import React, { useCallback, useImperativeHandle, useRef, useState } from 'react';
+import React, { useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { transliterateLastWord } from '../utils/transliterate';
 import { convertWord } from '../typing/convert';
 import { useHindiInput } from '../typing/useHindiInput';
+import { engineFor, prepareTyping, sentenceStop, typingKind } from '../typing/engines';
+import { languageName } from '../languages/registry';
 import './HindiTextarea.css';
 
 // Same switch the story editor uses, so one choice follows the writer around.
@@ -18,8 +20,9 @@ const readSetting = () => {
 /**
  * Hinglish typing switch. Returns [on, toggle, finish]: `finish(text)` converts
  * a last word that has not met a space yet, so send it through before saving.
+ * `language` is the language the box is written in (Hindi unless a page says otherwise).
  */
-export function useHinglish() {
+export function useHinglish(language = 'hi') {
   const [on, setOn] = useState(readSetting);
   const toggle = useCallback(() => {
     setOn((prev) => {
@@ -35,10 +38,12 @@ export function useHinglish() {
   const finish = useCallback(
     (text) => {
       if (!on) return text;
-      const done = transliterateLastWord(text, text.length, true, convertWord);
+      const done = transliterateLastWord(text, text.length, true, (word) =>
+        language === 'hi' ? convertWord(word) : convertWord(word, engineFor(language))
+      );
       return done ? done.value : text;
     },
-    [on]
+    [on, language]
   );
   return [on, toggle, finish];
 }
@@ -62,6 +67,7 @@ const HindiTextarea = React.forwardRef(function HindiTextarea(
     maxLength,
     onKeyDown,
     onBlur,
+    language = 'hi',
     ...rest
   },
   ref
@@ -69,8 +75,20 @@ const HindiTextarea = React.forwardRef(function HindiTextarea(
   const innerRef = useRef(null);
   useImperativeHandle(ref, () => innerRef.current);
 
+  // Hindi keeps the full word-list engine; another language gets its own engine and sentence end
+  const other = language !== 'hi';
+  const typing = useMemo(
+    () =>
+      other
+        ? { engine: engineFor(language), stop: sentenceStop(language), prepare: () => prepareTyping(language) }
+        : undefined,
+    [other, language]
+  );
+  const enabled = hinglish && (!other || typingKind(language) !== 'none');
+
   const handlers = useHindiInput(innerRef, {
-    enabled: hinglish,
+    enabled,
+    typing,
     onValue: onChange,
     maxLength,
     singleLine,
@@ -94,7 +112,8 @@ const HindiTextarea = React.forwardRef(function HindiTextarea(
     <div className={`hindi-field ${singleLine ? 'single' : ''} ${className}`}>
       <textarea
         ref={innerRef}
-        lang="hi"
+        lang={language}
+        dir="auto"
         rows={singleLine ? 1 : undefined}
         value={value}
         maxLength={maxLength}
@@ -108,15 +127,19 @@ const HindiTextarea = React.forwardRef(function HindiTextarea(
             type="button"
             className={`hindi-toggle ${hinglish ? 'on' : ''}`}
             onClick={onToggle}
-            aria-pressed={hinglish}
-            title="अंग्रेज़ी कीबोर्ड से हिंदी लिखें"
+            aria-pressed={enabled}
+            title="अंग्रेज़ी कीबोर्ड से अपनी भाषा लिखें"
           >
             अ
           </button>
           <span className="hindi-hint">
-            {hinglish
-              ? 'हिंदी टाइपिंग चालू: (kahani) लिखें, कहानी दिखेगा'
-              : 'हिंदी टाइपिंग बंद'}
+            {enabled
+              ? other
+                ? `${languageName(language)} टाइपिंग चालू: अंग्रेज़ी अक्षरों में लिखें`
+                : 'हिंदी टाइपिंग चालू: (kahani) लिखें, कहानी दिखेगा'
+              : other && typingKind(language) === 'none'
+                ? 'अंग्रेज़ी में सीधे लिखें'
+                : `${languageName(language)} टाइपिंग बंद`}
           </span>
         </div>
       )}

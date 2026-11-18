@@ -71,7 +71,7 @@
 }
 
 .auth-title {
-  font-family: "Source Serif 4", "Noto Serif Devanagari", Georgia, serif;
+  font-family: "Source Serif 4", "Noto Serif Devanagari", var(--indic-fonts), Georgia, serif;
   font-size: 32px;
   font-weight: 500;
   margin-bottom: 8px;

@@ -20,7 +20,7 @@
 }
 
 .editor-logo {
-  font-family: "Source Serif 4", "Noto Serif Devanagari", Georgia, serif;
+  font-family: "Source Serif 4", "Noto Serif Devanagari", var(--indic-fonts), Georgia, serif;
   font-size: 28px;
   font-weight: 700;
   color: var(--text);
@@ -159,7 +159,7 @@
 }
 
 .editor-title {
-  font-family: "Source Serif 4", "Noto Serif Devanagari", Georgia, serif;
+  font-family: "Source Serif 4", "Noto Serif Devanagari", var(--indic-fonts), Georgia, serif;
   font-size: 38px;
   font-weight: 700;
   line-height: 1.25;
@@ -169,7 +169,7 @@
 }
 
 .editor-subtitle {
-  font-family: "Source Serif 4", "Noto Serif Devanagari", Georgia, serif;
+  font-family: "Source Serif 4", "Noto Serif Devanagari", var(--indic-fonts), Georgia, serif;
   font-size: 20px;
   font-weight: 400;
   line-height: 1.5;
@@ -215,7 +215,7 @@
 }
 
 .publish-card h2 {
-  font-family: "Source Serif 4", "Noto Serif Devanagari", Georgia, serif;
+  font-family: "Source Serif 4", "Noto Serif Devanagari", var(--indic-fonts), Georgia, serif;
   font-size: 26px;
   margin-bottom: 20px;
   color: var(--text);
@@ -372,7 +372,7 @@
 
 .editor-body-wrap .ql-container {
   border: 0;
-  font-family: "Source Serif 4", "Noto Serif Devanagari", Georgia, serif;
+  font-family: "Source Serif 4", "Noto Serif Devanagari", var(--indic-fonts), Georgia, serif;
   font-size: 21px;
 }
 
@@ -390,7 +390,7 @@
 .editor-body-wrap .ql-editor h1,
 .editor-body-wrap .ql-editor h2,
 .editor-body-wrap .ql-editor h3 {
-  font-family: "Source Serif 4", "Noto Serif Devanagari", Georgia, serif;
+  font-family: "Source Serif 4", "Noto Serif Devanagari", var(--indic-fonts), Georgia, serif;
   margin: 1.2em 0 0.5em;
   line-height: 1.3;
 }
@@ -849,4 +849,83 @@
 @keyframes overlay-in {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+
+/* ---- The story's language: a chip in the bar, the hint, and the script choice in the menu ---- */
+.editor-bar-lang {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-inline-start: auto;
+  margin-inline-end: 8px;
+  min-width: 0;
+}
+
+.editor-lang {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  padding: 3px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.editor-lang:hover,
+.editor-lang:focus-visible {
+  color: var(--accent-strong);
+  border-color: var(--accent);
+}
+
+.editor-lang-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.8rem;
+  min-width: 0;
+}
+
+.editor-lang-hint button {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.bar-script {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  color: var(--text-2);
+}
+
+.bar-script button {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 1px 10px;
+  cursor: pointer;
+  width: auto;
+}
+
+.bar-script button.on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+@media (max-width: 640px) {
+  .editor-lang-hint {
+    display: none;
+  }
 }

@@ -3,6 +3,7 @@ import { useAccentStyle } from '../utils/accent';
 import { coverBackground, describeLink } from '../utils/profileStyle';
 import { mediaUrl } from '../utils/media';
 import { initials } from '../utils/format';
+import { languageName } from '../languages/registry';
 import './ProfileHeader.css';
 
 const ICONS = {
@@ -56,11 +57,11 @@ const ProfileHeader = ({ profile, actions, compact = false }) => {
           {actions && <div className="ph-actions">{actions}</div>}
         </div>
 
-        <h1 className="ph-name">{name}</h1>
+        <h1 className="ph-name" translate="no">{name}</h1>
         {profile.is_member && <p className="ph-member"><span aria-hidden="true">✦</span> लेखनी सदस्य</p>}
-        {profile.tagline && <p className="ph-tagline">{profile.tagline}</p>}
+        {profile.tagline && <p className="ph-tagline" translate="no">{profile.tagline}</p>}
         {profile.status_line && (
-          <p className="ph-status"><span>इन दिनों</span> {profile.status_line}</p>
+          <p className="ph-status"><span>इन दिनों</span> <span translate="no">{profile.status_line}</span></p>
         )}
 
         <div className="ph-meta">
@@ -74,7 +75,13 @@ const ProfileHeader = ({ profile, actions, compact = false }) => {
           </ul>
         )}
 
-        {profile.bio && <p className="ph-bio">{profile.bio}</p>}
+        {profile.write_languages && profile.write_languages.length > 0 && (
+          <ul className="ph-genres" aria-label="लिखने की भाषाएँ">
+            {profile.write_languages.map((code) => <li key={code}>{languageName(code)}</li>)}
+          </ul>
+        )}
+
+        {profile.bio && <p className="ph-bio" translate="no">{profile.bio}</p>}
 
         {profile.links && profile.links.length > 0 && (
           <ul className="ph-links">
