@@ -157,8 +157,9 @@
 
 .lang-foot {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 8px 12px;
   padding-top: 12px;
   border-top: 1px solid var(--border);
 }
@@ -177,6 +178,8 @@
   font-size: 0.9rem;
   cursor: pointer;
   padding: 4px 0;
+  text-align: start;
+  min-width: 0;
 }
 
 .lang-link:disabled {
@@ -189,6 +192,8 @@
   background: var(--accent);
   color: var(--on-accent);
   font: inherit;
+  white-space: nowrap;
+  flex: none;
   padding: 8px 18px;
   border-radius: 999px;
   cursor: pointer;
@@ -232,7 +237,8 @@
   cursor: pointer;
   font-size: 1rem;
   line-height: 1;
-  padding: 0 0 0 2px;
+  padding: 0;
+  padding-inline-start: 2px;
 }
 
 .lang-change {
@@ -276,6 +282,22 @@
   text-align: start;
 }
 
+/* In a right-to-left interface, a sentence that fell back to English (or Hindi) still reads left to right,
+   with its full stop on the correct side, instead of being swallowed into the right-to-left line */
+:root[dir='rtl'] h1,
+:root[dir='rtl'] h2,
+:root[dir='rtl'] h3,
+:root[dir='rtl'] h4,
+:root[dir='rtl'] p,
+:root[dir='rtl'] li,
+:root[dir='rtl'] blockquote,
+:root[dir='rtl'] figcaption,
+:root[dir='rtl'] dt,
+:root[dir='rtl'] dd {
+  unicode-bidi: plaintext;
+  text-align: start;
+}
+
 /* the scripts with tall or stacked signs need more room between lines than Latin or Devanagari */
 :lang(bn), :lang(as), :lang(gu), :lang(pa), :lang(or), :lang(ta), :lang(te), :lang(kn), :lang(ml),
 :lang(ur), :lang(ks), :lang(sd), :lang(sat), :lang(mni) {
@@ -292,6 +314,25 @@ h1:lang(ml), h1:lang(ur), h1:lang(ks), h1:lang(sd), h1:lang(sat), h1:lang(mni) {
   line-height: 1.55;
 }
 
+/* The story title: the Latin-tuned tight tracking and heavy weight crowd joined and stacked signs,
+   and a title is where one long compound word (Tamil, Malayalam) is most likely to be wider than a
+   phone. Smaller on phones, hyphenated where the browser knows the language, broken as a last resort. */
+.story-article h1:lang(bn), .story-article h1:lang(as), .story-article h1:lang(gu), .story-article h1:lang(pa),
+.story-article h1:lang(or), .story-article h1:lang(ta), .story-article h1:lang(te), .story-article h1:lang(kn),
+.story-article h1:lang(ml), .story-article h1:lang(ur), .story-article h1:lang(ks), .story-article h1:lang(sd),
+.story-article h1:lang(sat), .story-article h1:lang(mni) {
+  letter-spacing: 0;
+  font-weight: 700;
+  hyphens: auto;
+}
+
+@media (max-width: 600px) {
+  .story-article h1:lang(ta), .story-article h1:lang(te), .story-article h1:lang(kn),
+  .story-article h1:lang(ml), .story-article h1:lang(or) {
+    font-size: 28px;
+  }
+}
+
 /* Perso-Arabic text reads better a little larger */
 .story-body:lang(ur), .story-body:lang(ks), .story-body:lang(sd), .ql-editor:lang(ur), .ql-editor:lang(ks), .ql-editor:lang(sd) {
   font-size: 1.08em;
@@ -300,4 +341,23 @@ h1:lang(ml), h1:lang(ur), h1:lang(ks), h1:lang(sd), h1:lang(sat), h1:lang(mni) {
 .lang-chip.main {
   background: var(--accent);
   color: var(--on-accent);
+}
+
+/* Fingers: the chip's ×, "change" and the sheet's close were 13-30px wide. The visible size stays;
+   the tappable box grows (negative margins keep the layout where it was). */
+@media (max-width: 600px), (pointer: coarse) {
+  .lang-chip button {
+    min-width: 30px;
+    min-height: 30px;
+    margin-block: -6px;
+    margin-inline-end: -8px;
+  }
+  .lang-change {
+    min-height: 32px;
+    padding: 4px 10px;
+  }
+  .lang-close {
+    min-width: 40px;
+    min-height: 40px;
+  }
 }

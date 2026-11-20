@@ -25,6 +25,7 @@
   font-weight: 700;
   color: var(--text);
   text-decoration: none;
+  flex: none;
 }
 
 /* Brand · मसौदा · सहेजा गया — the quiet status line, left of the bar. */
@@ -33,6 +34,7 @@
   align-items: baseline;
   gap: 14px;
   min-width: 0;
+  flex: 0 1 auto;
 }
 
 .editor-doctype {
@@ -45,6 +47,9 @@
   font-size: 14px;
   color: var(--text-3);
   white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .editor-saved.error {
@@ -55,6 +60,8 @@
   display: flex;
   gap: 12px;
   align-items: center;
+  min-width: 0;
+  flex: none;
 }
 
 .editor-draft,
@@ -144,18 +151,18 @@
   white-space: nowrap;
   font-size: 14px;
   color: var(--text-3);
-  border-right: 1px solid transparent;
+  border-inline-end: 1px solid transparent;
   padding-top: 16px;
   opacity: 0;
-  transition: max-width 0.25s ease, opacity 0.25s ease, padding-right 0.25s ease, border-color 0.25s ease;
+  transition: max-width 0.25s ease, opacity 0.25s ease, padding-inline-end 0.25s ease, border-color 0.25s ease;
 }
 
 .editor-field:focus-within .editor-field-label {
   max-width: 72px;
   opacity: 1;
-  padding-right: 14px;
-  margin-right: 14px;
-  border-right-color: var(--border);
+  padding-inline-end: 14px;
+  margin-inline-end: 14px;
+  border-inline-end-color: var(--border);
 }
 
 .editor-title {
@@ -255,9 +262,21 @@
 
 .publish-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 12px;
+}
+
+/* dialog buttons may carry a long label: let it wrap rather than be cut */
+.publish-actions .editor-draft,
+.publish-actions .editor-publish {
+  white-space: normal;
+  height: auto;
+  min-height: 36px;
+  padding-block: 6px;
+  text-align: center;
+  line-height: 1.4;
 }
 
 /* Auto-draft status moved into the bar's .editor-saved line. */
@@ -297,9 +316,10 @@
 .bar-dropdown {
   position: absolute;
   top: calc(100% + 8px);
-  right: 0;
+  inset-inline-end: 0;
   z-index: 40;
-  min-width: 232px;
+  min-width: min(232px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
   background: var(--bg-raised);
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -312,7 +332,7 @@
 .bar-dropdown button {
   border: 0;
   background: transparent;
-  text-align: left;
+  text-align: start;
   padding: 10px 12px;
   border-radius: 8px;
   font-size: 15px;
@@ -400,9 +420,10 @@
 .editor-body-wrap .ql-editor h3 { font-size: 21px; }
 
 .editor-body-wrap .ql-editor blockquote {
-  border-left: 3px solid var(--accent);
+  border-inline-start: 3px solid var(--accent);
   margin: 1.4em 0;
-  padding: 4px 0 4px 20px;
+  padding: 4px 0;
+  padding-inline-start: 20px;
   font-style: italic;
   color: var(--text-2);
 }
@@ -429,7 +450,7 @@
 
 .editor-body-wrap .ql-editor ul,
 .editor-body-wrap .ql-editor ol {
-  padding-left: 30px;
+  padding-inline-start: 30px;
   margin: 0 0 1.6em;
 }
 
@@ -488,9 +509,9 @@
 }
 
 .editor-body-wrap .ql-bubble .ql-toolbar .ql-formats + .ql-formats {
-  border-left: 1px solid rgba(255, 255, 255, 0.16);
-  margin-left: 6px;
-  padding-left: 8px;
+  border-inline-start: 1px solid rgba(255, 255, 255, 0.16);
+  margin-inline-start: 6px;
+  padding-inline-start: 8px;
 }
 
 .editor-body-wrap .ql-bubble .ql-toolbar button {
@@ -538,14 +559,14 @@
    Clicking folds it open into a row of circular media actions. */
 .gutter-add-zone {
   position: absolute;
-  left: -60px;
+  inset-inline-start: -60px;
   width: 1px;
   z-index: 20;
 }
 
 .gutter-add {
   position: absolute;
-  left: 0;
+  inset-inline-start: 0;
   width: 38px;
   height: 38px;
   border-radius: 50%;
@@ -575,7 +596,7 @@
    fanning out to the right (headings, quotes, lists, code, dividers, media). */
 .gutter-add-row {
   position: absolute;
-  left: 48px;
+  inset-inline-start: 48px;
   top: 0;
   z-index: 30;
   display: flex;
@@ -624,13 +645,13 @@
    sit in instead of hiding the button (the "/" fallback is gone). */
 @media (max-width: 860px) {
   .editor-sheet {
-    padding-left: 54px;
+    padding-inline-start: 54px;
   }
   .gutter-add-zone {
-    left: -46px;
+    inset-inline-start: -46px;
   }
   .gutter-add-row {
-    left: 44px;
+    inset-inline-start: 44px;
     max-width: calc(100vw - 96px);
   }
 }
@@ -684,12 +705,21 @@
 
 .cover-field-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: stretch;
 }
 
+/* a long button label (Tamil, Malayalam) puts the address box on its own line instead of off the card */
+.cover-field-actions .cover-url {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
 .cover-upload-btn {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  max-width: 100%;
+  min-height: 40px;
   border: 1px solid var(--accent);
   background: var(--accent-soft);
   color: var(--accent);
@@ -698,7 +728,7 @@
   font-size: 14px;
   font-family: inherit;
   cursor: pointer;
-  white-space: nowrap;
+  white-space: normal;
   transition: filter 0.15s ease;
 }
 
@@ -733,7 +763,7 @@
 .cover-remove {
   position: absolute;
   top: 10px;
-  right: 10px;
+  inset-inline-end: 10px;
   border: 0;
   border-radius: 99px;
   background: rgba(25, 25, 25, 0.82);
@@ -756,7 +786,7 @@
 .editor-body-wrap .ql-editor table.ql-table td {
   border: 1px solid var(--border);
   padding: 8px 12px;
-  text-align: left;
+  text-align: start;
 }
 
 .editor-body-wrap .ql-editor table.ql-table th {
@@ -927,5 +957,107 @@
 @media (max-width: 640px) {
   .editor-lang-hint {
     display: none;
+  }
+}
+
+/* Phones: the bar has to hold the brand, the language chip, the main button, the ⋯ menu and the
+   avatar in 320-360px. Longer scripts (Tamil, Malayalam) and right-to-left ones (Urdu, Kashmiri,
+   Sindhi) made those pile up on one another, so the quiet status words give way first. */
+@media (max-width: 640px) {
+  .editor-bar {
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .editor-bar-left {
+    gap: 8px;
+    flex: 1 1 0;
+  }
+  .editor-logo {
+    font-size: 24px;
+  }
+  .editor-doctype {
+    display: none;
+  }
+  .editor-saved {
+    font-size: 12px;
+  }
+  .editor-bar-lang {
+    margin-inline-end: 0;
+    flex: none;
+  }
+  .editor-lang {
+    padding: 2px 10px;
+    font-size: 0.8rem;
+    max-width: 34vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .editor-bar-actions {
+    gap: 4px;
+  }
+  .editor-bar-actions .editor-draft,
+  .editor-bar-actions .editor-publish {
+    padding: 0 12px;
+    height: 34px;
+    font-size: 13px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .editor-bar-actions .editor-publish {
+    max-width: 34vw;
+  }
+  .editor-bar-actions .editor-draft {
+    max-width: 28vw;
+  }
+  .bar-dropdown button {
+    white-space: normal;
+  }
+}
+
+/* No room for the words at all: keep them for screen readers (it is an aria-live line). */
+@media (max-width: 400px) {
+  .editor-saved {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .publish-card {
+    padding: 22px 18px;
+  }
+  .publish-card h2 {
+    font-size: 22px;
+    margin-bottom: 16px;
+  }
+}
+
+/* Right-to-left interface (Urdu, Kashmiri, Sindhi): an empty title box guesses its direction from
+   nothing and used to start from the left; the body text follows each paragraph's own script. */
+:root[dir='rtl'] .editor-title:placeholder-shown,
+:root[dir='rtl'] .editor-subtitle:placeholder-shown {
+  direction: rtl;
+}
+
+.editor-body-wrap .ql-editor {
+  text-align: start;
+}
+
+.editor-body-wrap .ql-editor p,
+.editor-body-wrap .ql-editor h1,
+.editor-body-wrap .ql-editor h2,
+.editor-body-wrap .ql-editor h3,
+.editor-body-wrap .ql-editor blockquote {
+  unicode-bidi: plaintext;
+}
+
+@media (max-width: 480px) {
+  .publish-modal {
+    padding: 12px;
   }
 }

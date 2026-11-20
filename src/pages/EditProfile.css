@@ -105,7 +105,7 @@
 
 .ep-card h2 em,
 .ep-field > span em {
-  margin-left: 6px;
+  margin-inline-start: 6px;
   font-style: normal;
   font-weight: 400;
   font-size: 12px;
@@ -146,7 +146,7 @@
 }
 
 .ep-link-btn {
-  margin-left: 10px;
+  margin-inline-start: 10px;
   padding: 4px;
   border: 0;
   background: none;
@@ -194,7 +194,7 @@
 
 .ep-presets {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 10px;
   margin-top: 12px;
 }
@@ -214,11 +214,15 @@
 
 .ep-preset span {
   width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   padding: 2px 8px 3px;
   background: rgba(0, 0, 0, 0.42);
   color: #fff;
   font-size: 12px;
-  text-align: left;
+  text-align: start;
 }
 
 .ep-preset.on {
@@ -450,7 +454,7 @@
 }
 
 .ep-state {
-  margin-right: auto;
+  margin-inline-end: auto;
   font-size: 14px;
   color: var(--text-3);
 }
@@ -513,6 +517,16 @@
 
   .ep-bar {
     padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* two long labels (Tamil, Malayalam) share the row or each take their own */
+  .ep-bar .ep-btn,
+  .ep-bar .ep-save {
+    flex: 1 1 auto;
+    justify-content: center;
+    text-align: center;
   }
 
   .ep-state {

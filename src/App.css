@@ -8,6 +8,22 @@ html {
   font-size: 16px;
 }
 
+/* Long compound words (Tamil, Malayalam, Sanskrit) have no break points: let a heading break the word
+   rather than push the whole page wider than a phone, and let running text do the same as a last resort */
+h1,
+h2,
+h3,
+h4 {
+  overflow-wrap: anywhere;
+}
+
+p,
+li,
+blockquote,
+figcaption {
+  overflow-wrap: break-word;
+}
+
 /* ---- Design tokens: warm light + soft dark, teal accent ---- */
 :root {
   --nav-h: 57px;
@@ -157,8 +173,8 @@ textarea {
 }
 
 .layout-aside {
-  border-left: 1px solid var(--border);
-  padding-left: 32px;
+  border-inline-start: 1px solid var(--border);
+  padding-inline-start: 32px;
 }
 
 /* Shared sidebar utilities (Stories, Bookmarks, Search) */
@@ -212,8 +228,8 @@ textarea {
   }
 
   .layout-aside {
-    border-left: 0;
-    padding-left: 0;
+    border-inline-start: 0;
+    padding-inline-start: 0;
     border-top: 1px solid var(--border);
     padding-top: 32px;
   }
@@ -221,7 +237,8 @@ textarea {
 
 .feed-tabs {
   display: flex;
-  gap: 24px;
+  flex-wrap: wrap;
+  gap: 0 24px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 8px;
 }

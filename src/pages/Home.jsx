@@ -206,7 +206,7 @@ const Home = () => {
               <div className="hero-body">
                 <span className="hero-chip">सुर्खी</span>
                 <h2 className="hero-title" lang={hero.language} dir="auto">{hero.title}</h2>
-                <p className="hero-excerpt" lang={hero.language} dir="auto">{excerpt(hero.content, 170)}</p>
+                <p className="hero-excerpt" lang={hero.language} dir="auto">{hero.subtitle || excerpt(hero.content, 170)}</p>
                 <div className="hero-meta">
                   {hero.author?.avatar_url ? (
                     <img src={mediaUrl(hero.author.avatar_url)} alt="" />

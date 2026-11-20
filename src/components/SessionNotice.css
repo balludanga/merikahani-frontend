@@ -11,7 +11,7 @@
   padding: 11px 14px 11px 20px;
   border-radius: 99px;
   border: 1px solid var(--border);
-  border-left: 4px solid var(--accent);
+  border-inline-start: 4px solid var(--accent);
   background: var(--bg-raised);
   color: var(--text);
   box-shadow: var(--shadow-lift);

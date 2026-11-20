@@ -97,7 +97,7 @@
 .library-passage {
   margin: 0 0 14px;
   padding: 2px 0 2px 14px;
-  border-left: 3px solid var(--accent);
+  border-inline-start: 3px solid var(--accent);
 }
 
 .library-passage:last-child {
@@ -154,7 +154,7 @@
 }
 
 .pin-mark {
-  margin-right: 8px;
+  margin-inline-end: 8px;
   font-size: 15px;
 }
 
@@ -251,6 +251,12 @@
 .ph-actions .profile-follow {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.5;
+  /* the shared .follow-btn is nowrap; a long label here has to be able to wrap */
+  white-space: normal;
+  max-width: 100%;
   padding: 9px 20px;
   border-radius: 99px;
   border: 1px solid var(--accent);

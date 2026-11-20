@@ -32,3 +32,22 @@
 .site-footer-links a:hover {
   color: var(--text);
 }
+
+/* Fingers, not cursors: 12px links were far below a comfortable tap size, and longer words in the
+   new languages wrap the row onto more lines, so each link gets its own 36px-high target. */
+@media (max-width: 600px), (pointer: coarse) {
+  .site-footer {
+    gap: 2px 16px;
+    padding-block: 8px;
+  }
+  .site-footer-links {
+    gap: 0 16px;
+    justify-content: center;
+  }
+  .site-footer-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    font-size: 13px;
+  }
+}

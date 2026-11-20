@@ -13,6 +13,7 @@
 }
 
 .navbar-container {
+  min-width: 0;
   max-width: 1192px;
   margin: 0 auto;
   padding: 0 24px;
@@ -23,6 +24,11 @@
 }
 
 .navbar-logo {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: var(--font-display);
   font-size: 30px;
   font-weight: 700;
@@ -60,10 +66,16 @@
 }
 
 .navbar-menu {
-  margin-left: auto;
+  margin-inline-start: auto;
   display: flex;
   align-items: center;
   gap: 18px;
+  min-width: 0;
+}
+
+/* Nothing in the menu shrinks: a translated label stays on one line, round buttons stay round */
+.navbar-menu > * {
+  flex: none;
 }
 
 .navbar-theme {
@@ -93,6 +105,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
 }
 
 .navbar-cta {
@@ -102,6 +115,7 @@
   padding: 8px 16px;
   border-radius: 99px;
   font-size: 14px;
+  white-space: nowrap;
   transition: background-color 0.45s ease, color 0.45s ease;
 }
 
@@ -140,12 +154,13 @@
 
 .navbar-dropdown {
   position: absolute;
-  right: 0;
+  inset-inline-end: 0;
   top: 40px;
   background: var(--bg-raised);
   border: 1px solid var(--border);
   border-radius: 10px;
   min-width: 180px;
+  max-width: calc(100vw - 24px);
   box-shadow: var(--shadow);
   padding: 8px 0;
   overflow: hidden;
@@ -161,7 +176,7 @@
 .navbar-dropdown button {
   display: block;
   width: 100%;
-  text-align: left;
+  text-align: start;
   background: none;
   border: 0;
   padding: 10px 16px;
@@ -201,5 +216,76 @@
 
   .navbar-search-link {
     display: inline-flex;
+  }
+}
+
+/* ---- Phones: the whole bar has to fit 320px in every language, English and Tamil included ---- */
+@media (max-width: 600px) {
+  .navbar-container {
+    padding: 0 12px;
+    gap: 8px;
+  }
+
+  .navbar-logo {
+    font-size: 24px;
+  }
+
+  .navbar-menu {
+    gap: 6px;
+  }
+
+  .navbar-theme,
+  .navbar-search-link {
+    width: 32px;
+    height: 32px;
+  }
+
+  .navbar-link,
+  .navbar-write {
+    font-size: 13px;
+  }
+
+  .navbar-cta {
+    padding: 7px 12px;
+    font-size: 13px;
+  }
+
+  /* Last resort for a very long word (Tamil, Santali): the button gives way, the brand does not */
+  .navbar-menu > .navbar-cta {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .navbar-logo {
+    flex-shrink: 0;
+  }
+}
+
+/* Under 480px: the sign-in link goes (Get started opens the same Google sign-in page) and a
+   signed-in reader loses the search icon (the account menu has "Search") */
+@media (max-width: 480px) {
+  .navbar-link {
+    display: none;
+  }
+
+  .navbar-in .navbar-search-link {
+    display: none;
+  }
+}
+
+/* Very small phones: "Write" is just the pen */
+@media (max-width: 360px) {
+  .navbar-write-label {
+    display: none;
+  }
+
+  .navbar-write {
+    width: 32px;
+    height: 32px;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 50%;
   }
 }

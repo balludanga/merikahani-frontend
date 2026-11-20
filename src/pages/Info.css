@@ -104,10 +104,10 @@
 }
 
 .status-note {
-  margin-left: auto;
+  margin-inline-start: auto;
   font-size: 13px;
   color: var(--text-2);
-  text-align: right;
+  text-align: end;
 }
 
 .info-section {
@@ -141,7 +141,7 @@
 
 .info-list li {
   position: relative;
-  padding-left: 22px;
+  padding-inline-start: 22px;
   font-size: 15px;
   line-height: 1.75;
   color: var(--text-2);
@@ -150,7 +150,7 @@
 .info-list li::before {
   content: '';
   position: absolute;
-  left: 2px;
+  inset-inline-start: 2px;
   top: 0.72em;
   width: 6px;
   height: 6px;
@@ -206,8 +206,8 @@
 
 @media (max-width: 640px) {
   .status-note {
-    margin-left: 0;
-    text-align: left;
+    margin-inline-start: 0;
+    text-align: start;
     width: 100%;
   }
 

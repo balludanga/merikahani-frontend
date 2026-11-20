@@ -122,9 +122,10 @@
 .story-body h4 { font-size: 19px; }
 
 .story-body blockquote {
-  border-left: 3px solid var(--accent);
+  border-inline-start: 3px solid var(--accent);
   margin: 1.6em 0;
-  padding: 4px 0 4px 22px;
+  padding: 4px 0;
+  padding-inline-start: 22px;
   font-style: italic;
   color: var(--text-2);
 }
@@ -135,7 +136,7 @@
 
 .story-body ul,
 .story-body ol {
-  padding-left: 32px;
+  padding-inline-start: 32px;
   margin: 0 0 1.7em;
 }
 
@@ -216,7 +217,7 @@
 .story-body td {
   border: 1px solid var(--border);
   padding: 9px 13px;
-  text-align: left;
+  text-align: start;
   vertical-align: top;
 }
 
@@ -407,7 +408,7 @@
 }
 
 .response-head button {
-  margin-left: auto;
+  margin-inline-start: auto;
   background: none;
   border: 0;
   color: var(--text-3);
@@ -434,9 +435,9 @@
 }
 
 .response-answer {
-  margin-left: 18px;
-  padding-left: 16px;
-  border-left: 2px solid var(--border);
+  margin-inline-start: 18px;
+  padding-inline-start: 16px;
+  border-inline-start: 2px solid var(--border);
 }
 
 .response-answer .response-item {
@@ -731,8 +732,9 @@
 .focus-menu {
   position: absolute;
   top: calc(100% + 8px);
-  right: 0;
+  inset-inline-end: 0;
   min-width: 176px;
+  max-width: calc(100vw - 24px);
   background: var(--bg-raised);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -746,7 +748,7 @@
 
 .focus-menu a,
 .focus-menu button {
-  text-align: left;
+  text-align: start;
   border: 0;
   background: none;
   font: inherit;
@@ -792,6 +794,33 @@
 @media (max-width: 600px) {
   .focus-author-name,
   .focus-divider {
+    display: none;
+  }
+
+  .focus-header-inner {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  /* A translated label ("சேமி", "ᱥᱟᱧᱪᱟᱣ ᱢᱮ") must not push the bar past the screen */
+  .focus-bookmark,
+  .focus-signin {
+    padding-inline: 12px;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 46vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .focus-logo {
+    flex: none;
+  }
+}
+
+/* The author is named in the story itself; on the narrowest phones the bar keeps room for the buttons */
+@media (max-width: 420px) {
+  .focus-author {
     display: none;
   }
 }
@@ -925,8 +954,9 @@ mark.text-highlight.hl-mine {
 /* A response's quoted passage: tap to jump back to it in the story */
 .response-quote {
   margin: 0 0 8px;
-  padding: 2px 0 2px 12px;
-  border-left: 3px solid var(--accent);
+  padding: 2px 0;
+  padding-inline-start: 12px;
+  border-inline-start: 3px solid var(--accent);
   color: var(--text-2);
   font-size: 14px;
   line-height: 1.6;
@@ -1053,7 +1083,7 @@ mark.text-highlight.hl-mine {
 .lightbox-close {
   position: absolute;
   top: 18px;
-  right: 22px;
+  inset-inline-end: 22px;
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -1203,7 +1233,7 @@ mark.text-highlight.hl-mine {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  margin-left: 8px;
+  margin-inline-start: 8px;
   padding: 1px 7px 1px 5px;
   vertical-align: 2px;
   background: var(--accent-soft);

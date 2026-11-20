@@ -11,6 +11,7 @@
  * A language with no catalog at all is shown the same way as its fallback language.
  */
 import { LANGUAGES, englishName, getLanguage, languageLabel } from '../languages/registry';
+import MONTH_NAMES from './months.json';
 
 const LOADERS = {
   en: () => import('./catalogs/en.json'),
@@ -78,20 +79,49 @@ const HI_SHORT = ['जन॰', 'फ़र॰', 'मार्च', 'अप्र�
 const HI_LONG = ['जनवरी', 'फ़रवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्तूबर', 'नवंबर', 'दिसंबर'];
 const SAFE_LOCALES = { en: 'en-IN' };
 
+// Month names from the Unicode CLDR data, one list per language (long and short). A browser's own
+// Intl may lack a language's calendar names (Chrome prints "M11" for Punjabi, Konkani and Sindhi, and
+// English month names for Odia, Assamese, Nepali...), so this table fills in when Intl cannot.
+// Meitei is left out on purpose: the CLDR names are in Bengali script, the interface is Meetei Mayek.
+
+/** Does this browser know the language's month names? (Not English, not "M11".) */
+function intlKnowsMonths(locale, code) {
+  try {
+    if (Intl.DateTimeFormat.supportedLocalesOf([locale]).length === 0) return false;
+    const probe = new Intl.DateTimeFormat(locale, { month: 'long' }).format(new Date(2033, 10, 22));
+    return !/^M\d+$/.test(probe) && (code === 'en' || probe !== 'November');
+  } catch (error) {
+    return false;
+  }
+}
+
 /** "{0} नव॰ {1}" -> the same date as the language writes it ("{0} நவ. {1}"), made by the browser. */
 export function dateEntries(code) {
   const locale = `${SAFE_LOCALES[code] || code}-u-nu-latn`;
   const entries = {};
   try {
-    if (Intl.DateTimeFormat.supportedLocalesOf([locale]).length === 0) return entries;
-    const slot = (date, options) =>
-      new Intl.DateTimeFormat(locale, options).format(date).replace('22', '{0}').replace('2033', '{1}');
-    for (let month = 0; month < 12; month += 1) {
-      const sample = new Date(2033, month, 22);
-      entries[`{0} ${HI_SHORT[month]} {1}`] = slot(sample, SHORT);
-      entries[`${HI_LONG[month]} {0}`] = new Intl.DateTimeFormat(locale, MONTH_YEAR).format(sample).replace('2033', '{0}');
+    if (intlKnowsMonths(locale, code)) {
+      const slot = (date, options) =>
+        new Intl.DateTimeFormat(locale, options).format(date).replace('22', '{0}').replace('2033', '{1}');
+      for (let month = 0; month < 12; month += 1) {
+        const sample = new Date(2033, month, 22);
+        entries[`{0} ${HI_SHORT[month]} {1}`] = slot(sample, SHORT);
+        entries[`${HI_LONG[month]} {0}`] = new Intl.DateTimeFormat(locale, MONTH_YEAR).format(sample).replace('2033', '{0}');
+        // the month on its own ("जनवरी": the month-by-month list on the earnings page)
+        entries[HI_LONG[month]] = new Intl.DateTimeFormat(locale, { month: 'long' }).format(sample);
+      }
+    } else if (MONTH_NAMES[code]) {
+      const { long, short } = MONTH_NAMES[code];
+      for (let month = 0; month < 12; month += 1) {
+        entries[`{0} ${HI_SHORT[month]} {1}`] = `{0} ${short[month]} {1}`;
+        entries[`${HI_LONG[month]} {0}`] = `${long[month]} {0}`;
+        entries[HI_LONG[month]] = long[month];
+      }
+    } else {
+      return entries;
     }
     entries['अक्टूबर {0}'] = entries['अक्तूबर {0}']; // both spellings of October
+    entries['अक्टूबर'] = entries['अक्तूबर'];
   } catch (error) {
     return {};
   }

@@ -61,7 +61,7 @@ const Navbar = ({ landing }) => {
   const displayName = user?.full_name || user?.username || '';
 
   return (
-    <header className={`navbar ${landing ? 'navbar-landing' : ''}`}>
+    <header className={`navbar ${landing ? 'navbar-landing' : ''} ${isAuthenticated ? 'navbar-in' : ''}`}>
       <div className="navbar-container">
         <Link to="/" className="navbar-logo">{BRAND.name}</Link>
 
@@ -117,8 +117,9 @@ const Navbar = ({ landing }) => {
           </button>
           {isAuthenticated ? (
             <>
-              <Link to="/new-story" className="navbar-write">
-                <span aria-hidden="true">✎</span> लिखें
+              <Link to="/new-story" className="navbar-write" aria-label="लिखें">
+                <span aria-hidden="true">✎</span>
+                <span className="navbar-write-label">लिखें</span>
               </Link>
               <NotificationBell />
               <div className="navbar-avatar-wrap" ref={menuRef}>
