@@ -11,7 +11,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { speechLocale } from '../languages/registry';
 import ssmlTTS from './ssmlTTS';
-import { fetchNarration, serverVoiceInfo, silentAudioUrl } from './serverVoice';
+import { fetchNarration, mayUseDeviceVoice, serverVoiceInfo, silentAudioUrl, whyNoServerVoice } from './serverVoice';
 import { SPEEDS, clearPosition, loadPosition, loadPrefs, savePosition, savePrefs } from './playerPrefs';
 import { createMediaSession } from './mediaSession';
 
@@ -317,9 +317,9 @@ export function createStoryPlayer(onChange = () => {}) {
         unlockTimer = setTimeout(() => URL.revokeObjectURL(silent), 2000);
       }
 
-      const { enabled, ready } = await lookup(post);
+      const voice = await lookup(post);
       if (mine !== run) return;
-      if (enabled || ready) {
+      if (voice.enabled || voice.ready) {
         try {
           await playFromServer(mine, post);
           if (mine === run) {
@@ -329,10 +329,20 @@ export function createStoryPlayer(onChange = () => {}) {
           return;
         } catch (error) {
           if (mine !== run) return;
-          // Not set up, allowance used, very long story, offline...: the browser's own voice.
+          // A language the server voice covers: a limit (allowance used, too many today, a very long
+          // story) means nothing is played. The paid service will lift the limits; the device voice is
+          // no stand-in. Otherwise (a language it does not cover, offline...): the browser's own voice.
+          if (!mayUseDeviceVoice(voice)) {
+            fail(error && error.name === 'NotAllowedError' ? NO_PLAY : whyNoServerVoice(error));
+            return;
+          }
         }
       }
       if (mine !== run) return;
+      if (!mayUseDeviceVoice(voice)) {
+        fail(whyNoServerVoice(null)); // the day's allowance is used up and this story has no narration yet
+        return;
+      }
       playFromBrowser(mine, post);
       session.playing(true);
     },

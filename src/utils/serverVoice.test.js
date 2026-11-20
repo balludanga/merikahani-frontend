@@ -1,4 +1,7 @@
-import { fetchNarration, fetchTimings, serverVoiceFor } from './serverVoice';
+import {
+  SERVER_VOICE_BUSY, SIGN_IN_TO_LISTEN, fetchNarration, fetchTimings, mayUseDeviceVoice, serverVoiceFor, serverVoiceInfo,
+  whyNoServerVoice,
+} from './serverVoice';
 import { audioAPI } from '../services/api';
 
 jest.mock('../services/api', () => ({ audioAPI: { forPost: jest.fn(), status: jest.fn(), timings: jest.fn() } }));
@@ -77,5 +80,32 @@ describe('fetchTimings', () => {
     await expect(fetchTimings(3)).resolves.toEqual({ w: ['एक'], t: [0], title: 0, d: 1 });
     audioAPI.timings.mockRejectedValue({ response: { status: 404 } });
     await expect(fetchTimings(3)).resolves.toBeNull();
+  });
+});
+
+
+describe('which voice may read a story', () => {
+  test('serverVoiceInfo carries whether the server voice covers the story\'s language', async () => {
+    audioAPI.status.mockResolvedValue({ data: { enabled: false, ready: false, covered: true } });
+    await expect(serverVoiceInfo(7)).resolves.toEqual({ enabled: false, ready: false, covered: true });
+    audioAPI.status.mockResolvedValue({ data: { enabled: false, ready: false } }); // an older server: no field
+    await expect(serverVoiceInfo(7)).resolves.toEqual({ enabled: false, ready: false, covered: false });
+    audioAPI.status.mockRejectedValue(new Error('offline')); // the server cannot be reached at all
+    await expect(serverVoiceInfo(7)).resolves.toEqual({ enabled: false, ready: false, covered: false });
+  });
+
+  test('the device voice may stand in only for a language the server voice does not cover', () => {
+    expect(mayUseDeviceVoice({ enabled: false, ready: false, covered: false })).toBe(true);
+    expect(mayUseDeviceVoice({ enabled: false, ready: false })).toBe(true);
+    expect(mayUseDeviceVoice(undefined)).toBe(true);
+    expect(mayUseDeviceVoice({ enabled: false, ready: false, covered: true })).toBe(false);
+  });
+
+  test('says why there is no voice: sign in for a 401, otherwise try later', () => {
+    expect(whyNoServerVoice({ response: { status: 401 } })).toBe(SIGN_IN_TO_LISTEN);
+    expect(whyNoServerVoice({ response: { status: 429 } })).toBe(SERVER_VOICE_BUSY);
+    expect(whyNoServerVoice({ response: { status: 503 } })).toBe(SERVER_VOICE_BUSY);
+    expect(whyNoServerVoice(null)).toBe(SERVER_VOICE_BUSY);
+    expect(whyNoServerVoice(new Error('narration took too long'))).toBe(SERVER_VOICE_BUSY);
   });
 });

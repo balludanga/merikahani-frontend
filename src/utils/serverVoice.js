@@ -2,8 +2,10 @@ import { audioAPI } from '../services/api';
 
 /**
  * What the server can do for this story: `enabled` (a new narration can be made now) and `ready` (its
- * narration already exists, and plays even on a day the free allowance is used up). Both false when the
- * server cannot be reached, so the browser's own voice is used instead.
+ * narration already exists, and plays even on a day the free allowance is used up). `covered`: the
+ * server voice is the voice for this story's language, so when it cannot make the narration (a limit
+ * is hit) NOTHING is played: the device's own voice never stands in for it (see `mayUseDeviceVoice`).
+ * All false when the server cannot be reached at all, so the browser's own voice is used instead.
  */
 export function serverVoiceInfo(postId) {
   return audioAPI
@@ -11,9 +13,24 @@ export function serverVoiceInfo(postId) {
     .then((response) => ({
       enabled: Boolean(response.data && response.data.enabled),
       ready: Boolean(response.data && response.data.ready),
+      covered: Boolean(response.data && response.data.covered),
     }))
-    .catch(() => ({ enabled: false, ready: false }));
+    .catch(() => ({ enabled: false, ready: false, covered: false }));
 }
+
+/**
+ * May the device's own voice read this story when the server voice cannot? Only for a language the
+ * server voice does not cover (Bodo, Dogri, Konkani, Sanskrit, ...). For a language it does cover, a
+ * limit on the free service means silence, not a stand-in: the paid service will lift the limits.
+ */
+export const mayUseDeviceVoice = (info) => !(info && info.covered);
+
+export const SERVER_VOICE_BUSY = 'आवाज़ अभी उपलब्ध नहीं है। थोड़ी देर बाद फिर कोशिश करें।';
+export const SIGN_IN_TO_LISTEN = 'पूरी रचना सुनने के लिए साइन इन करें';
+
+/** What to tell a listener when the server voice could not make the narration (`error` is what the request raised). */
+export const whyNoServerVoice = (error) =>
+  error && error.response && error.response.status === 401 ? SIGN_IN_TO_LISTEN : SERVER_VOICE_BUSY;
 
 /** Whether the server voice can be used for this story at all. */
 export function serverVoiceFor(postId) {

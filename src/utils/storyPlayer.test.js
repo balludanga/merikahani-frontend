@@ -1,12 +1,14 @@
 import { createStoryPlayer, initialState, isActive } from './storyPlayer';
 import ssmlTTS from './ssmlTTS';
-import { fetchNarration, serverVoiceInfo, silentAudioUrl } from './serverVoice';
+import { SERVER_VOICE_BUSY, SIGN_IN_TO_LISTEN, fetchNarration, serverVoiceInfo, silentAudioUrl } from './serverVoice';
 
 jest.mock('./ssmlTTS', () => ({
   __esModule: true,
   default: { speak: jest.fn(), cancel: jest.fn(), pause: jest.fn(), resume: jest.fn(), setRateScale: jest.fn() },
 }));
 jest.mock('./serverVoice', () => ({
+  // the pure helpers are the real ones; only what talks to the server is replaced
+  ...jest.requireActual('./serverVoice'),
   fetchNarration: jest.fn(),
   serverVoiceInfo: jest.fn(),
   silentAudioUrl: jest.fn(),
@@ -447,6 +449,84 @@ describe('the browser voice', () => {
     player.play(0);
     await flush();
     expect(player.state.source).toBe('server');
+  });
+});
+
+describe('when a limit is hit for a language the server voice covers', () => {
+  // The paid service will lift the limits; until then the device's own voice is no stand-in: nothing plays.
+  const covered = (extra = {}) => serverVoiceInfo.mockResolvedValue({ enabled: false, ready: false, covered: true, ...extra });
+
+  beforeEach(() => {
+    covered();
+    player.setQueue(stories(8));
+  });
+
+  test('the day\'s allowance is used up: nothing plays, the listener is told, the device voice is not used', async () => {
+    player.play(0);
+    await flush();
+    expect(ssmlTTS.speak).not.toHaveBeenCalled();
+    expect(fetchNarration).not.toHaveBeenCalled();
+    expect(player.state).toMatchObject({ phase: 'idle', source: null, error: SERVER_VOICE_BUSY });
+  });
+
+  test('too many narrations in the hour (429): nothing plays', async () => {
+    covered({ enabled: true });
+    player.setQueue(stories(9));
+    fetchNarration.mockRejectedValue({ response: { status: 429 } });
+    player.play(0);
+    await flush();
+    expect(ssmlTTS.speak).not.toHaveBeenCalled();
+    expect(player.state).toMatchObject({ phase: 'idle', source: null, error: SERVER_VOICE_BUSY });
+  });
+
+  test('the server refuses (503) or fails half way: nothing plays either', async () => {
+    covered({ enabled: true });
+    player.setQueue(stories(10));
+    fetchNarration.mockRejectedValue({ response: { status: 503 } });
+    player.play(0);
+    await flush();
+    expect(ssmlTTS.speak).not.toHaveBeenCalled();
+    expect(player.state.phase).toBe('idle');
+    expect(player.state.error).toBe(SERVER_VOICE_BUSY);
+  });
+
+  test('a signed-out listener is told to sign in, not left with silence', async () => {
+    covered({ enabled: true });
+    player.setQueue(stories(11));
+    fetchNarration.mockRejectedValue({ response: { status: 401 } });
+    player.play(0);
+    await flush();
+    expect(ssmlTTS.speak).not.toHaveBeenCalled();
+    expect(player.state.error).toBe(SIGN_IN_TO_LISTEN);
+  });
+
+  test('a narration that already exists still plays on a day new ones cannot be made', async () => {
+    covered({ ready: true });
+    player.setQueue(stories(12));
+    player.play(0);
+    await flush();
+    expect(player.state).toMatchObject({ phase: 'playing', source: 'server' });
+    expect(ssmlTTS.speak).not.toHaveBeenCalled();
+  });
+
+  test('a language the server voice does not cover is still read by the device voice', async () => {
+    serverVoiceInfo.mockResolvedValue({ enabled: false, ready: false, covered: false });
+    player.setQueue(stories(13));
+    player.play(0);
+    await flush();
+    expect(ssmlTTS.speak).toHaveBeenCalledTimes(1);
+    expect(player.state).toMatchObject({ phase: 'playing', source: 'browser' });
+  });
+
+  test('a listener can try again after the message', async () => {
+    player.play(0);
+    await flush();
+    expect(player.state.phase).toBe('idle');
+    covered({ enabled: true });
+    player.setQueue(stories(14));
+    player.play(0);
+    await flush();
+    expect(player.state).toMatchObject({ phase: 'playing', source: 'server', error: '' });
   });
 });
 

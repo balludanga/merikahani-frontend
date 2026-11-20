@@ -6,7 +6,9 @@ import { updateMetaTags, generateStructuredData, resetMetaTags } from '../utils/
 import { formatDate, readingMinutes, initials } from '../utils/format';
 import { topicLabel } from '../brand';
 import ssmlTTS from '../utils/ssmlTTS';
-import { fetchNarration, fetchTimings, serverVoiceFor, silentAudioUrl } from '../utils/serverVoice';
+import {
+  fetchNarration, fetchTimings, mayUseDeviceVoice, serverVoiceInfo, silentAudioUrl, whyNoServerVoice,
+} from '../utils/serverVoice';
 import { languageName, speechLocale } from '../languages/registry';
 import { needFonts } from '../languages/fonts';
 import { createFollowAlong } from '../utils/followAlong';
@@ -109,6 +111,9 @@ const PostView = () => {
   const [prepared, setPrepared] = useState(0);
   // Whether the server can narrate in its natural Hindi voice (else the browser's voice).
   const [serverVoice, setServerVoice] = useState(false);
+  // May the device's own voice read this story when the server cannot? Not for a language the server
+  // voice covers: a limit hit there means nothing is played (the paid service will lift the limits).
+  const [deviceVoiceOk, setDeviceVoiceOk] = useState(true);
   const [zoomImage, setZoomImage] = useState(null);
   // Every reader's highlights on this story, each with who made it.
   const [highlights, setHighlights] = useState([]);
@@ -162,10 +167,13 @@ const PostView = () => {
   const listenPostId = post && !post.is_preview ? post.id : null;
   useEffect(() => {
     setServerVoice(false);
+    setDeviceVoiceOk(true);
     if (!listenPostId) return undefined;
     let alive = true;
-    serverVoiceFor(listenPostId).then((usable) => {
-      if (alive) setServerVoice(usable);
+    serverVoiceInfo(listenPostId).then((info) => {
+      if (!alive) return;
+      setServerVoice(info.enabled || info.ready);
+      setDeviceVoiceOk(mayUseDeviceVoice(info));
     });
     return () => {
       alive = false;
@@ -458,10 +466,20 @@ const PostView = () => {
       } catch (error) {
         URL.revokeObjectURL(silent);
         if (run !== listenRun.current) return;
-        // Not set up, quota used, very long story, offline...: use the browser's own voice.
         haltListening();
         setPreparing(false);
+        // A language the server voice covers: a limit (quota used, too many today, a very long story)
+        // means nothing is played. The paid service will lift the limits; the device voice is no stand-in.
+        if (!deviceVoiceOk) {
+          setActionError(whyNoServerVoice(error));
+          return;
+        }
+        // Otherwise (a language it does not cover, or the server could not be reached): the device's voice.
       }
+    }
+    if (!deviceVoiceOk) {
+      setActionError(whyNoServerVoice(null)); // the day's allowance is used up: nothing new can be made
+      return;
     }
     speakInBrowser();
   };
