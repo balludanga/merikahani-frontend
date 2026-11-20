@@ -15,6 +15,69 @@ describe('normalizeWord', () => {
   });
 });
 
+// One sentence in each language's own script (the same sentences the backend tests use).
+const SENTENCES = {
+  hi: 'यह एक कहानी है।', en: 'This is a story.', as: 'এইটো এটা সাধু।', bn: 'এটি একটি গল্প।',
+  brx: 'बे मिथिं बिदा।', doi: 'एह् इक कहानी ऐ।', gu: 'આ એક વાર્તા છે.', kn: 'ಇದು ಒಂದು ಕಥೆ.',
+  ks: 'یہٕ چھُ اکھ کتھ۔', kok: 'ही एक कथा आसा.', mai: 'ई एकटा कथा अछि।', ml: 'ഇത് ഒരു കഥയാണ്.',
+  mni: 'ꯃꯁꯤ ꯂꯥꯛꯄ ꯃꯤꯑꯣꯏꯅꯤ꯫', mr: 'ही एक गोष्ट आहे.', ne: 'यो एउटा कथा हो।', or: 'ଏହା ଏକ ଗଳ୍ପ।',
+  pa: 'ਇਹ ਇੱਕ ਕਹਾਣੀ ਹੈ।', sa: 'इयं कथा अस्ति।', sat: 'ᱱᱚᱶᱟ ᱢᱤᱫ ᱠᱷᱚᱵᱚᱨ ᱾', sd: 'هي هڪ ڪهاڻي آهي.',
+  ta: 'இது ஒரு கதை.', te: 'ఇది ఒక కథ.', ur: 'یہ ایک کہانی ہے۔',
+};
+
+describe('every language the site has', () => {
+  // The band stayed still in Tamil (and every other script but Devanagari) because the words were reduced
+  // to nothing, so nothing could be matched. Each language's words must survive and line up with the page.
+  Object.entries(SENTENCES).forEach(([code, sentence]) => {
+    test(`${code}: no word is reduced to nothing, and the spoken words line up with the page`, () => {
+      const words = sentence.split(/\s+/).filter(Boolean);
+      const reduced = words.map(normalizeWord).filter(Boolean);
+      // a lone Ol Chiki full stop is punctuation; every real word must remain
+      expect(reduced.length).toBeGreaterThanOrEqual(words.length - 1);
+      const spoken = norm(`शीर्षक ${sentence}`);
+      const page = norm(sentence);
+      const map = alignWords(spoken, page, 1);
+      expect(map[0]).toBe(-1); // the title word
+      const matched = map.slice(1).filter((index) => index >= 0);
+      expect(matched).toEqual(page.map((word, index) => (word ? index : -1)).filter((index) => index >= 0));
+    });
+  });
+
+  test('Tamil words from a real narration are all kept', () => {
+    const live = ['எழுதுங்கள்,', 'சம்பாதியுங்கள்:', 'பங்குதாரர்', 'எழுத்தாளராவது', 'எப்படி'];
+    live.forEach((word) => expect(normalizeWord(word).length).toBeGreaterThan(3));
+    expect(normalizeWord('எழுதுங்கள்,')).toBe(normalizeWord('"எழுதுங்கள்"')); // quotes and commas do not matter
+  });
+
+  test('the same word in two scripts is not confused, and Latin is still folded to lower case', () => {
+    expect(normalizeWord('கதை')).not.toBe(normalizeWord('কথা'));
+    expect(normalizeWord('Story,')).toBe('story');
+    expect(normalizeWord('۔')).toBe('');
+    expect(normalizeWord('꯫')).toBe('');
+    expect(normalizeWord('᱾')).toBe('');
+  });
+
+  test('a full stop of any script leaves room for a pause when times are estimated', () => {
+    ['।', '۔', '؟', '᱾', '꯫', '.'].forEach((stop) => {
+      const times = estimateTimes([`एक${stop}`, 'दो', 'तीन'], 10);
+      const flat = estimateTimes(['एक', 'दो', 'तीन'], 10);
+      expect(times[1]).toBeGreaterThan(flat[1]); // the word after the stop starts later
+    });
+  });
+
+  test('the follow-along band finds a Tamil word on the page', () => {
+    const root = document.createElement('div');
+    root.innerHTML = '<p>இது ஒரு கதை. மழை பெய்தது.</p>';
+    document.body.appendChild(root);
+    const follow = createFollowAlong(root);
+    follow.setSpoken(['தலைப்பு', 'இது', 'ஒரு', 'கதை.', 'மழை', 'பெய்தது.'], 1);
+    follow.moveTo(4);
+    expect(follow.current()).toBe('மழை');
+    follow.stop();
+    root.remove();
+  });
+});
+
 describe('alignWords', () => {
   test('identical text maps word to word', () => {
     expect(alignWords(norm('एक दो तीन'), norm('एक दो तीन'))).toEqual([0, 1, 2]);

@@ -31,12 +31,17 @@ const LOOKAHEAD = 0.05;
 const PAD_X = 3;
 const PAD_Y = 1;
 
-/** A word reduced to what is heard: no punctuation, quote marks or nukta, one spelling. */
+/**
+ * A word reduced to what is heard: no punctuation, quote marks or nukta, one spelling. It keeps the
+ * letters, vowel signs and digits of EVERY script (Tamil, Bengali, Arabic, Ol Chiki, ...): the
+ * spoken words and the page words are both reduced this way, and a script that was reduced to
+ * nothing would match nothing, so the band would never move.
+ */
 export function normalizeWord(word) {
   return String(word)
     .normalize('NFD')
     .replace(/[़‌‍]/g, '')
-    .replace(/[^ऀ-ॣ०-ॿa-zA-Z0-9]/g, '')
+    .replace(/[^\p{L}\p{M}\p{N}]/gu, '')
     .toLowerCase();
 }
 
@@ -126,11 +131,12 @@ export function indexAt(times, at) {
 // Room for the pause after a word, in "letters" of speaking time (same figures as the server).
 const PAUSE_WEIGHT = { clause: 4.5, sentence: 11 };
 
-const letters = (word) => Math.max(1, (word.match(/[ऀ-ॣ०-ॿ\w]/g) || []).length);
+const letters = (word) => Math.max(1, (word.match(/[\p{L}\p{M}\p{N}]/gu) || []).length);
 
+// Full stops: danda, the Arabic question mark and full stop (Urdu, Kashmiri, Sindhi), Ol Chiki, Meetei Mayek.
 function pauseAfter(word) {
-  if (/[।॥?!][”"’)]*$|\.[”"’)]*$/.test(word)) return PAUSE_WEIGHT.sentence;
-  if (/[,;:—–…][”"’)]*$/.test(word)) return PAUSE_WEIGHT.clause;
+  if (/[।॥?!؟۔᱾꯫][”"’)]*$|\.[”"’)]*$/.test(word)) return PAUSE_WEIGHT.sentence;
+  if (/[,;:—–…،؛][”"’)]*$/.test(word)) return PAUSE_WEIGHT.clause;
   return 0;
 }
 

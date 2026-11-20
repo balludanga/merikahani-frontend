@@ -236,7 +236,7 @@ function splitForSpeech(text, max = MAX_CHUNK) {
   };
 
   text.split(/\n+/).forEach((line) => {
-    const sentences = line.match(/.+?(?:[।॥?!]+[”"’]*|\.[”"’]*(?=\s|$)|$)\s*/g) || [];
+    const sentences = line.match(/.+?(?:[।॥?!؟۔᱾꯫]+[”"’]*|\.[”"’]*(?=\s|$)|$)\s*/g) || [];
     let current = '';
     sentences.forEach((sentence) => {
       const piece = sentence.trim();
@@ -338,7 +338,7 @@ function planNarration(text, { rate = 0.9, pitch = 1.0, volume = 1.0, title = ''
     pause(blankLines > 0 ? PAUSE.section : PAUSE.paragraph);
     blankLines = 0;
 
-    const sentences = line.match(/.+?(?:[।॥?!]+[”"’]*|\.[”"’]*(?=\s|$)|$)\s*/g) || [];
+    const sentences = line.match(/.+?(?:[।॥?!؟۔᱾꯫]+[”"’]*|\.[”"’]*(?=\s|$)|$)\s*/g) || [];
     sentences.forEach((sentence) => {
       // Clauses at commas / colons / dashes / quote marks; one too short to say alone joins the next.
       const clauses = sentence.match(/[^,;:—–…“”"‘’]+(?:[,;:—–…“”"‘’]+|$)/g) || [sentence];
@@ -708,9 +708,9 @@ class SSMLTTSEngine {
       if (follow.seen || session !== this.session) return;
       const tokens = segment.text.match(/\S+/g) || [];
       const weights = tokens.map((token) => {
-        const letters = (token.match(/[\u0900-\u0963\u0966-\u097F\w]/g) || []).length || 1;
-        if (/[।॥?!][”"’)]*$|\.[”"’)]*$/.test(token)) return letters + 6;
-        if (/[,;:—–…][”"’)]*$/.test(token)) return letters + 2.5;
+        const letters = (token.match(/[\p{L}\p{M}\p{N}]/gu) || []).length || 1;
+        if (/[।॥?!؟۔᱾꯫][”"’)]*$|\.[”"’)]*$/.test(token)) return letters + 6;
+        if (/[,;:—–…،؛][”"’)]*$/.test(token)) return letters + 2.5;
         return letters;
       });
       const total = weights.reduce((a, b) => a + b, 0) || 1;

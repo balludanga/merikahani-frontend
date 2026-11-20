@@ -46,6 +46,16 @@ describe('splitForSpeech', () => {
     expect(pieces.join(' ')).toBe(words);
   });
 
+  test('breaks at the full stop of every script: Urdu, Ol Chiki and Meetei Mayek as well as the danda', () => {
+    [['یہ ایک کہانی ہے۔', '۔'], ['ᱱᱚᱶᱟ ᱢᱤᱫ ᱠᱷᱚᱵᱚᱨ ᱾', '᱾'], ['ꯃꯁꯤ ꯂꯥꯛꯄ ꯃꯤꯑꯣꯏꯅꯤ꯫', '꯫'], ['यह क्या है؟', '؟']].forEach(([sentence, stop]) => {
+      const text = Array(30).fill(sentence).join(' ');
+      const pieces = splitForSpeech(text);
+      expect(pieces.length).toBeGreaterThan(1);
+      pieces.forEach((p) => expect(p.endsWith(stop)).toBe(true)); // cut at sentence ends, never in the middle of one
+      expect(pieces.join(' ')).toBe(text);
+    });
+  });
+
   test('line breaks separate pieces and a decimal point does not', () => {
     expect(splitForSpeech('पहली पंक्ति\n\nदूसरी पंक्ति')).toEqual(['पहली पंक्ति', 'दूसरी पंक्ति']);
     expect(splitForSpeech('कीमत 3.5 रुपये थी।')).toEqual(['कीमत 3.5 रुपये थी।']);
